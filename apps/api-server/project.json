@@ -1,7 +1,7 @@
 {
-  "name": "mock-pmm",
+  "name": "api-server",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "apps/mock-pmm/src",
+  "sourceRoot": "apps/api-server/src",
   "projectType": "application",
   "tags": [],
   "targets": {
@@ -10,15 +10,15 @@
       "defaultConfiguration": "development",
       "dependsOn": ["build"],
       "options": {
-        "buildTarget": "mock-pmm:build",
+        "buildTarget": "api-server:build",
         "runBuildTargetDependencies": false
       },
       "configurations": {
         "development": {
-          "buildTarget": "mock-pmm:build:development"
+          "buildTarget": "api-server:build:development"
         },
         "production": {
-          "buildTarget": "mock-pmm:build:production"
+          "buildTarget": "api-server:build:production"
         }
       }
     }

@@ -34,7 +34,7 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["apps/mock-pmm-e2e/**/*"]
+      "exclude": ["apps/api-server-e2e/**/*"]
     }
   ]
 }
