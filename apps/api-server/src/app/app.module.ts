@@ -2,8 +2,9 @@ import { LoggerModule } from 'nestjs-pino';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import pretty from 'pino-pretty';
 
+import { ReqModule } from '@bitfi-mock-pmm/req';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AppController } from './app.controller';
 
@@ -24,6 +25,14 @@ import { AppController } from './app.controller';
           },
         },
       },
+    }),
+    ReqModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        timeout: 30000,
+      }),
+      inject: [ConfigService],
+      serviceKey: 'APP_REQ_SERVICE',
     }),
   ],
   controllers: [AppController],
