@@ -13,11 +13,20 @@ export class TradeService {
   constructor(private db: DatabaseService) {}
 
   async createTrade(data: CreateTradeDto): Promise<Trade> {
+    const createData = {
+      tradeId: data.tradeId,
+      fromTokenId: data.fromTokenId,
+      fromNetworkId: data.fromNetworkId,
+      toTokenId: data.toTokenId,
+      toNetworkId: data.toNetworkId,
+      fromUser: data.fromUser,
+      toUser: data.toUser,
+      amount: data.amount,
+      status: TradeStatus.PENDING,
+    };
+
     return this.db.trade.create({
-      data: {
-        ...data,
-        status: TradeStatus.PENDING,
-      },
+      data: createData,
     });
   }
 

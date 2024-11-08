@@ -1,1 +1,1 @@
-export * from './lib/quote.module';
+export * from './quote.module';

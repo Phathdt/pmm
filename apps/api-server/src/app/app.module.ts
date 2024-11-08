@@ -7,6 +7,7 @@ import { TokenModule } from '@bitfi-mock-pmm/token';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
+import { QuoteModule } from '@bitfi-mock-pmm/quote';
 import { AppController } from './app.controller';
 
 @Module({
@@ -41,6 +42,7 @@ import { AppController } from './app.controller';
       inject: [ConfigService],
     }),
     TokenModule,
+    QuoteModule,
   ],
   controllers: [AppController],
   providers: [],
