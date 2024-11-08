@@ -4,6 +4,7 @@ import { ethers } from 'ethers';
 import { Token, TokenPrice, TokenRepository } from '@bitfi-mock-pmm/token';
 import { TradeService } from '@bitfi-mock-pmm/trade';
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import {
   CommitmentQuoteResponseDto,
@@ -14,13 +15,31 @@ import {
 
 @Injectable()
 export class QuoteService {
-  private readonly PMM_ADDRESS = 'tb123';
+  private readonly EVM_ADDRESS: string;
+  private readonly BTC_ADDRESS: string;
 
   constructor(
+    private readonly configService: ConfigService,
     private readonly tokenRepo: TokenRepository,
     private readonly tradeService: TradeService
-  ) {}
+  ) {
+    this.EVM_ADDRESS = this.configService.getOrThrow<string>('PMM_EVM_ADDRESS');
+    this.BTC_ADDRESS = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS');
+  }
 
+  private getPmmAddressByNetworkType(token: Token): string {
+    switch (token.networkType.toUpperCase()) {
+      case 'EVM':
+        return this.EVM_ADDRESS;
+      case 'BTC':
+      case 'TBTC':
+        return this.BTC_ADDRESS;
+      default:
+        throw new BadRequestException(
+          `Unsupported network type: ${token.networkType}`
+        );
+    }
+  }
   private generateSessionId(): string {
     return crypto.randomBytes(16).toString('hex');
   }
@@ -84,9 +103,11 @@ export class QuoteService {
         toTokenPrice
       );
 
+      const pmmAddress = this.getPmmAddressByNetworkType(toToken);
+
       return {
         sessionId,
-        pmmReceivingAddress: this.PMM_ADDRESS,
+        pmmReceivingAddress: pmmAddress,
         indicativeQuote: quote,
         error: '',
       };
