@@ -5,6 +5,7 @@ COPY package.json .
 COPY yarn.lock .
 RUN yarn install
 COPY . .
+RUN yarn prisma generate
 RUN yarn build
 
 # Deployment environment
@@ -13,9 +14,11 @@ FROM node:22-alpine
 WORKDIR /app
 RUN apk update && apk add --no-cache curl
 
+COPY --from=builder ./app/prisma .
 COPY --from=builder ./app/dist/apps/api-server .
 COPY --from=builder ./app/apps/api-server/run.sh .
-RUN yarn add zod
 RUN yarn install --production
+RUN yarn add prisma@5.20.0
+RUN yarn prisma generate
 
 ENTRYPOINT sh run.sh
