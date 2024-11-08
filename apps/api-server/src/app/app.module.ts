@@ -4,11 +4,12 @@ import { PrismaModule, PrismaServiceOptions } from 'nestjs-prisma';
 import pretty from 'pino-pretty';
 
 import { QuoteModule } from '@bitfi-mock-pmm/quote';
+import { SettlementModule } from '@bitfi-mock-pmm/settlement';
 import { TokenModule } from '@bitfi-mock-pmm/token';
+import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
-import { SettlementModule } from '@bitfi-mock-pmm/settlement';
 import { AppController } from './app.controller';
 
 @Module({
@@ -40,6 +41,13 @@ import { AppController } from './app.controller';
           },
         };
       },
+      inject: [ConfigService],
+    }),
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        redis: configService.getOrThrow('REDIS_URL'),
+      }),
       inject: [ConfigService],
     }),
     TokenModule,
