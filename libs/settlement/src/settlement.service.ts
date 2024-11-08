@@ -52,6 +52,7 @@ export class SettlementService {
         TradeStatus.COMMITTED
       );
 
+      // TODO: update signature
       const signature = await this.generateSignature(
         dto.tradeId,
         dto.committedQuote,

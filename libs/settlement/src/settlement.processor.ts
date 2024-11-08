@@ -80,6 +80,7 @@ export class SettlementProcessor {
         paymentTxHash
       );
 
+      // TODO: req to solver real
       this.logger.log(`Processing makePayment for trade ${tradeId} completed`);
     } catch (error) {
       this.logger.error(`Processing selectPMM event: ${error}`);
