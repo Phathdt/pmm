@@ -16,6 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "@bitfi-mock-pmm/database": ["libs/database/src/index.ts"],
+      "@bitfi-mock-pmm/quote": ["libs/quote/src/index.ts"],
       "@bitfi-mock-pmm/req": ["libs/req/src/index.ts"],
       "@bitfi-mock-pmm/shared": ["libs/shared/src/index.ts"],
       "@bitfi-mock-pmm/token": ["libs/token/src/index.ts"],
