@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
-import { TradeService } from '../trade.service';
+import { TradeService } from './trade.service';
 
 @Injectable()
 export class TradeExistsGuard implements CanActivate {

@@ -3,11 +3,12 @@ import { PrismaModule, PrismaServiceOptions } from 'nestjs-prisma';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import pretty from 'pino-pretty';
 
+import { QuoteModule } from '@bitfi-mock-pmm/quote';
 import { TokenModule } from '@bitfi-mock-pmm/token';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
-import { QuoteModule } from '@bitfi-mock-pmm/quote';
+import { SettlementModule } from '@bitfi-mock-pmm/settlement';
 import { AppController } from './app.controller';
 
 @Module({
@@ -43,6 +44,7 @@ import { AppController } from './app.controller';
     }),
     TokenModule,
     QuoteModule,
+    SettlementModule,
   ],
   controllers: [AppController],
   providers: [],
