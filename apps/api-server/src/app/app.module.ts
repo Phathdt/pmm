@@ -1,8 +1,9 @@
 import { LoggerModule } from 'nestjs-pino';
+import { PrismaModule, PrismaServiceOptions } from 'nestjs-prisma';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import pretty from 'pino-pretty';
 
-import { ReqModule } from '@bitfi-mock-pmm/req';
+import { TokenModule } from '@bitfi-mock-pmm/token';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
@@ -26,14 +27,20 @@ import { AppController } from './app.controller';
         },
       },
     }),
-    ReqModule.registerAsync({
+    PrismaModule.forRootAsync({
+      isGlobal: true,
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        timeout: 30000,
-      }),
+      useFactory(configService: ConfigService): PrismaServiceOptions {
+        return {
+          prismaOptions: {
+            log: [configService.getOrThrow('LOG_LEVEL')],
+            datasourceUrl: configService.getOrThrow('DATABASE_URL'),
+          },
+        };
+      },
       inject: [ConfigService],
-      serviceKey: 'APP_REQ_SERVICE',
     }),
+    TokenModule,
   ],
   controllers: [AppController],
   providers: [],
