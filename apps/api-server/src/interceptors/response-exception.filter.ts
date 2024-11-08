@@ -40,8 +40,8 @@ export class ResponseExceptionFilter implements ExceptionFilter {
 
     response.status(status).header('X-Trace-Id', traceId).json({
       statusCode: status,
-      message: message,
-      error: error,
+      message: error,
+      error: message,
       traceId: traceId,
     });
   }
