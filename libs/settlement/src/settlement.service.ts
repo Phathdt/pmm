@@ -52,18 +52,6 @@ export class SettlementService {
         TradeStatus.COMMITTED
       );
 
-      const committedQuoteBigInt = ethers.getBigInt(dto.committedQuote);
-      const settlementQuoteBigInt = ethers.getBigInt(dto.settlementQuote);
-      const slippagePercent =
-        ((committedQuoteBigInt - settlementQuoteBigInt) * 100n) /
-        committedQuoteBigInt;
-
-      if (slippagePercent > 1n) {
-        throw new BadRequestException(
-          'Settlement quote exceeds maximum slippage'
-        );
-      }
-
       const signature = await this.generateSignature(
         dto.tradeId,
         dto.committedQuote,
