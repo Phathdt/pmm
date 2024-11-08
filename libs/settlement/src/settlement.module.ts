@@ -1,6 +1,7 @@
 import { redisStore } from 'cache-manager-redis-yet';
 import { RedisClientOptions } from 'redis';
 
+import { ReqModule } from '@bitfi-mock-pmm/req';
 import { TokenModule } from '@bitfi-mock-pmm/token';
 import { TradeModule } from '@bitfi-mock-pmm/trade';
 import { BullModule } from '@nestjs/bull';
@@ -26,6 +27,15 @@ import { BTCTransferStrategy, EVMTransferStrategy } from './strategies';
         }),
       }),
       inject: [ConfigService],
+    }),
+    ReqModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        baseUrl: configService.getOrThrow<string>('SOLVER_URL'),
+        timeout: 30000,
+      }),
+      inject: [ConfigService],
+      serviceKey: 'SOLVER_REQ_SERVICE',
     }),
     BullModule.registerQueue({ name: 'router-select-pmm-events' }),
     TradeModule,

@@ -1,17 +1,18 @@
 import { Job } from 'bull';
 import { ethers, toBeHex } from 'ethers';
 
-import { toObject } from '@bitfi-mock-pmm/shared';
+import { ReqService } from '@bitfi-mock-pmm/req';
+import { toObject, toString } from '@bitfi-mock-pmm/shared';
 import { TokenRepository } from '@bitfi-mock-pmm/token';
 import { ITypes, Router, Router__factory } from '@bitfi-mock-pmm/typechains';
 import { Process, Processor } from '@nestjs/bull';
-import { Logger } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { TransferFactory } from './factories';
 import { getMakePaymentHash } from './signatures/getInfoHash';
 import getSignature, { SignatureType } from './signatures/getSignature';
-import { SelectPMMEvent } from './types';
+import { SelectPMMEvent, SubmitSettlementTxResponse } from './types';
 import { decodeAddress } from './utils';
 
 @Processor('router-select-pmm-events')
@@ -26,7 +27,9 @@ export class SettlementProcessor {
   constructor(
     private configService: ConfigService,
     private tokenRepo: TokenRepository,
-    private transferFactory: TransferFactory
+    private transferFactory: TransferFactory,
+    @Inject('SOLVER_REQ_SERVICE')
+    private readonly reqService: ReqService
   ) {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
     const contractAddress = this.configService.getOrThrow<string>(
@@ -71,17 +74,24 @@ export class SettlementProcessor {
         makePaymentInfoHash,
         SignatureType.MakePayment
       );
-      console.log(
-        '🚀 ~ SelectPMMProcessor ~ handleSelectPMMEvent ~ signature:',
-        signature
-      );
-      console.log(
-        '🚀 ~ SelectPMMProcessor ~ handleSelectPMMEvent ~ paymentTxHash:',
-        paymentTxHash
-      );
 
-      // TODO: req to solver real
-      this.logger.log(`Processing makePayment for trade ${tradeId} completed`);
+      const response = await this.reqService.post<SubmitSettlementTxResponse>({
+        url: '/submit-settlement-tx',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        data: {
+          tradeId: tradeId,
+          pmmId: pmmId,
+          settlementTx: paymentTxHash,
+          signature: signature,
+        },
+      });
+
+      this.logger.log(
+        `response from solver for ${tradeId}: ${toString(response)}`
+      );
+      this.logger.log(`Processing selectPMM for trade ${tradeId} completed`);
     } catch (error) {
       this.logger.error(`Processing selectPMM event: ${error}`);
     }
