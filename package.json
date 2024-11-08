@@ -4,7 +4,16 @@
   "license": "MIT",
   "scripts": {
     "start": "nx serve api-server",
-    "build": "nx build api-server"
+    "build": "nx build api-server",
+    "migrate:dev": "prisma migrate dev --preview-feature",
+    "migrate:dev:create": "prisma migrate dev --create-only --preview-feature",
+    "migrate:reset": "prisma migrate reset --preview-feature",
+    "migrate:deploy": "npx prisma migrate deploy --preview-feature",
+    "migrate:status": "npx prisma migrate status --preview-feature",
+    "migrate:resolve": "npx prisma migrate resolve --preview-feature",
+    "prisma:studio": "npx prisma studio",
+    "prisma:generate": "npx prisma generate",
+    "prisma:generate:watch": "npx prisma generate --watch"
   },
   "private": true,
   "dependencies": {
@@ -14,8 +23,10 @@
     "@nestjs/core": "^10.0.2",
     "@nestjs/platform-express": "^10.0.2",
     "@nestjs/swagger": "^8.0.2",
+    "@prisma/client": "^5.22.0",
     "axios": "^1.7.7",
     "nestjs-pino": "^4.1.0",
+    "nestjs-prisma": "^0.23.0",
     "nestjs-zod": "^4.2.0",
     "pino": "^9.5.0",
     "pino-http": "^10.3.0",
@@ -49,6 +60,7 @@
     "jest-environment-node": "^29.7.0",
     "nx": "20.0.9",
     "prettier": "^2.6.2",
+    "prisma": "^5.22.0",
     "ts-jest": "^29.1.0",
     "ts-node": "10.9.1",
     "tslib": "^2.3.0",
