@@ -23,7 +23,6 @@ export class SettlementController {
     @Query() query: GetSettlementSignatureDto,
     @Req() req: any
   ) {
-    // trade đã được gắn vào req bởi guard
     return this.settlementService.getSettlementSignature(query, req.trade);
   }
 

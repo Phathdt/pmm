@@ -13,7 +13,7 @@ export class TradeExistsGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const tradeId = request.params.tradeId;
+    const tradeId = request.params.trade_id || request.query.trade_id;
 
     const trade = await this.tradeService.findTradeById(tradeId);
     if (!trade) {
@@ -21,6 +21,7 @@ export class TradeExistsGuard implements CanActivate {
     }
 
     request.trade = trade;
+
     return true;
   }
 }
