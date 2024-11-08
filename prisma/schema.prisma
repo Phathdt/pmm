@@ -8,23 +8,32 @@ generator client {
   previewFeatures = []
 }
 
+enum TradeStatus {
+  PENDING
+  QUOTE_PROVIDED
+  COMMITTED
+  SETTLING
+  COMPLETED
+  FAILED
+}
+
 model Trade {
-  id               Int     @id @default(autoincrement())
-  tradeId          String  @unique @map("trade_id")
-  fromTokenId      String  @map("from_token_id")
-  fromNetworkId    String  @map("from_network_id")
-  toTokenId        String  @map("to_token_id")
-  toNetworkId      String  @map("to_network_id")
-  fromUser         String  @map("from_user")
-  toUser           String  @map("to_user")
-  amount           String  @map("amount")
-  indicativeQuote  String? @map("indicative_quote")
-  commitmentQuote  String? @map("commitment_quote")
-  settlementQuote  String? @map("settlement_quote")
-  executedPriceUsd Float?  @map("executed_price_usd")
-  settlementTx     String? @map("settlement_tx")
-  status           String  @default("PENDING") @map("status")
-  error            String? @map("error")
+  id               Int         @id @default(autoincrement())
+  tradeId          String      @unique @map("trade_id")
+  fromTokenId      String      @map("from_token_id")
+  fromNetworkId    String      @map("from_network_id")
+  toTokenId        String      @map("to_token_id")
+  toNetworkId      String      @map("to_network_id")
+  fromUser         String      @map("from_user")
+  toUser           String      @map("to_user")
+  amount           String      @map("amount")
+  indicativeQuote  String?     @map("indicative_quote")
+  commitmentQuote  String?     @map("commitment_quote")
+  settlementQuote  String?     @map("settlement_quote")
+  executedPriceUsd Float?      @map("executed_price_usd")
+  settlementTx     String?     @map("settlement_tx")
+  status           TradeStatus @default(PENDING) @map("status")
+  error            String?     @map("error")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
