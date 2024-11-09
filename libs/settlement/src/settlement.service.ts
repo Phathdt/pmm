@@ -1,6 +1,7 @@
 import * as ethers from 'ethers';
 
 import { TradeService } from '@bitfi-mock-pmm/trade';
+import { Router, Router__factory } from '@bitfi-mock-pmm/typechains';
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Trade, TradeStatus } from '@prisma/client';
@@ -11,35 +12,31 @@ import {
   GetSettlementSignatureDto,
   SettlementSignatureResponseDto,
 } from './settlement.dto';
+import { getCommitInfoHash } from './signatures/getInfoHash';
+import getSignature, { SignatureType } from './signatures/getSignature';
 
 @Injectable()
 export class SettlementService {
-  private readonly signer: ethers.Wallet;
+  private readonly pmmWallet: ethers.Wallet;
+  private contract: Router;
+  private provider: ethers.JsonRpcProvider;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly tradeService: TradeService
   ) {
+    const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
     const pmmPrivateKey =
       this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
-    this.signer = new ethers.Wallet(pmmPrivateKey);
-  }
 
-  private async generateSignature(
-    tradeId: string,
-    committedQuote: string,
-    settlementQuote: string
-  ): Promise<string> {
-    const messageHash = ethers.solidityPackedKeccak256(
-      ['string', 'uint256', 'uint256'],
-      [tradeId, committedQuote, settlementQuote]
+    const contractAddress = this.configService.getOrThrow<string>(
+      'ROUTER_CONTRACT_ADDRESS'
     );
 
-    const signature = await this.signer.signMessage(
-      ethers.getBytes(messageHash)
-    );
+    this.provider = new ethers.JsonRpcProvider(rpcUrl);
+    this.pmmWallet = new ethers.Wallet(pmmPrivateKey, this.provider);
 
-    return signature;
+    this.contract = Router__factory.connect(contractAddress, this.pmmWallet);
   }
 
   async getSettlementSignature(
@@ -52,24 +49,55 @@ export class SettlementService {
         TradeStatus.COMMITTED
       );
 
-      // TODO: update signature
-      const signature = await this.generateSignature(
-        dto.tradeId,
-        dto.committedQuote,
-        dto.settlementQuote
+      const { tradeId } = trade;
+
+      const pmmId = ethers.toBeHex(this.pmmWallet.address, 32);
+
+      const presigns = await this.contract.getPresigns(tradeId);
+      const tradeData = await this.contract.getTradeData(tradeId);
+      const pmmSelection = await this.contract.getPMMSelection(tradeId);
+
+      const { pmmInfo } = pmmSelection;
+      const { toChain } = tradeData.tradeInfo;
+      const { scriptTimeout } = tradeData.scriptInfo;
+      const { rfqInfo } = pmmSelection;
+
+      if (pmmInfo.selectedPMMId !== pmmId) {
+        throw new BadRequestException('selectedPMMId not match');
+      }
+
+      const pmmPresign = presigns.find((t) => t.pmmId === pmmId);
+      if (!pmmPresign) {
+        throw new BadRequestException('pmmPresign not found');
+      }
+
+      const commitInfoHash = getCommitInfoHash(
+        pmmPresign.pmmId,
+        pmmPresign.pmmRecvAddress,
+        toChain[1],
+        toChain[2],
+        rfqInfo.minAmountOut,
+        scriptTimeout
       );
 
-      await this.tradeService.updateTradeQuote(dto.tradeId, {
+      const signerAddress = await this.contract.SIGNER();
+      const signature = await getSignature(
+        this.pmmWallet,
+        this.provider,
+        signerAddress,
+        tradeId,
+        commitInfoHash,
+        SignatureType.VerifyingContract
+      );
+
+      await this.tradeService.updateTradeQuote(tradeId, {
         settlementQuote: dto.settlementQuote,
       });
 
-      await this.tradeService.updateTradeStatus(
-        dto.tradeId,
-        TradeStatus.SETTLING
-      );
+      await this.tradeService.updateTradeStatus(tradeId, TradeStatus.SETTLING);
 
       return {
-        tradeId: dto.tradeId,
+        tradeId: tradeId,
         signature,
         error: '',
       };

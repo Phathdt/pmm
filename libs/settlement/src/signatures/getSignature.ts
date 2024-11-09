@@ -17,6 +17,7 @@ import {
   presignType,
   rfqAuthenticationTypes,
   selectionType,
+  verifyingContractType,
 } from './types';
 
 export enum SignatureType {
@@ -27,12 +28,15 @@ export enum SignatureType {
   MakePayment,
   ConfirmPayment,
   ConfirmSettlement,
+  VerifyingContract,
 }
 
 function getSignatureType(type: SignatureType): any {
   if (type === SignatureType.Presign) return presignType;
   else if (type === SignatureType.ConfirmDeposit) return confirmDepositType;
   else if (type === SignatureType.SelectPMM) return selectionType;
+  else if (type === SignatureType.VerifyingContract)
+    return verifyingContractType;
   else if (type === SignatureType.RFQ) return rfqAuthenticationTypes;
   else if (type === SignatureType.MakePayment) return makePaymentType;
   else if (type === SignatureType.ConfirmPayment) return confirmPaymentType;
@@ -47,18 +51,18 @@ export async function getSigner(
   tradeId: BytesLike,
   infoHash: BytesLike,
   type: SignatureType,
-  signature: string,
+  signature: string
 ) {
   const values = { tradeId: tradeId, infoHash: infoHash };
   const contractDomain: TypedDataDomain = await defaultDomain(
     signerHelper,
-    provider,
+    provider
   );
   return verifyTypedData(
     contractDomain,
     getSignatureType(type),
     values,
-    signature,
+    signature
   );
 }
 
@@ -69,16 +73,16 @@ export default async function getSignature(
   tradeId: BytesLike,
   infoHash: BytesLike,
   type: SignatureType,
-  domain?: TypedDataDomain,
+  domain?: TypedDataDomain
 ): Promise<string> {
   const contractDomain: TypedDataDomain = await defaultDomain(
     signerHelper,
-    provider,
+    provider
   );
   const values = { tradeId: tradeId, infoHash: infoHash };
   return await Signer.signTypedData(
     domain ?? contractDomain,
     getSignatureType(type),
-    values,
+    values
   );
 }
