@@ -53,18 +53,13 @@ export class SettlementService {
 
       const pmmId = ethers.toBeHex(this.pmmWallet.address, 32);
 
-      const presigns = await this.contract.getPresigns(tradeId);
-      const tradeData = await this.contract.getTradeData(tradeId);
-      const pmmSelection = await this.contract.getPMMSelection(tradeId);
+      const [presigns, tradeData] = await Promise.all([
+        this.contract.getPresigns(tradeId),
+        this.contract.getTradeData(tradeId),
+      ]);
 
-      const { pmmInfo } = pmmSelection;
       const { toChain } = tradeData.tradeInfo;
       const { scriptTimeout } = tradeData.scriptInfo;
-      const { rfqInfo } = pmmSelection;
-
-      if (pmmInfo.selectedPMMId !== pmmId) {
-        throw new BadRequestException('selectedPMMId not match');
-      }
 
       const pmmPresign = presigns.find((t) => t.pmmId === pmmId);
       if (!pmmPresign) {
@@ -76,7 +71,7 @@ export class SettlementService {
         pmmPresign.pmmRecvAddress,
         toChain[1],
         toChain[2],
-        rfqInfo.minAmountOut,
+        BigInt(dto.settlementQuote),
         scriptTimeout
       );
 

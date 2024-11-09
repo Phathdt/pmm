@@ -123,10 +123,12 @@ export function getCommitInfoHash(
   amountOut: bigint,
   expiry: bigint
 ): string {
-  const encodedData = abiCoder.encode(
-    ['bytes32', 'bytes', 'bytes', 'bytes', 'uint256', 'uint64'],
-    [pmmId, pmmRecvAddr, toChain, toToken, amountOut, expiry]
+  const infoHash: string = keccak256(
+    abiCoder.encode(
+      ['bytes32', 'bytes', 'bytes', 'bytes', 'uint256', 'uint64'],
+      [pmmId, pmmRecvAddr, toChain, toToken, amountOut, expiry]
+    )
   );
 
-  return keccak256(encodedData);
+  return infoHash;
 }
