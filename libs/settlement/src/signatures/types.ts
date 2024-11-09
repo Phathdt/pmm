@@ -19,13 +19,6 @@ export const selectionType = {
   ],
 };
 
-export const verifyingContractType = {
-  Selection: [
-    { name: 'tradeId', type: 'bytes32' },
-    { name: 'infoHash', type: 'bytes32' },
-  ],
-};
-
 export const rfqAuthenticationTypes = {
   Authentication: [
     { name: 'tradeId', type: 'bytes32' },
