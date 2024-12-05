@@ -12,6 +12,10 @@ export const CreateTradeSchema = z.object({
   fromUser: z.string(),
   toUser: z.string(),
   amount: z.string(),
+  userDepositTx: z.string(),
+  userDepositVault: z.string(),
+  tradeDeadline: z.string(),
+  scriptDeadline: z.string(),
 });
 
 export class CreateTradeDto extends createZodDto(CreateTradeSchema) {}

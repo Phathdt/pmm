@@ -1,7 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
-// Indicative Quote DTOs
 export const GetIndicativeQuoteSchema = z.object({
   fromToken: z.string(),
   toToken: z.string(),
@@ -24,7 +23,6 @@ export type IndicativeQuoteResponse = z.infer<
   typeof IndicativeQuoteResponseSchema
 >;
 
-// Commitment Quote DTOs
 export const GetCommitmentQuoteSchema = z.object({
   tradeId: z.string(),
   fromToken: z.string(),
@@ -32,6 +30,10 @@ export const GetCommitmentQuoteSchema = z.object({
   amount: z.string(),
   fromUser: z.string(),
   toUser: z.string(),
+  userDepositTx: z.string(),
+  userDepositVault: z.string(),
+  tradeDeadline: z.string(),
+  scriptDeadline: z.string(),
 });
 
 export class GetCommitmentQuoteDto extends createZodDto(

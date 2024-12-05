@@ -160,6 +160,10 @@ export class QuoteService {
           amount: dto.amount,
           fromNetworkId: fromToken.networkId,
           toNetworkId: toToken.networkId,
+          userDepositTx: dto.userDepositTx,
+          userDepositVault: dto.userDepositVault,
+          tradeDeadline: dto.tradeDeadline,
+          scriptDeadline: dto.scriptDeadline,
         })
         .catch((error) => {
           throw new BadRequestException(

@@ -23,6 +23,10 @@ export class TradeService {
       toUser: data.toUser,
       amount: data.amount,
       status: TradeStatus.PENDING,
+      userDepositTx: data.userDepositTx,
+      userDepositVault: data.userDepositVault,
+      tradeDeadline: data.tradeDeadline,
+      scriptDeadline: data.scriptDeadline,
     };
 
     return this.db.trade.create({
