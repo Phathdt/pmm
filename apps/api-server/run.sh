@@ -2,6 +2,6 @@
 
 echo "Start server..."
 
-yarn prisma migrate dev
+yarn prisma migrate deploy
 
 node main.js
