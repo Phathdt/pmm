@@ -26,9 +26,8 @@ export class SettlementWatcher implements OnModuleInit {
     private selectPMMEventsQueue: Queue
   ) {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
-    const contractAddress = this.configService.getOrThrow<string>(
-      'ROUTER_CONTRACT_ADDRESS'
-    );
+    const contractAddress =
+      this.configService.getOrThrow<string>('ROUTER_ADDRESS');
 
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
     this.contract = Router__factory.connect(contractAddress, this.provider);

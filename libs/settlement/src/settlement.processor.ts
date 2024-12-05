@@ -32,9 +32,8 @@ export class SettlementProcessor {
     private readonly reqService: ReqService
   ) {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
-    const contractAddress = this.configService.getOrThrow<string>(
-      'ROUTER_CONTRACT_ADDRESS'
-    );
+    const contractAddress =
+      this.configService.getOrThrow<string>('ROUTER_ADDRESS');
     this.pmmPrivateKey = this.configService.getOrThrow<string>(
       'PMM_BTC_PRIVATE_KEY'
     );

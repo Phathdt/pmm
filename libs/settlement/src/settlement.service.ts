@@ -29,9 +29,8 @@ export class SettlementService {
     const pmmPrivateKey =
       this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
 
-    const contractAddress = this.configService.getOrThrow<string>(
-      'ROUTER_CONTRACT_ADDRESS'
-    );
+    const contractAddress =
+      this.configService.getOrThrow<string>('ROUTER_ADDRESS');
 
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
     this.pmmWallet = new ethers.Wallet(pmmPrivateKey, this.provider);
