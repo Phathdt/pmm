@@ -1,3 +1,6 @@
+-- CreateEnum
+CREATE TYPE "TradeStatus" AS ENUM ('PENDING', 'QUOTE_PROVIDED', 'COMMITTED', 'SETTLING', 'COMPLETED', 'FAILED');
+
 -- CreateTable
 CREATE TABLE "trades" (
     "id" SERIAL NOT NULL,
@@ -9,12 +12,16 @@ CREATE TABLE "trades" (
     "from_user" TEXT NOT NULL,
     "to_user" TEXT NOT NULL,
     "amount" TEXT NOT NULL,
+    "user_deposit_tx" TEXT,
+    "user_deposit_vault" TEXT,
+    "trade_deadline" TIMESTAMP(3),
+    "script_deadline" TIMESTAMP(3),
     "indicative_quote" TEXT,
     "commitment_quote" TEXT,
     "settlement_quote" TEXT,
     "executed_price_usd" DOUBLE PRECISION,
     "settlement_tx" TEXT,
-    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "status" "TradeStatus" NOT NULL DEFAULT 'PENDING',
     "error" TEXT,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
