@@ -1,7 +1,10 @@
+import { Queue } from 'bull';
 import * as ethers from 'ethers';
 
+import { toString } from '@bitfi-mock-pmm/shared';
 import { TradeService } from '@bitfi-mock-pmm/trade';
 import { Router, Router__factory } from '@bitfi-mock-pmm/typechains';
+import { InjectQueue } from '@nestjs/bull';
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Trade, TradeStatus } from '@prisma/client';
@@ -16,6 +19,7 @@ import {
 } from './settlement.dto';
 import { getCommitInfoHash } from './signatures/getInfoHash';
 import getSignature, { SignatureType } from './signatures/getSignature';
+import { SelectPMMEvent } from './types';
 
 @Injectable()
 export class SettlementService {
@@ -25,7 +29,9 @@ export class SettlementService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly tradeService: TradeService
+    private readonly tradeService: TradeService,
+    @InjectQueue('router-select-pmm-events')
+    private selectPMMEventsQueue: Queue
   ) {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
     const pmmPrivateKey =
@@ -134,6 +140,12 @@ export class SettlementService {
       if (trade.status !== TradeStatus.SETTLING) {
         throw new BadRequestException(`Invalid trade status: ${trade.status}`);
       }
+
+      const eventData = {
+        tradeId: dto.tradeId,
+      } as SelectPMMEvent;
+
+      await this.selectPMMEventsQueue.add('selectPMM', toString(eventData));
 
       // You might want to store the protocol fee amount or handle it in your business logic
       await this.tradeService.updateTradeStatus(

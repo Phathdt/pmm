@@ -16,13 +16,13 @@ import { SelectPMMEvent, SubmitSettlementTxResponse } from './types';
 import { decodeAddress } from './utils';
 
 @Processor('router-select-pmm-events')
-export class SettlementProcessor {
+export class SubmitSettlementProcessor {
   private contract: Router;
   private provider: ethers.JsonRpcProvider;
   private pmmWallet: ethers.Wallet;
   private pmmPrivateKey: string;
 
-  private readonly logger = new Logger(SettlementProcessor.name);
+  private readonly logger = new Logger(SubmitSettlementProcessor.name);
 
   constructor(
     private configService: ConfigService,
@@ -87,10 +87,11 @@ export class SettlementProcessor {
           'Content-Type': 'application/json',
         },
         data: {
-          tradeId: tradeId,
+          tradeIds: [tradeId],
           pmmId: pmmId,
           settlementTx: paymentTxId,
           signature: signature,
+          startIndex: 0,
         },
       });
 

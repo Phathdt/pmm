@@ -11,10 +11,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { TransferFactory } from './factories';
 import { SettlementController } from './settlement.controller';
-import { SettlementProcessor } from './settlement.processor';
 import { SettlementService } from './settlement.service';
-import { SettlementWatcher } from './settlement.watcher';
 import { BTCTransferStrategy, EVMTransferStrategy } from './strategies';
+import { SubmitSettlementProcessor } from './submit-settlement.processor';
 
 @Module({
   imports: [
@@ -44,8 +43,7 @@ import { BTCTransferStrategy, EVMTransferStrategy } from './strategies';
   controllers: [SettlementController],
   providers: [
     SettlementService,
-    SettlementWatcher,
-    SettlementProcessor,
+    SubmitSettlementProcessor,
 
     TransferFactory,
     EVMTransferStrategy,
