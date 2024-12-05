@@ -34,9 +34,8 @@ export class SettlementProcessor {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
     const contractAddress =
       this.configService.getOrThrow<string>('ROUTER_ADDRESS');
-    this.pmmPrivateKey = this.configService.getOrThrow<string>(
-      'PMM_BTC_PRIVATE_KEY'
-    );
+    this.pmmPrivateKey =
+      this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
 
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
 
