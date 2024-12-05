@@ -24,12 +24,13 @@ export type IndicativeQuoteResponse = z.infer<
 >;
 
 export const GetCommitmentQuoteSchema = z.object({
+  sessionId: z.string(),
   tradeId: z.string(),
   fromToken: z.string(),
   toToken: z.string(),
   amount: z.string(),
-  fromUser: z.string(),
-  toUser: z.string(),
+  fromUserAddress: z.string(),
+  toUserAddress: z.string(),
   userDepositTx: z.string(),
   userDepositVault: z.string(),
   tradeDeadline: z.string(),
