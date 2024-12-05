@@ -6,6 +6,7 @@ import { TradeService } from '@bitfi-mock-pmm/trade';
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { QuoteSessionRepository } from './quote-session.repository';
 import {
   CommitmentQuoteResponse,
   GetCommitmentQuoteDto,
@@ -21,7 +22,8 @@ export class QuoteService {
   constructor(
     private readonly configService: ConfigService,
     private readonly tokenRepo: TokenRepository,
-    private readonly tradeService: TradeService
+    private readonly tradeService: TradeService,
+    private readonly sessionRepo: QuoteSessionRepository
   ) {
     this.EVM_ADDRESS = this.configService.getOrThrow<string>('PMM_EVM_ADDRESS');
     this.BTC_ADDRESS = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS');
@@ -105,6 +107,14 @@ export class QuoteService {
 
       const pmmAddress = this.getPmmAddressByNetworkType(toToken);
 
+      await this.sessionRepo.save(sessionId, {
+        fromToken: dto.fromToken,
+        toToken: dto.toToken,
+        amount: dto.amount,
+        pmmReceivingAddress: pmmAddress,
+        indicativeQuote: quote,
+      });
+
       return {
         sessionId,
         pmmReceivingAddress: pmmAddress,
@@ -123,6 +133,18 @@ export class QuoteService {
     dto: GetCommitmentQuoteDto
   ): Promise<CommitmentQuoteResponse> {
     try {
+      await this.sessionRepo.validate(
+        dto.sessionId,
+        dto.fromToken,
+        dto.toToken,
+        dto.amount
+      );
+
+      const session = await this.sessionRepo.findById(dto.sessionId);
+      if (!session) {
+        throw new BadRequestException('Session expired during processing');
+      }
+
       const [fromToken, toToken] = await Promise.all([
         this.tokenRepo.getTokenByTokenId(dto.fromToken),
         this.tokenRepo.getTokenByTokenId(dto.toToken),
