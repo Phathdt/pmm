@@ -4,7 +4,7 @@ import { BytesLike, ethers, toBeHex } from 'ethers';
 import { ReqService } from '@bitfi-mock-pmm/req';
 import { toObject, toString } from '@bitfi-mock-pmm/shared';
 import { TokenRepository } from '@bitfi-mock-pmm/token';
-import { ITypes, Router, Router__factory } from '@bitfi-mock-pmm/typechains';
+import { Router, Router__factory } from '@bitfi-mock-pmm/typechains';
 import { Process, Processor } from '@nestjs/bull';
 import { Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -17,7 +17,6 @@ import {
   SubmitSettlementEvent,
   SubmitSettlementTxResponse,
 } from './types';
-import { decodeAddress } from './utils';
 
 @Processor(SUBMIT_SETTLEMENT_QUEUE)
 export class SubmitSettlementProcessor {
@@ -91,63 +90,9 @@ export class SubmitSettlementProcessor {
       this.logger.log(
         `response from solver for ${tradeId}: ${toString(response)}`
       );
-      this.logger.log(`Processing selectPMM for trade ${tradeId} completed`);
+      this.logger.log(`Submit settlement for trade ${tradeId} completed`);
     } catch (error) {
-      this.logger.error(`Processing selectPMM event: ${error}`);
+      this.logger.error(`Submit settlement failed: ${error}`);
     }
-  }
-
-  private async transferToken(
-    pmmInfo: { amountOut: bigint },
-    trade: ITypes.TradeDataStructOutput,
-    tradeId: string
-  ): Promise<string> {
-    const amount = pmmInfo.amountOut;
-    const {
-      address: toUserAddress,
-      networkId,
-      tokenAddress: toTokenAddress,
-    } = await this.decodeChainInfo(trade.tradeInfo.toChain);
-
-    this.logger.log(`
-      Decoded chain info:
-      - To Address: ${toUserAddress}
-      - Chain: ${networkId}
-      - Token: ${toTokenAddress}
-    `);
-
-    const toToken = await this.tokenRepo.getToken(networkId, toTokenAddress);
-
-    try {
-      const strategy = this.transferFactory.getStrategy(toToken.networkType);
-      return await strategy.transfer({
-        toAddress: toUserAddress,
-        amount,
-        token: toToken,
-        tradeId,
-      });
-    } catch (error) {
-      this.logger.error('Transfer token error:', error);
-      throw error;
-    }
-  }
-
-  private async decodeChainInfo(chainInfo: [string, string, string]): Promise<{
-    address: string;
-    networkId: string;
-    tokenAddress: string;
-  }> {
-    const [addressHex, networkIdHex, tokenAddressHex] = chainInfo;
-
-    const networkId = ethers.toUtf8String(networkIdHex);
-    const tokenAddress = ethers.toUtf8String(tokenAddressHex);
-
-    const token = await this.tokenRepo.getToken(networkId, tokenAddress);
-
-    return {
-      address: decodeAddress(addressHex, token),
-      networkId,
-      tokenAddress,
-    };
   }
 }
