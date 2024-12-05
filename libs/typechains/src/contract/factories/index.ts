@@ -2,4 +2,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export { ERC20__factory } from "./ERC20__factory";
+export { Payment__factory } from "./Payment__factory";
 export { Router__factory } from "./Router__factory";
