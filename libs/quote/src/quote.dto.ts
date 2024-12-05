@@ -20,9 +20,9 @@ export const IndicativeQuoteResponseSchema = z.object({
   error: z.string().optional(),
 });
 
-export class IndicativeQuoteResponseDto extends createZodDto(
-  IndicativeQuoteResponseSchema
-) {}
+export type IndicativeQuoteResponse = z.infer<
+  typeof IndicativeQuoteResponseSchema
+>;
 
 // Commitment Quote DTOs
 export const GetCommitmentQuoteSchema = z.object({
@@ -44,6 +44,6 @@ export const CommitmentQuoteResponseSchema = z.object({
   error: z.string().optional(),
 });
 
-export class CommitmentQuoteResponseDto extends createZodDto(
-  CommitmentQuoteResponseSchema
-) {}
+export type CommitmentQuoteResponse = z.infer<
+  typeof CommitmentQuoteResponseSchema
+>;

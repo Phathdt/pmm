@@ -7,10 +7,10 @@ import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import {
-  CommitmentQuoteResponseDto,
+  CommitmentQuoteResponse,
   GetCommitmentQuoteDto,
   GetIndicativeQuoteDto,
-  IndicativeQuoteResponseDto,
+  IndicativeQuoteResponse,
 } from './quote.dto';
 
 @Injectable()
@@ -73,7 +73,7 @@ export class QuoteService {
 
   async getIndicativeQuote(
     dto: GetIndicativeQuoteDto
-  ): Promise<IndicativeQuoteResponseDto> {
+  ): Promise<IndicativeQuoteResponse> {
     const sessionId = dto.sessionId || this.generateSessionId();
 
     try {
@@ -121,7 +121,7 @@ export class QuoteService {
 
   async getCommitmentQuote(
     dto: GetCommitmentQuoteDto
-  ): Promise<CommitmentQuoteResponseDto> {
+  ): Promise<CommitmentQuoteResponse> {
     try {
       const [fromToken, toToken] = await Promise.all([
         this.tokenRepo.getTokenByTokenId(dto.fromToken),
