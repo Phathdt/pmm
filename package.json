@@ -14,7 +14,8 @@
     "prisma:studio": "npx prisma studio",
     "prisma:generate": "npx prisma generate",
     "prisma:generate:watch": "npx prisma generate --watch",
-    "typechain": "typechain --target=ethers-v6 ./abi/**/**.json --out-dir ./libs/typechains/src/contract"
+    "typechain": "typechain --target=ethers-v6 ./abi/**/**.json --out-dir ./libs/typechains/src/contract",
+    "ctix": "node generate-indexes.js"
   },
   "private": true,
   "dependencies": {

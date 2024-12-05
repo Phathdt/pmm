@@ -35,8 +35,9 @@ export class SettlementProcessor {
     const contractAddress = this.configService.getOrThrow<string>(
       'ROUTER_CONTRACT_ADDRESS'
     );
-    this.pmmPrivateKey =
-      this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
+    this.pmmPrivateKey = this.configService.getOrThrow<string>(
+      'PMM_BTC_PRIVATE_KEY'
+    );
 
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
 
@@ -62,7 +63,7 @@ export class SettlementProcessor {
       const trade: ITypes.TradeDataStructOutput =
         await this.contract.getTradeData(tradeId);
 
-      const paymentTxId = await this.transferToken(pmmInfo, trade);
+      const paymentTxId = await this.transferToken(pmmInfo, trade, tradeId);
 
       const tradeIds: BytesLike[] = [tradeId];
       const startIdx = BigInt(tradeIds.indexOf(tradeId));
@@ -106,7 +107,8 @@ export class SettlementProcessor {
 
   private async transferToken(
     pmmInfo: { amountOut: bigint },
-    trade: ITypes.TradeDataStructOutput
+    trade: ITypes.TradeDataStructOutput,
+    tradeId: string
   ): Promise<string> {
     const amount = pmmInfo.amountOut;
     const {
@@ -130,6 +132,7 @@ export class SettlementProcessor {
         toAddress: toUserAddress,
         amount,
         token: toToken,
+        tradeId,
       });
     } catch (error) {
       this.logger.error('Transfer token error:', error);

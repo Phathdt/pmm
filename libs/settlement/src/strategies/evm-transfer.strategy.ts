@@ -1,6 +1,11 @@
-import { ethers } from 'ethers';
+import { ethers, ZeroAddress } from 'ethers';
 
-import { ERC20__factory } from '@bitfi-mock-pmm/typechains';
+import { ensureHexPrefix } from '@bitfi-mock-pmm/shared';
+import {
+  Payment__factory,
+  Router,
+  Router__factory,
+} from '@bitfi-mock-pmm/typechains';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
@@ -12,141 +17,80 @@ import {
 @Injectable()
 export class EVMTransferStrategy implements ITransferStrategy {
   private pmmPrivateKey: string;
+  private contract: Router;
   private readonly logger = new Logger(EVMTransferStrategy.name);
 
   private readonly rpcMap = new Map<string, string>([
+    ['ethereum', 'https://ethereum.blockpi.network/v1/rpc/public'],
+    [
+      'ethereum-sepolia',
+      'https://ethereum-sepolia.blockpi.network/v1/rpc/public',
+    ],
     ['base-sepolia', 'https://base-sepolia.blockpi.network/v1/rpc/public'],
-    ['base-mainnet', 'https://base.blockpi.network/v1/rpc/public'],
   ]);
 
-  private readonly DEFAULT_NATIVE_TRANSFER_GAS = 21000n;
-  private readonly GAS_BUFFER_PERCENTAGE = 120;
+  private readonly paymentAddressMap = new Map<string, string>([
+    ['ethereum', '0x5d933b2cb3a0DE221F079B450d73e6B9e35272f0'],
+    ['ethereum-sepolia', '0x1F0984852E1aFE19Cf31309c988ed0423A7408A4'],
+    ['base-sepolia', '0x05E12AbdC28BB9AC75Fd1f21B424bebB28b39693'],
+  ]);
 
   constructor(private configService: ConfigService) {
     this.pmmPrivateKey = this.configService.getOrThrow<string>(
       'PMM_EVM_PRIVATE_KEY'
     );
+
+    const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
+    const contractAddress =
+      this.configService.getOrThrow<string>('ROUTER_ADDRESS');
+
+    const provider = new ethers.JsonRpcProvider(rpcUrl);
+
+    this.contract = Router__factory.connect(contractAddress, provider);
   }
 
   async transfer(params: TransferParams): Promise<string> {
-    const { toAddress, amount, token } = params;
+    const { toAddress, amount, token, tradeId } = params;
     const { tokenAddress, networkId } = token;
 
-    const { signer, provider } = this.getSigner(networkId);
+    const signer = this.getSigner(networkId);
 
-    try {
-      let tx: ethers.TransactionResponse;
-      const feeData = await provider.getFeeData();
+    const paymentContract = this.getPaymentContract(networkId, signer);
 
-      if (tokenAddress === 'native') {
-        const estimatedGas = await this.estimateGasForNativeTransfer(
-          signer,
-          provider,
-          toAddress,
-          amount
-        );
+    const protocolFee = await this.contract.getProtocolFee(tradeId);
 
-        const baseTxParams = {
-          to: toAddress,
-          value: amount,
-          gasLimit: estimatedGas,
-        };
-
-        let txRequest: ethers.TransactionRequest;
-
-        if (feeData.maxFeePerGas) {
-          txRequest = {
-            ...baseTxParams,
-            maxFeePerGas: feeData.maxFeePerGas,
-            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-          };
-        } else {
-          txRequest = {
-            ...baseTxParams,
-            gasPrice: feeData.gasPrice,
-          };
-        }
-
-        tx = await signer.sendTransaction(txRequest);
-      } else {
-        const tokenContract = ERC20__factory.connect(tokenAddress, signer);
-        const estimatedGas = await tokenContract.transfer.estimateGas(
-          toAddress,
-          amount
-        );
-
-        const baseTxParams = {
-          gasLimit: this.addGasBuffer(estimatedGas),
-        };
-
-        let txParams: ethers.TransactionRequest;
-
-        if (feeData.maxFeePerGas) {
-          txParams = {
-            ...baseTxParams,
-            maxFeePerGas: feeData.maxFeePerGas,
-            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-          };
-        } else {
-          txParams = {
-            ...baseTxParams,
-            gasPrice: feeData.gasPrice,
-          };
-        }
-
-        tx = await tokenContract.transfer(toAddress, amount, txParams);
+    const tx = await paymentContract.payment(
+      tradeId,
+      tokenAddress === 'native' ? ZeroAddress : tokenAddress,
+      toAddress,
+      amount,
+      protocolFee.amount,
+      {
+        value: tokenAddress === 'native' ? amount : 0n,
       }
+    );
 
-      await tx.wait();
+    this.logger.log(`Transfer transaction sent: ${tx.hash}`);
 
-      return tx.hash;
-    } catch (error) {
-      this.logger.error('EVM transfer failed:', error);
-      throw error;
-    }
+    return ensureHexPrefix(tx.hash);
   }
 
-  private async estimateGasForNativeTransfer(
-    signer: ethers.Wallet,
-    provider: ethers.Provider,
-    to: string,
-    value: bigint
-  ): Promise<bigint> {
-    try {
-      const estimatedGas = await provider.estimateGas({
-        from: signer.address,
-        to,
-        value,
-      });
-
-      const baseGas =
-        estimatedGas > this.DEFAULT_NATIVE_TRANSFER_GAS
-          ? estimatedGas
-          : this.DEFAULT_NATIVE_TRANSFER_GAS;
-
-      return this.addGasBuffer(baseGas);
-    } catch (error) {
-      this.logger.warn('Gas estimation failed, using default value:', error);
-      return this.addGasBuffer(this.DEFAULT_NATIVE_TRANSFER_GAS);
-    }
-  }
-
-  private addGasBuffer(gas: bigint): bigint {
-    return (gas * BigInt(this.GAS_BUFFER_PERCENTAGE)) / BigInt(100);
-  }
-
-  private getSigner(networkId: string): {
-    signer: ethers.Wallet;
-    provider: ethers.Provider;
-  } {
+  private getSigner(networkId: string) {
     const rpcUrl = this.rpcMap.get(networkId);
     if (!rpcUrl) {
       throw new Error(`Unsupported networkId: ${networkId}`);
     }
 
     const provider = new ethers.JsonRpcProvider(rpcUrl);
-    const signer = new ethers.Wallet(this.pmmPrivateKey, provider);
+    return new ethers.Wallet(this.pmmPrivateKey, provider);
+  }
 
-    return { signer, provider };
+  private getPaymentContract(networkId: string, signer: ethers.Wallet) {
+    const paymentAddress = this.paymentAddressMap.get(networkId);
+    if (!paymentAddress) {
+      throw new Error(`Unsupported networkId: ${networkId}`);
+    }
+
+    return Payment__factory.connect(paymentAddress, signer);
   }
 }

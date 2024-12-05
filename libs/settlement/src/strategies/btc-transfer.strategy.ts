@@ -3,6 +3,7 @@ import * as bitcoin from 'bitcoinjs-lib';
 import { ECPairFactory } from 'ecpair';
 import * as ecc from 'tiny-secp256k1';
 
+import { ensureHexPrefix } from '@bitfi-mock-pmm/shared';
 import { Token } from '@bitfi-mock-pmm/token';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -11,6 +12,7 @@ import {
   ITransferStrategy,
   TransferParams,
 } from '../interfaces/transfer-strategy.interface';
+import { getTradeIdsHash } from '../signatures/getInfoHash';
 
 interface UTXO {
   txid: string;
@@ -32,12 +34,12 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
   private readonly networkMap = new Map<string, bitcoin.Network>([
     ['bitcoin-testnet', bitcoin.networks.testnet],
-    ['bitcoin-mainnet', bitcoin.networks.bitcoin],
+    ['bitcoin', bitcoin.networks.bitcoin],
   ]);
 
   private readonly rpcMap = new Map<string, string>([
     ['bitcoin-testnet', 'https://mempool.space/testnet'],
-    ['bitcoin-mainnet', 'https://mempool.space'],
+    ['bitcoin', 'https://mempool.space'],
   ]);
 
   constructor(private configService: ConfigService) {
@@ -48,7 +50,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
   }
 
   async transfer(params: TransferParams): Promise<string> {
-    const { toAddress, amount, token } = params;
+    const { toAddress, amount, token, tradeId } = params;
 
     try {
       const network = this.getNetwork(token.networkId);
@@ -64,11 +66,13 @@ export class BTCTransferStrategy implements ITransferStrategy {
         amount,
         network,
         rpcUrl,
-        token
+        token,
+        [tradeId]
       );
 
       this.logger.log(`Transfer successful with txId: ${txId}`);
-      return txId;
+
+      return ensureHexPrefix(txId);
     } catch (error) {
       this.logger.error('BTC transfer failed:', error);
       throw error;
@@ -93,7 +97,8 @@ export class BTCTransferStrategy implements ITransferStrategy {
     amountInSatoshis: bigint,
     network: bitcoin.Network,
     rpcUrl: string,
-    token: Token
+    token: Token,
+    tradeIds: string[]
   ): Promise<string> {
     const keyPair = this.ECPair.fromWIF(privateKey, network);
     const { payment, keypair } = this.createPayment(keyPair.publicKey, network);
@@ -164,6 +169,16 @@ export class BTCTransferStrategy implements ITransferStrategy {
         value: changeAmount,
       });
     }
+
+    const tradeIdsHash = getTradeIdsHash(tradeIds);
+
+    psbt.addOutput({
+      script: bitcoin.script.compile([
+        bitcoin.opcodes['OP_RETURN'],
+        Buffer.from(tradeIdsHash.slice(2), 'hex'),
+      ]),
+      value: 0n,
+    });
 
     const toXOnly = (pubKey: Uint8Array) =>
       pubKey.length === 32 ? pubKey : pubKey.slice(1, 33);

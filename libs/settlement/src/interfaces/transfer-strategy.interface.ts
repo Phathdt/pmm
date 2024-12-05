@@ -4,6 +4,7 @@ export interface TransferParams {
   toAddress: string;
   amount: bigint;
   token: Token;
+  tradeId: string;
 }
 
 export interface ITransferStrategy {
