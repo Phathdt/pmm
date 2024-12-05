@@ -19,7 +19,7 @@ import {
 } from './settlement.dto';
 import { getCommitInfoHash } from './signatures/getInfoHash';
 import getSignature, { SignatureType } from './signatures/getSignature';
-import { SelectPMMEvent } from './types';
+import { TRANSFER_SETTLEMENT_QUEUE, TransferSettlementEvent } from './types';
 
 @Injectable()
 export class SettlementService {
@@ -30,8 +30,8 @@ export class SettlementService {
   constructor(
     private readonly configService: ConfigService,
     private readonly tradeService: TradeService,
-    @InjectQueue('router-select-pmm-events')
-    private selectPMMEventsQueue: Queue
+    @InjectQueue(TRANSFER_SETTLEMENT_QUEUE)
+    private transferSettlementQueue: Queue
   ) {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
     const pmmPrivateKey =
@@ -143,9 +143,9 @@ export class SettlementService {
 
       const eventData = {
         tradeId: dto.tradeId,
-      } as SelectPMMEvent;
+      } as TransferSettlementEvent;
 
-      await this.selectPMMEventsQueue.add('selectPMM', toString(eventData));
+      await this.transferSettlementQueue.add('transfer', toString(eventData));
 
       // You might want to store the protocol fee amount or handle it in your business logic
       await this.tradeService.updateTradeStatus(

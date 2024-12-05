@@ -1,39 +1,36 @@
-import { Job } from 'bull';
-import { BytesLike, ethers, toBeHex } from 'ethers';
+import { Job, Queue } from 'bull';
+import { ethers, toBeHex } from 'ethers';
 
-import { ReqService } from '@bitfi-mock-pmm/req';
 import { toObject, toString } from '@bitfi-mock-pmm/shared';
 import { TokenRepository } from '@bitfi-mock-pmm/token';
 import { ITypes, Router, Router__factory } from '@bitfi-mock-pmm/typechains';
-import { Process, Processor } from '@nestjs/bull';
-import { Inject, Logger } from '@nestjs/common';
+import { InjectQueue, Process, Processor } from '@nestjs/bull';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { TransferFactory } from './factories';
-import { getMakePaymentHash } from './signatures/getInfoHash';
-import getSignature, { SignatureType } from './signatures/getSignature';
 import {
   SUBMIT_SETTLEMENT_QUEUE,
-  SubmitSettlementEvent,
-  SubmitSettlementTxResponse,
+  TRANSFER_SETTLEMENT_QUEUE,
+  TransferSettlementEvent,
 } from './types';
 import { decodeAddress } from './utils';
 
-@Processor(SUBMIT_SETTLEMENT_QUEUE)
-export class SubmitSettlementProcessor {
+@Processor(TRANSFER_SETTLEMENT_QUEUE)
+export class TransferSettlementProcessor {
   private contract: Router;
   private provider: ethers.JsonRpcProvider;
   private pmmWallet: ethers.Wallet;
   private pmmPrivateKey: string;
 
-  private readonly logger = new Logger(SubmitSettlementProcessor.name);
+  private readonly logger = new Logger(TransferSettlementProcessor.name);
 
   constructor(
     private configService: ConfigService,
     private tokenRepo: TokenRepository,
     private transferFactory: TransferFactory,
-    @Inject('SOLVER_REQ_SERVICE')
-    private readonly reqService: ReqService
+    @InjectQueue(SUBMIT_SETTLEMENT_QUEUE)
+    private submitSettlementQueue: Queue
   ) {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
     const contractAddress =
@@ -47,53 +44,34 @@ export class SubmitSettlementProcessor {
     this.contract = Router__factory.connect(contractAddress, this.pmmWallet);
   }
 
-  @Process('submit')
-  async submit(job: Job<string>) {
+  @Process('transfer')
+  async transfer(job: Job<string>) {
     try {
-      const { tradeId, paymentTxId } = toObject(
-        job.data
-      ) as SubmitSettlementEvent;
+      const { tradeId } = toObject(job.data) as TransferSettlementEvent;
+
+      const pMMSelection = await this.contract.getPMMSelection(tradeId);
+
+      const { pmmInfo } = pMMSelection;
 
       const pmmId = toBeHex(this.pmmWallet.address, 32);
+      if (pmmInfo.selectedPMMId !== pmmId) {
+        this.logger.error(`Tradeid ${tradeId} is not belong this pmm`);
+        return;
+      }
 
-      const tradeIds: BytesLike[] = [tradeId];
-      const startIdx = BigInt(tradeIds.indexOf(tradeId));
+      const trade: ITypes.TradeDataStructOutput =
+        await this.contract.getTradeData(tradeId);
 
-      const signerAddress = await this.contract.SIGNER();
-      const makePaymentInfoHash = getMakePaymentHash(
-        tradeIds,
-        startIdx,
-        paymentTxId
-      );
-      const signature = await getSignature(
-        this.pmmWallet,
-        this.provider,
-        signerAddress,
-        tradeId,
-        makePaymentInfoHash,
-        SignatureType.MakePayment
-      );
+      const paymentTxId = await this.transferToken(pmmInfo, trade, tradeId);
 
-      const response = await this.reqService.post<SubmitSettlementTxResponse>({
-        url: '/submit-settlement-tx',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        data: {
-          tradeIds: [tradeId],
-          pmmId: pmmId,
-          settlementTx: paymentTxId,
-          signature: signature,
-          startIndex: 0,
-        },
-      });
+      const eventData = {
+        tradeId: tradeId,
+        paymentTxId,
+      } as TransferSettlementEvent;
 
-      this.logger.log(
-        `response from solver for ${tradeId}: ${toString(response)}`
-      );
-      this.logger.log(`Processing selectPMM for trade ${tradeId} completed`);
+      await this.submitSettlementQueue.add('submit', toString(eventData));
     } catch (error) {
-      this.logger.error(`Processing selectPMM event: ${error}`);
+      this.logger.error(`Processing transfer event: ${error}`);
     }
   }
 

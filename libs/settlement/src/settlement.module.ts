@@ -14,6 +14,8 @@ import { SettlementController } from './settlement.controller';
 import { SettlementService } from './settlement.service';
 import { BTCTransferStrategy, EVMTransferStrategy } from './strategies';
 import { SubmitSettlementProcessor } from './submit-settlement.processor';
+import { TransferSettlementProcessor } from './transfer-settlement.processor';
+import { SUBMIT_SETTLEMENT_QUEUE, TRANSFER_SETTLEMENT_QUEUE } from './types';
 
 @Module({
   imports: [
@@ -36,13 +38,17 @@ import { SubmitSettlementProcessor } from './submit-settlement.processor';
       inject: [ConfigService],
       serviceKey: 'SOLVER_REQ_SERVICE',
     }),
-    BullModule.registerQueue({ name: 'router-select-pmm-events' }),
+    BullModule.registerQueue(
+      { name: TRANSFER_SETTLEMENT_QUEUE },
+      { name: SUBMIT_SETTLEMENT_QUEUE }
+    ),
     TradeModule,
     TokenModule,
   ],
   controllers: [SettlementController],
   providers: [
     SettlementService,
+    TransferSettlementProcessor,
     SubmitSettlementProcessor,
 
     TransferFactory,
