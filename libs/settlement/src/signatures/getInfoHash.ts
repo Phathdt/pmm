@@ -58,8 +58,20 @@ export function getRFQHash(minAmountOut: bigint, tradeTimeout: bigint): string {
   return infoHash;
 }
 
-export function getMakePaymentHash(txId: BytesLike): string {
-  const infoHash: string = keccak256(txId);
+export function getMakePaymentHash(
+  tradeIds: BytesLike[],
+  startIdx: bigint,
+  paymentTxId: BytesLike
+): string {
+  const bundlerHash: string = keccak256(
+    abiCoder.encode(['bytes32[]'], [tradeIds])
+  );
+  const infoHash: string = keccak256(
+    abiCoder.encode(
+      ['uint256', 'bytes32', 'bytes'],
+      [startIdx, bundlerHash, paymentTxId]
+    )
+  );
 
   return infoHash;
 }

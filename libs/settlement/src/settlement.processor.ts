@@ -1,5 +1,5 @@
 import { Job } from 'bull';
-import { ethers, toBeHex } from 'ethers';
+import { BytesLike, ethers, toBeHex } from 'ethers';
 
 import { ReqService } from '@bitfi-mock-pmm/req';
 import { toObject, toString } from '@bitfi-mock-pmm/shared';
@@ -62,10 +62,17 @@ export class SettlementProcessor {
       const trade: ITypes.TradeDataStructOutput =
         await this.contract.getTradeData(tradeId);
 
-      const paymentTxHash = await this.transferToken(pmmInfo, trade);
+      const paymentTxId = await this.transferToken(pmmInfo, trade);
+
+      const tradeIds: BytesLike[] = [tradeId];
+      const startIdx = BigInt(tradeIds.indexOf(tradeId));
 
       const signerAddress = await this.contract.SIGNER();
-      const makePaymentInfoHash = getMakePaymentHash(paymentTxHash);
+      const makePaymentInfoHash = getMakePaymentHash(
+        tradeIds,
+        startIdx,
+        paymentTxId
+      );
       const signature = await getSignature(
         this.pmmWallet,
         this.provider,
@@ -83,7 +90,7 @@ export class SettlementProcessor {
         data: {
           tradeId: tradeId,
           pmmId: pmmId,
-          settlementTx: paymentTxHash,
+          settlementTx: paymentTxId,
           signature: signature,
         },
       });

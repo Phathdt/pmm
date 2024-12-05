@@ -77,7 +77,11 @@ export default async function getSignature(
     signerHelper,
     provider
   );
-  const values = { tradeId: tradeId, infoHash: infoHash };
+
+  let values: any;
+  if (type === SignatureType.MakePayment) values = { infoHash };
+  else values = { tradeId: tradeId, infoHash: infoHash };
+
   return await Signer.signTypedData(
     domain ?? contractDomain,
     getSignatureType(type),

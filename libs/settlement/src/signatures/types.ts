@@ -27,10 +27,7 @@ export const rfqAuthenticationTypes = {
 };
 
 export const makePaymentType = {
-  MakePayment: [
-    { name: 'tradeId', type: 'bytes32' },
-    { name: 'infoHash', type: 'bytes32' },
-  ],
+  MakePayment: [{ name: 'infoHash', type: 'bytes32' }],
 };
 
 export const confirmPaymentType = {
