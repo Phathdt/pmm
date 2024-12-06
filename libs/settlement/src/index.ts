@@ -3,6 +3,7 @@ export * from './settlement.dto';
 export * from './settlement.module';
 export * from './settlement.service';
 export * from './submit-settlement.processor';
+export * from './transfer-settlement.processor';
 export * from './types';
 
 export * from './factories';

@@ -12,7 +12,6 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app/app.module';
 import { ResponseExceptionFilter } from './interceptors/response-exception.filter';
-import { ResponseInterceptor } from './interceptors/response.interceptor';
 import { TraceIdInterceptor } from './interceptors/trace-id.interceptor';
 import { ZodValidationExceptionFilter } from './interceptors/zod-validation-exception.filter';
 
@@ -31,8 +30,7 @@ async function bootstrap() {
   );
   app.useGlobalInterceptors(
     new LoggerErrorInterceptor(),
-    new TraceIdInterceptor(),
-    new ResponseInterceptor()
+    new TraceIdInterceptor()
   );
 
   app.useLogger(app.get(PinoLogger));
