@@ -12,6 +12,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app/app.module';
 import { ResponseExceptionFilter } from './interceptors/response-exception.filter';
+import { ResponseLoggerInterceptor } from './interceptors/response-logger.interceptor';
 import { TraceIdInterceptor } from './interceptors/trace-id.interceptor';
 import { ZodValidationExceptionFilter } from './interceptors/zod-validation-exception.filter';
 
@@ -23,6 +24,7 @@ async function bootstrap() {
 
   patchNestJsSwagger();
   app.useGlobalPipes(new ZodValidationPipe());
+  app.useGlobalInterceptors(new ResponseLoggerInterceptor());
 
   app.useGlobalFilters(
     new ResponseExceptionFilter(),
