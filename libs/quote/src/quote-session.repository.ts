@@ -23,7 +23,7 @@ export class QuoteSessionRepository {
     configService: ConfigService
   ) {
     this.sessionTimeout =
-      configService.get<number>('QUOTE_SESSION_TIMEOUT') || 5 * 60 * 1000;
+      configService.get<number>('QUOTE_SESSION_TIMEOUT') || 24 * 60 * 60 * 1000;
   }
 
   private getSessionKey(sessionId: string): string {
