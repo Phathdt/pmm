@@ -1,7 +1,7 @@
 import { Queue } from 'bull';
 import * as ethers from 'ethers';
 
-import { toString } from '@bitfi-mock-pmm/shared';
+import { stringToHex, toString } from '@bitfi-mock-pmm/shared';
 import { TradeService } from '@bitfi-mock-pmm/trade';
 import { Router, Router__factory } from '@bitfi-mock-pmm/typechains';
 import { InjectQueue } from '@nestjs/bull';
@@ -36,7 +36,8 @@ export class SettlementService {
     const contractAddress =
       this.configService.getOrThrow<string>('ROUTER_ADDRESS');
 
-    this.pmmId = this.configService.getOrThrow<string>('PMM_ID');
+    this.pmmId = stringToHex(this.configService.getOrThrow<string>('PMM_ID'));
+    console.log('🚀 ~ SettlementService ~ pmmId:', this.pmmId);
 
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
     this.pmmWallet = new ethers.Wallet(pmmPrivateKey, this.provider);
