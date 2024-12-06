@@ -8,10 +8,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { QuoteSessionRepository } from './quote-session.repository';
 import {
-  CommitmentQuoteResponse,
-  GetCommitmentQuoteDto,
-  GetIndicativeQuoteDto,
-  IndicativeQuoteResponse,
+    CommitmentQuoteResponse, GetCommitmentQuoteDto, GetIndicativeQuoteDto, IndicativeQuoteResponse
 } from './quote.dto';
 
 @Injectable()
@@ -56,21 +53,18 @@ export class QuoteService {
     const amount = ethers.getBigInt(amountIn);
     const fromDecimals = ethers.getBigInt(fromToken.tokenDecimals);
     const toDecimals = ethers.getBigInt(toToken.tokenDecimals);
-
     const fromPrice = ethers.getBigInt(
       Math.round(fromTokenPrice.currentPrice * 1e6)
     );
     const toPrice = ethers.getBigInt(
       Math.round(toTokenPrice.currentPrice * 1e6)
     );
-
     const rawQuote =
       (amount * fromPrice * 10n ** toDecimals) /
       (toPrice * 10n ** fromDecimals);
 
-    const quoteWithFee = (rawQuote * 98n) / 100n;
-
-    return quoteWithFee.toString();
+    const quoteWithBonus = (rawQuote * 110n) / 100n;
+    return quoteWithBonus.toString();
   }
 
   async getIndicativeQuote(
@@ -163,6 +157,8 @@ export class QuoteService {
           `Failed to fetch token prices: ${error.message}`
         );
       });
+
+      await this.tradeService.deleteTrade(dto.tradeId);
 
       const quote = this.calculateBestQuote(
         dto.amount,

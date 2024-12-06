@@ -2,11 +2,7 @@ import { DatabaseService } from '@bitfi-mock-pmm/database';
 import { Injectable } from '@nestjs/common';
 import { Trade, TradeStatus } from '@prisma/client';
 
-import {
-  CreateTradeDto,
-  UpdateSettlementDto,
-  UpdateTradeQuoteDto,
-} from './trade.dto';
+import { CreateTradeDto, UpdateSettlementDto, UpdateTradeQuoteDto } from './trade.dto';
 
 @Injectable()
 export class TradeService {
@@ -31,6 +27,12 @@ export class TradeService {
 
     return this.db.trade.create({
       data: createData,
+    });
+  }
+
+  async deleteTrade(tradeId: string): Promise<void> {
+    await this.db.trade.delete({
+      where: { tradeId },
     });
   }
 
