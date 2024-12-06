@@ -10,8 +10,12 @@ import { ConfigService } from '@nestjs/config';
 import { Trade, TradeStatus } from '@prisma/client';
 
 import {
-    AckSettlementDto, AckSettlementResponseDto, GetSettlementSignatureDto,
-    SettlementSignatureResponseDto, SignalPaymentDto, SignalPaymentResponseDto
+  AckSettlementDto,
+  AckSettlementResponseDto,
+  GetSettlementSignatureDto,
+  SettlementSignatureResponseDto,
+  SignalPaymentDto,
+  SignalPaymentResponseDto,
 } from './settlement.dto';
 import { getCommitInfoHash } from './signatures/getInfoHash';
 import getSignature, { SignatureType } from './signatures/getSignature';
@@ -51,21 +55,19 @@ export class SettlementService {
     try {
       const { tradeId } = trade;
 
-      console.log(11111111);
       const [presigns, tradeData] = await Promise.all([
         this.contract.getPresigns(tradeId),
         this.contract.getTradeData(tradeId),
       ]);
-      console.log(22222222);
+
       const { toChain } = tradeData.tradeInfo;
       const scriptTimeout = BigInt(dto.scriptDeadline);
 
-      console.log(33333333);
       const pmmPresign = presigns.find((t) => t.pmmId === this.pmmId);
       if (!pmmPresign) {
         throw new BadRequestException('pmmPresign not found');
       }
-      console.log(444444);
+
       const commitInfoHash = getCommitInfoHash(
         pmmPresign.pmmId,
         pmmPresign.pmmRecvAddress,
@@ -75,10 +77,7 @@ export class SettlementService {
         scriptTimeout
       );
 
-      console.log(55555);
       const signerAddress = await this.contract.SIGNER();
-      console.log(666666666666);
-
       const signature = await getSignature(
         this.pmmWallet,
         this.provider,
@@ -87,8 +86,6 @@ export class SettlementService {
         commitInfoHash,
         SignatureType.VerifyingContract
       );
-
-      console.log(7777777);
 
       await this.tradeService.updateTradeStatus(tradeId, TradeStatus.COMMITTED);
 
