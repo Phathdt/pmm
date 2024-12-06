@@ -10,12 +10,8 @@ import { ConfigService } from '@nestjs/config';
 import { Trade, TradeStatus } from '@prisma/client';
 
 import {
-  AckSettlementDto,
-  AckSettlementResponseDto,
-  GetSettlementSignatureDto,
-  SettlementSignatureResponseDto,
-  SignalPaymentDto,
-  SignalPaymentResponseDto,
+    AckSettlementDto, AckSettlementResponseDto, GetSettlementSignatureDto,
+    SettlementSignatureResponseDto, SignalPaymentDto, SignalPaymentResponseDto
 } from './settlement.dto';
 import { getCommitInfoHash } from './signatures/getInfoHash';
 import getSignature, { SignatureType } from './signatures/getSignature';
