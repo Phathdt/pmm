@@ -2,8 +2,8 @@ import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
 export const GetIndicativeQuoteSchema = z.object({
-  fromToken: z.string(),
-  toToken: z.string(),
+  fromTokenId: z.string(),
+  toTokenId: z.string(),
   amount: z.string(),
   sessionId: z.string().optional(),
 });

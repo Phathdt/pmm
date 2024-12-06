@@ -80,8 +80,8 @@ export class QuoteService {
 
     try {
       const [fromToken, toToken] = await Promise.all([
-        this.tokenRepo.getTokenByTokenId(dto.fromToken),
-        this.tokenRepo.getTokenByTokenId(dto.toToken),
+        this.tokenRepo.getTokenByTokenId(dto.fromTokenId),
+        this.tokenRepo.getTokenByTokenId(dto.toTokenId),
       ]).catch((error) => {
         throw new BadRequestException(
           `Failed to fetch tokens: ${error.message}`
@@ -108,8 +108,8 @@ export class QuoteService {
       const pmmAddress = this.getPmmAddressByNetworkType(toToken);
 
       await this.sessionRepo.save(sessionId, {
-        fromToken: dto.fromToken,
-        toToken: dto.toToken,
+        fromToken: dto.fromTokenId,
+        toToken: dto.toTokenId,
         amount: dto.amount,
         pmmReceivingAddress: pmmAddress,
         indicativeQuote: quote,
