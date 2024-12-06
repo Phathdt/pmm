@@ -105,7 +105,7 @@ export class QuoteService {
         toTokenPrice
       );
 
-      const pmmAddress = this.getPmmAddressByNetworkType(toToken);
+      const pmmAddress = this.getPmmAddressByNetworkType(fromToken);
 
       await this.sessionRepo.save(sessionId, {
         fromToken: dto.fromTokenId,
