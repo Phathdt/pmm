@@ -135,8 +135,8 @@ export class QuoteService {
     try {
       await this.sessionRepo.validate(
         dto.sessionId,
-        dto.fromToken,
-        dto.toToken,
+        dto.fromTokenId,
+        dto.toTokenId,
         dto.amount
       );
 
@@ -146,8 +146,8 @@ export class QuoteService {
       }
 
       const [fromToken, toToken] = await Promise.all([
-        this.tokenRepo.getTokenByTokenId(dto.fromToken),
-        this.tokenRepo.getTokenByTokenId(dto.toToken),
+        this.tokenRepo.getTokenByTokenId(dto.fromTokenId),
+        this.tokenRepo.getTokenByTokenId(dto.toTokenId),
       ]).catch((error) => {
         throw new BadRequestException(
           `Failed to fetch tokens: ${error.message}`
@@ -175,8 +175,8 @@ export class QuoteService {
       const trade = await this.tradeService
         .createTrade({
           tradeId: dto.tradeId,
-          fromTokenId: dto.fromToken,
-          toTokenId: dto.toToken,
+          fromTokenId: dto.fromTokenId,
+          toTokenId: dto.toTokenId,
           fromUser: dto.fromUserAddress,
           toUser: dto.toUserAddress,
           amount: dto.amount,

@@ -26,8 +26,8 @@ export type IndicativeQuoteResponse = z.infer<
 export const GetCommitmentQuoteSchema = z.object({
   sessionId: z.string(),
   tradeId: z.string(),
-  fromToken: z.string(),
-  toToken: z.string(),
+  fromTokenId: z.string(),
+  toTokenId: z.string(),
   amount: z.string(),
   fromUserAddress: z.string(),
   toUserAddress: z.string(),
