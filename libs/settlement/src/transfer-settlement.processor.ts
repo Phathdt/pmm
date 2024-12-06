@@ -1,5 +1,5 @@
 import { Job, Queue } from 'bull';
-import { ethers, toBeHex } from 'ethers';
+import { ethers } from 'ethers';
 
 import { toObject, toString } from '@bitfi-mock-pmm/shared';
 import { TokenRepository } from '@bitfi-mock-pmm/token';
@@ -22,6 +22,7 @@ export class TransferSettlementProcessor {
   private provider: ethers.JsonRpcProvider;
   private pmmWallet: ethers.Wallet;
   private pmmPrivateKey: string;
+  private pmmId: string;
 
   private readonly logger = new Logger(TransferSettlementProcessor.name);
 
@@ -38,6 +39,7 @@ export class TransferSettlementProcessor {
     this.pmmPrivateKey =
       this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
 
+    this.pmmId = this.configService.getOrThrow<string>('PMM_ID');
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
 
     this.pmmWallet = new ethers.Wallet(this.pmmPrivateKey, this.provider);
@@ -53,8 +55,7 @@ export class TransferSettlementProcessor {
 
       const { pmmInfo } = pMMSelection;
 
-      const pmmId = toBeHex(this.pmmWallet.address, 32);
-      if (pmmInfo.selectedPMMId !== pmmId) {
+      if (pmmInfo.selectedPMMId !== this.pmmId) {
         this.logger.error(`Tradeid ${tradeId} is not belong this pmm`);
         return;
       }

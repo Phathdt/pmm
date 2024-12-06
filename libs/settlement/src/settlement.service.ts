@@ -26,6 +26,7 @@ export class SettlementService {
   private readonly pmmWallet: ethers.Wallet;
   private contract: Router;
   private provider: ethers.JsonRpcProvider;
+  private pmmId: string;
 
   constructor(
     private readonly configService: ConfigService,
@@ -39,6 +40,8 @@ export class SettlementService {
     const contractAddress =
       this.configService.getOrThrow<string>('ROUTER_ADDRESS');
 
+    this.pmmId = this.configService.getOrThrow<string>('PMM_ID');
+
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
     this.pmmWallet = new ethers.Wallet(pmmPrivateKey, this.provider);
     this.contract = Router__factory.connect(contractAddress, this.pmmWallet);
@@ -51,7 +54,6 @@ export class SettlementService {
     try {
       const { tradeId } = trade;
 
-      const pmmId = ethers.toBeHex(this.pmmWallet.address, 32);
       const [presigns, tradeData] = await Promise.all([
         this.contract.getPresigns(tradeId),
         this.contract.getTradeData(tradeId),
@@ -60,7 +62,7 @@ export class SettlementService {
       const { toChain } = tradeData.tradeInfo;
       const scriptTimeout = BigInt(dto.scriptDeadline);
 
-      const pmmPresign = presigns.find((t) => t.pmmId === pmmId);
+      const pmmPresign = presigns.find((t) => t.pmmId === this.pmmId);
       if (!pmmPresign) {
         throw new BadRequestException('pmmPresign not found');
       }

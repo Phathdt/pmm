@@ -1,15 +1,13 @@
 import { Job } from 'bull';
-import { BytesLike, ethers, toBeHex } from 'ethers';
+import { BytesLike, ethers } from 'ethers';
 
 import { ReqService } from '@bitfi-mock-pmm/req';
 import { toObject, toString } from '@bitfi-mock-pmm/shared';
-import { TokenRepository } from '@bitfi-mock-pmm/token';
 import { Router, Router__factory } from '@bitfi-mock-pmm/typechains';
 import { Process, Processor } from '@nestjs/bull';
 import { Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { TransferFactory } from './factories';
 import { getMakePaymentHash } from './signatures/getInfoHash';
 import getSignature, { SignatureType } from './signatures/getSignature';
 import {
@@ -24,13 +22,12 @@ export class SubmitSettlementProcessor {
   private provider: ethers.JsonRpcProvider;
   private pmmWallet: ethers.Wallet;
   private pmmPrivateKey: string;
+  private pmmId: string;
 
   private readonly logger = new Logger(SubmitSettlementProcessor.name);
 
   constructor(
     private configService: ConfigService,
-    private tokenRepo: TokenRepository,
-    private transferFactory: TransferFactory,
     @Inject('SOLVER_REQ_SERVICE')
     private readonly reqService: ReqService
   ) {
@@ -40,6 +37,7 @@ export class SubmitSettlementProcessor {
     this.pmmPrivateKey =
       this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
 
+    this.pmmId = this.configService.getOrThrow<string>('PMM_ID');
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
 
     this.pmmWallet = new ethers.Wallet(this.pmmPrivateKey, this.provider);
@@ -52,8 +50,6 @@ export class SubmitSettlementProcessor {
       const { tradeId, paymentTxId } = toObject(
         job.data
       ) as SubmitSettlementEvent;
-
-      const pmmId = toBeHex(this.pmmWallet.address, 32);
 
       const tradeIds: BytesLike[] = [tradeId];
       const startIdx = BigInt(tradeIds.indexOf(tradeId));
@@ -80,7 +76,7 @@ export class SubmitSettlementProcessor {
         },
         data: {
           tradeIds: [tradeId],
-          pmmId: pmmId,
+          pmmId: this.pmmId,
           settlementTx: paymentTxId,
           signature: signature,
           startIndex: 0,
