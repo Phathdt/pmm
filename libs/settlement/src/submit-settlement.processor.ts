@@ -97,7 +97,7 @@ export class SubmitSettlementProcessor {
             headers: {
               'Content-Type': 'application/json',
             },
-            data: requestPayload,
+            payload: requestPayload,
           }
         );
 
