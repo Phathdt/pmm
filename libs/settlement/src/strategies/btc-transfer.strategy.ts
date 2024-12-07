@@ -35,8 +35,8 @@ export class BTCTransferStrategy implements ITransferStrategy {
   ]);
 
   private readonly rpcMap = new Map<string, string>([
-    ['bitcoin-testnet', 'https://mempool.space/testnet'],
-    ['bitcoin', 'https://mempool.space'],
+    ['bitcoin-testnet', 'https://blockstream.info/testnet'],
+    ['bitcoin', 'https://blockstream.info'],
   ]);
 
   constructor(private configService: ConfigService) {
@@ -221,11 +221,11 @@ export class BTCTransferStrategy implements ITransferStrategy {
       const response = await axios.get<{ [key: string]: number }>(
         `${rpcUrl}/api/fee-estimates`
       );
-      const smallestValue = Math.min(...Object.values(response.data));
-      return smallestValue * 1.25;
+
+      return response.data[3];
     } catch (error) {
       this.logger.error('Error fetching fee rate:', error);
-      return 1.54;
+      return 1;
     }
   }
 
