@@ -63,6 +63,12 @@ export class SettlementService {
       if (!pmmPresign) {
         throw new BadRequestException('pmmPresign not found');
       }
+      console.log('🚀 ~ pmmPresign.pmmId:', pmmPresign.pmmId);
+      console.log('🚀 ~ pmmPresign.pmmRecvAddress:', pmmPresign.pmmRecvAddress);
+      console.log('🚀 ~ pmmPresign.toChain[1]:', toChain[1]);
+      console.log('🚀 ~ pmmPresign.toChain[2]:', toChain[2]);
+      console.log('🚀 ~ dto.committedQuote:', dto.committedQuote);
+      console.log('🚀 ~ scriptTimeout:', scriptTimeout);
 
       const commitInfoHash = getCommitInfoHash(
         pmmPresign.pmmId,
@@ -72,8 +78,10 @@ export class SettlementService {
         BigInt(dto.committedQuote),
         scriptTimeout
       );
+      console.log('🚀 ~ SettlementService ~ commitInfoHash:', commitInfoHash);
 
       const signerAddress = await this.contract.SIGNER();
+      console.log('🚀 ~ SettlementService ~ signerAddress:', signerAddress);
       const signature = await getSignature(
         this.pmmWallet,
         this.provider,
@@ -82,6 +90,8 @@ export class SettlementService {
         commitInfoHash,
         SignatureType.VerifyingContract
       );
+      console.log('🚀 ~ SettlementService ~ tradeId:', tradeId);
+      console.log('🚀 ~ SettlementService ~ signature:', signature);
 
       await this.tradeService.updateTradeStatus(tradeId, TradeStatus.COMMITTED);
 
