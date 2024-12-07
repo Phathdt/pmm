@@ -57,7 +57,7 @@ export class SettlementService {
       ]);
 
       const { toChain } = tradeData.tradeInfo;
-      const scriptTimeout = BigInt(dto.scriptDeadline);
+      const scriptTimeout = BigInt(Math.floor(Date.now() / 1000) + 1800);
 
       const pmmPresign = presigns.find((t) => t.pmmId === this.pmmId);
       if (!pmmPresign) {
