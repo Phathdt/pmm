@@ -11,9 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { getMakePaymentHash } from './signatures/getInfoHash';
 import getSignature, { SignatureType } from './signatures/getSignature';
 import {
-  SUBMIT_SETTLEMENT_QUEUE,
-  SubmitSettlementEvent,
-  SubmitSettlementTxResponse,
+    SUBMIT_SETTLEMENT_QUEUE, SubmitSettlementEvent, SubmitSettlementTxResponse
 } from './types';
 
 @Processor(SUBMIT_SETTLEMENT_QUEUE)
@@ -46,11 +44,11 @@ export class SubmitSettlementProcessor {
 
   @Process('submit')
   async submit(job: Job<string>) {
-    try {
-      const { tradeId, paymentTxId } = toObject(
-        job.data
-      ) as SubmitSettlementEvent;
+    const { tradeId, paymentTxId } = toObject(
+      job.data
+    ) as SubmitSettlementEvent;
 
+    try {
       const tradeIds: BytesLike[] = [tradeId];
       const startIdx = BigInt(tradeIds.indexOf(tradeId));
 
@@ -88,7 +86,9 @@ export class SubmitSettlementProcessor {
       );
       this.logger.log(`Submit settlement for trade ${tradeId} completed`);
     } catch (error) {
-      this.logger.error(`Submit settlement failed: ${error}`);
+      this.logger.error(
+        `Submit settlement tradeId ${tradeId} failed: ${error}`
+      );
     }
   }
 }

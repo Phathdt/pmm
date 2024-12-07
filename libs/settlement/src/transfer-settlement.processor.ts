@@ -10,9 +10,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { TransferFactory } from './factories';
 import {
-  SUBMIT_SETTLEMENT_QUEUE,
-  TRANSFER_SETTLEMENT_QUEUE,
-  TransferSettlementEvent,
+    SUBMIT_SETTLEMENT_QUEUE, TRANSFER_SETTLEMENT_QUEUE, TransferSettlementEvent
 } from './types';
 import { decodeAddress } from './utils';
 
@@ -48,9 +46,9 @@ export class TransferSettlementProcessor {
 
   @Process('transfer')
   async transfer(job: Job<string>) {
-    try {
-      const { tradeId } = toObject(job.data) as TransferSettlementEvent;
+    const { tradeId } = toObject(job.data) as TransferSettlementEvent;
 
+    try {
       const pMMSelection = await this.contract.getPMMSelection(tradeId);
 
       const { pmmInfo } = pMMSelection;
@@ -71,8 +69,14 @@ export class TransferSettlementProcessor {
       } as TransferSettlementEvent;
 
       await this.submitSettlementQueue.add('submit', toString(eventData));
+
+      this.logger.log(
+        `Processing transfer tradeId ${tradeId} success with paymentId ${paymentTxId}`
+      );
     } catch (error) {
-      this.logger.error(`Processing transfer event: ${error}`);
+      this.logger.error(
+        `Processing transfer tradeId ${tradeId} failed: ${error}`
+      );
     }
   }
 
