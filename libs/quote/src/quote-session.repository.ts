@@ -77,7 +77,10 @@ export class QuoteSessionRepository {
     if (!session) {
       throw new BadRequestException('Invalid or expired session ID');
     }
-
+    console.log('🚀 ~ QuoteSessionRepository ~ session:', session);
+    console.log('🚀 ~ QuoteSessionRepository ~ amount:', amount);
+    console.log('🚀 ~ QuoteSessionRepository ~ toToken:', toToken);
+    console.log('🚀 ~ QuoteSessionRepository ~ fromToken:', fromToken);
     if (
       session.fromToken !== fromToken ||
       session.toToken !== toToken ||
