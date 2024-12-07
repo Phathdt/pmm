@@ -98,7 +98,7 @@ export class SettlementService {
       return {
         tradeId: tradeId,
         signature,
-        deadline: parseInt(dto.tradeDeadline),
+        deadline: Number(scriptTimeout),
         error: '',
       };
     } catch (error: any) {
