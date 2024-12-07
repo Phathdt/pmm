@@ -222,7 +222,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
         `${rpcUrl}/api/fee-estimates`
       );
 
-      return response.data[3];
+      return response.data[3] * 1.25;
     } catch (error) {
       this.logger.error('Error fetching fee rate:', error);
       return 1;
