@@ -35,6 +35,7 @@ import { SUBMIT_SETTLEMENT_QUEUE, TRANSFER_SETTLEMENT_QUEUE } from './types';
         baseUrl: configService.getOrThrow<string>('SOLVER_URL'),
         timeout: 30000,
         enableLogging: true,
+        shouldConvertCase: true,
       }),
       inject: [ConfigService],
       serviceKey: 'SOLVER_REQ_SERVICE',

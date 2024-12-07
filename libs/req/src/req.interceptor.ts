@@ -12,7 +12,7 @@ export class ReqLoggingInterceptor {
 
   constructor(
     @Inject(REQ_CONFIG_KEY)
-    private readonly config: ReqModuleConfig,
+    private readonly config: ReqModuleConfig
   ) {}
 
   private getTraceId(headers: Record<string, any>): string {
