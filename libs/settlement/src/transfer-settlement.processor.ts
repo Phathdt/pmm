@@ -1,7 +1,7 @@
 import { Job, Queue } from 'bull';
 import { ethers } from 'ethers';
 
-import { toObject, toString } from '@bitfi-mock-pmm/shared';
+import { stringToHex, toObject, toString } from '@bitfi-mock-pmm/shared';
 import { TokenRepository } from '@bitfi-mock-pmm/token';
 import { ITypes, Router, Router__factory } from '@bitfi-mock-pmm/typechains';
 import { InjectQueue, Process, Processor } from '@nestjs/bull';
@@ -37,7 +37,8 @@ export class TransferSettlementProcessor {
     this.pmmPrivateKey =
       this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
 
-    this.pmmId = this.configService.getOrThrow<string>('PMM_ID');
+    this.pmmId = stringToHex(this.configService.getOrThrow<string>('PMM_ID'));
+    console.log('🚀 ~ TransferSettlementProcessor ~ pmmId:', this.pmmId);
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
 
     this.pmmWallet = new ethers.Wallet(this.pmmPrivateKey, this.provider);
