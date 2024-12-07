@@ -1,7 +1,7 @@
 import { Cache } from 'cache-manager';
 
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 interface QuoteSession {
@@ -65,30 +65,5 @@ export class QuoteSessionRepository {
 
   async delete(sessionId: string): Promise<void> {
     await this.cacheManager.del(this.getSessionKey(sessionId));
-  }
-
-  async validate(
-    sessionId: string,
-    fromToken: string,
-    toToken: string,
-    amount: string
-  ): Promise<void> {
-    const session = await this.findById(sessionId);
-    if (!session) {
-      throw new BadRequestException('Invalid or expired session ID');
-    }
-    console.log('🚀 ~ QuoteSessionRepository ~ session:', session);
-    console.log('🚀 ~ QuoteSessionRepository ~ amount:', amount);
-    console.log('🚀 ~ QuoteSessionRepository ~ toToken:', toToken);
-    console.log('🚀 ~ QuoteSessionRepository ~ fromToken:', fromToken);
-    if (
-      session.fromToken !== fromToken ||
-      session.toToken !== toToken ||
-      session.amount !== amount
-    ) {
-      throw new BadRequestException(
-        'Commitment quote request does not match indicative quote parameters'
-      );
-    }
   }
 }

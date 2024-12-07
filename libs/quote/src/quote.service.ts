@@ -127,13 +127,6 @@ export class QuoteService {
     dto: GetCommitmentQuoteDto
   ): Promise<CommitmentQuoteResponse> {
     try {
-      await this.sessionRepo.validate(
-        dto.sessionId,
-        dto.fromTokenId,
-        dto.toTokenId,
-        dto.amount
-      );
-
       const session = await this.sessionRepo.findById(dto.sessionId);
       if (!session) {
         throw new BadRequestException('Session expired during processing');
