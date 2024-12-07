@@ -146,7 +146,7 @@ export class SettlementService {
     trade: Trade
   ): Promise<SignalPaymentResponseDto> {
     try {
-      if (trade.status !== TradeStatus.SETTLING) {
+      if (trade.status !== TradeStatus.COMMITTED) {
         throw new BadRequestException(`Invalid trade status: ${trade.status}`);
       }
 
