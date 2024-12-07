@@ -2,7 +2,7 @@ import { Job } from 'bull';
 import { BytesLike, ethers } from 'ethers';
 
 import { ReqService } from '@bitfi-mock-pmm/req';
-import { stringToHex, toObject, toString } from '@bitfi-mock-pmm/shared';
+import { toObject, toString } from '@bitfi-mock-pmm/shared';
 import { Router, Router__factory } from '@bitfi-mock-pmm/typechains';
 import { Process, Processor } from '@nestjs/bull';
 import { Inject, Logger } from '@nestjs/common';
@@ -35,7 +35,7 @@ export class SubmitSettlementProcessor {
     this.pmmPrivateKey =
       this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
 
-    this.pmmId = stringToHex(this.configService.getOrThrow<string>('PMM_ID'));
+    this.pmmId = this.configService.getOrThrow<string>('PMM_ID');
     console.log('🚀 ~ SubmitSettlementProcessor ~ pmmId:', this.pmmId);
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
 
