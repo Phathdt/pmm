@@ -3,9 +3,11 @@ import { lastValueFrom } from 'rxjs';
 
 import { convertToCamelCase, convertToSnakeCase } from '@bitfi-mock-pmm/shared';
 import { HttpService } from '@nestjs/axios';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
-import { REQ_CONFIG_KEY, ReqModuleConfig } from './req.config';
+import { ReqModuleConfig } from './req.config';
+import { ReqLoggingInterceptor } from './req.interceptor';
 
 export interface ReqOptions extends Omit<AxiosRequestConfig, 'url'> {
   url?: string;
@@ -22,11 +24,22 @@ export class ReqService {
   private baseUrl?: string;
 
   constructor(
-    @Inject(REQ_CONFIG_KEY)
     private readonly config: ReqModuleConfig,
-    private readonly httpService: HttpService
+    private readonly httpService: HttpService,
+    private readonly loggingInterceptor: ReqLoggingInterceptor,
+    private readonly configService: ConfigService
   ) {
     this.baseUrl = config.baseUrl;
+
+    this.httpService.axiosRef.interceptors.request.use(
+      (config) => this.loggingInterceptor.onRequest(config),
+      (error) => this.loggingInterceptor.onError(error)
+    );
+
+    this.httpService.axiosRef.interceptors.response.use(
+      (response) => this.loggingInterceptor.onResponse(response),
+      (error) => this.loggingInterceptor.onError(error)
+    );
   }
 
   setBaseUrl(url: string) {
@@ -86,14 +99,16 @@ export class ReqService {
       );
     }
 
+    const requestHeaders = {
+      ...this.config.defaultHeaders,
+      ...headers,
+    };
+
     const requestConfig: AxiosRequestConfig = {
       ...restOptions,
       method,
       url: finalUrl,
-      headers: {
-        ...this.config.defaultHeaders,
-        ...headers,
-      },
+      headers: requestHeaders,
       params: params
         ? this.convertCase(params, true, skipCaseConversion)
         : undefined,

@@ -34,6 +34,7 @@ import { SUBMIT_SETTLEMENT_QUEUE, TRANSFER_SETTLEMENT_QUEUE } from './types';
       useFactory: (configService: ConfigService) => ({
         baseUrl: configService.getOrThrow<string>('SOLVER_URL'),
         timeout: 30000,
+        enableLogging: true,
       }),
       inject: [ConfigService],
       serviceKey: 'SOLVER_REQ_SERVICE',

@@ -1,7 +1,13 @@
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { DynamicModule, Module, Provider } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
-import { defaultReqConfig, ReqModuleConfig } from './req.config';
+import {
+  defaultReqConfig,
+  REQ_CONFIG_KEY,
+  ReqModuleConfig,
+} from './req.config';
+import { ReqLoggingInterceptor } from './req.interceptor';
 import { ReqService } from './req.service';
 
 export interface ReqModuleAsyncOptions {
@@ -27,15 +33,25 @@ export class ReqModule {
       imports: [HttpModule.register({})],
       providers: [
         {
-          provide: `${serviceKey}_CONFIG`,
+          provide: REQ_CONFIG_KEY,
           useValue: finalConfig,
         },
+        ReqLoggingInterceptor,
         {
           provide: serviceKey,
-          useFactory: (config: ReqModuleConfig, httpService: HttpService) => {
-            return new ReqService(config, httpService);
+          useFactory: (
+            httpService: HttpService,
+            loggingInterceptor: ReqLoggingInterceptor,
+            configService: ConfigService,
+          ) => {
+            return new ReqService(
+              finalConfig,
+              httpService,
+              loggingInterceptor,
+              configService,
+            );
           },
-          inject: [`${serviceKey}_CONFIG`, HttpService],
+          inject: [HttpService, ReqLoggingInterceptor, ConfigService],
         },
       ],
       exports: [serviceKey],
@@ -46,20 +62,12 @@ export class ReqModule {
     const serviceKey = options.serviceKey || 'DEFAULT_REQ_SERVICE';
 
     const configProvider: Provider = {
-      provide: `${serviceKey}_CONFIG`,
+      provide: REQ_CONFIG_KEY,
       useFactory: async (...args) => ({
         ...defaultReqConfig,
         ...(await options.useFactory(...args)),
       }),
       inject: options.inject || [],
-    };
-
-    const serviceProvider: Provider = {
-      provide: serviceKey,
-      useFactory: (config: ReqModuleConfig, httpService: HttpService) => {
-        return new ReqService(config, httpService);
-      },
-      inject: [`${serviceKey}_CONFIG`, HttpService],
     };
 
     return {
@@ -81,7 +89,32 @@ export class ReqModule {
         }),
         ...(options.imports || []),
       ],
-      providers: [configProvider, serviceProvider],
+      providers: [
+        configProvider,
+        ReqLoggingInterceptor,
+        {
+          provide: serviceKey,
+          useFactory: (
+            config: ReqModuleConfig,
+            httpService: HttpService,
+            loggingInterceptor: ReqLoggingInterceptor,
+            configService: ConfigService,
+          ) => {
+            return new ReqService(
+              config,
+              httpService,
+              loggingInterceptor,
+              configService,
+            );
+          },
+          inject: [
+            REQ_CONFIG_KEY,
+            HttpService,
+            ReqLoggingInterceptor,
+            ConfigService,
+          ],
+        },
+      ],
       exports: [serviceKey],
     };
   }

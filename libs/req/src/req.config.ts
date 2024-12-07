@@ -4,9 +4,8 @@ export interface ReqModuleConfig {
   shouldConvertCase?: boolean;
   timeout?: number;
   maxRedirects?: number;
+  enableLogging?: boolean;
 }
-
-export const REQ_CONFIG_KEY = 'REQ_CONFIG' as const;
 
 export const defaultReqConfig: ReqModuleConfig = {
   shouldConvertCase: true,
@@ -15,4 +14,7 @@ export const defaultReqConfig: ReqModuleConfig = {
     'Content-Type': 'application/json',
   },
   maxRedirects: 5,
+  enableLogging: false,
 };
+
+export const REQ_CONFIG_KEY = 'REQ_CONFIG' as const;
