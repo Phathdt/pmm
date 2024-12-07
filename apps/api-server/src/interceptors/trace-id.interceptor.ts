@@ -1,14 +1,10 @@
 import { Request, Response } from 'express';
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
-import { uuidv7 } from 'uuidv7';
+import { v7 as uuidv7 } from 'uuid';
 
 import {
-  CallHandler,
-  ExecutionContext,
-  HttpException,
-  Injectable,
-  NestInterceptor,
+    CallHandler, ExecutionContext, HttpException, Injectable, NestInterceptor
 } from '@nestjs/common';
 
 interface TraceableRequest extends Request {
