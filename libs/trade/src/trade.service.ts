@@ -31,7 +31,7 @@ export class TradeService {
   }
 
   async deleteTrade(tradeId: string): Promise<void> {
-    await this.db.trade.delete({
+    await this.db.trade.deleteMany({
       where: { tradeId },
     });
   }
