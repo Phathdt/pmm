@@ -8,10 +8,7 @@ import { Token } from '@bitfi-mock-pmm/token';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import {
-  ITransferStrategy,
-  TransferParams,
-} from '../interfaces/transfer-strategy.interface';
+import { ITransferStrategy, TransferParams } from '../interfaces/transfer-strategy.interface';
 import { getTradeIdsHash } from '../signatures/getInfoHash';
 
 interface UTXO {
@@ -197,13 +194,19 @@ export class BTCTransferStrategy implements ITransferStrategy {
     const tx = psbt.extractTransaction();
     const rawTx = tx.toHex();
 
-    const response = await axios.post(`${rpcUrl}/api/tx`, rawTx, {
-      headers: {
-        'Content-Type': 'text/plain',
-      },
-    });
+    try {
+      const response = await axios.post(`${rpcUrl}/api/tx`, rawTx, {
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+      });
 
-    return response.data;
+      return response.data;
+    } catch (error) {
+      console.log('🚀 ~ BTCTransferStrategy ~ error:', error);
+      this.logger.error('Error sending transaction:', error);
+      throw error;
+    }
   }
 
   private async getUTXOs(address: string, rpcUrl: string): Promise<UTXO[]> {
