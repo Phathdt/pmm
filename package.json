@@ -19,6 +19,9 @@
   },
   "private": true,
   "dependencies": {
+    "@bull-board/api": "^6.5.3",
+    "@bull-board/express": "^6.5.3",
+    "@bull-board/nestjs": "^6.5.3",
     "@nestjs/axios": "^3.1.1",
     "@nestjs/bull": "^10.2.2",
     "@nestjs/cache-manager": "^2.3.0",

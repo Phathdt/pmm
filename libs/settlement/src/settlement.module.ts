@@ -4,6 +4,8 @@ import { RedisClientOptions } from 'redis';
 import { ReqModule } from '@bitfi-mock-pmm/req';
 import { TokenModule } from '@bitfi-mock-pmm/token';
 import { TradeModule } from '@bitfi-mock-pmm/trade';
+import { BullAdapter } from '@bull-board/api/bullAdapter';
+import { BullBoardModule } from '@bull-board/nestjs';
 import { BullModule } from '@nestjs/bull';
 import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
@@ -43,6 +45,16 @@ import { SUBMIT_SETTLEMENT_QUEUE, TRANSFER_SETTLEMENT_QUEUE } from './types';
     BullModule.registerQueue(
       { name: TRANSFER_SETTLEMENT_QUEUE },
       { name: SUBMIT_SETTLEMENT_QUEUE }
+    ),
+    BullBoardModule.forFeature(
+      {
+        name: TRANSFER_SETTLEMENT_QUEUE,
+        adapter: BullAdapter,
+      },
+      {
+        name: SUBMIT_SETTLEMENT_QUEUE,
+        adapter: BullAdapter,
+      }
     ),
     TradeModule,
     TokenModule,

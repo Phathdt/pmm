@@ -6,6 +6,8 @@ import pretty from 'pino-pretty';
 import { QuoteModule } from '@bitfi-mock-pmm/quote';
 import { SettlementModule } from '@bitfi-mock-pmm/settlement';
 import { TokenModule } from '@bitfi-mock-pmm/token';
+import { ExpressAdapter } from '@bull-board/express';
+import { BullBoardModule } from '@bull-board/nestjs';
 import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -49,6 +51,10 @@ import { AppController } from './app.controller';
         redis: configService.getOrThrow('REDIS_URL'),
       }),
       inject: [ConfigService],
+    }),
+    BullBoardModule.forRoot({
+      route: '/queues',
+      adapter: ExpressAdapter,
     }),
     TokenModule,
     QuoteModule,
