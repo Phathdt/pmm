@@ -63,7 +63,7 @@ export class QuoteService {
       (amount * fromPrice * 10n ** toDecimals) /
       (toPrice * 10n ** fromDecimals);
 
-    const quoteWithBonus = (rawQuote * 110n) / 100n;
+    const quoteWithBonus = (rawQuote * 103n) / 100n;
     return quoteWithBonus.toString();
   }
 
