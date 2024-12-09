@@ -37,8 +37,8 @@ export class BTCTransferStrategy implements ITransferStrategy {
   ]);
 
   private readonly rpcMap = new Map<string, string>([
-    ['bitcoin-testnet', 'blockstream.info/testnet'],
-    ['bitcoin', 'blockstream.info'],
+    ['bitcoin-testnet', 'https://blockstream.info/testnet'],
+    ['bitcoin', 'https://blockstream.info'],
   ]);
 
   constructor(private configService: ConfigService) {
