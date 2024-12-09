@@ -10,8 +10,10 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
+import { TransferFactory } from './factories';
 import { SettlementController } from './settlement.controller';
 import { SettlementService } from './settlement.service';
+import { BTCTransferStrategy, EVMTransferStrategy } from './strategies';
 import { SubmitSettlementProcessor } from './submit-settlement.processor';
 import { TransferSettlementProcessor } from './transfer-settlement.processor';
 import { SUBMIT_SETTLEMENT_QUEUE, TRANSFER_SETTLEMENT_QUEUE } from './types';
@@ -50,6 +52,10 @@ import { SUBMIT_SETTLEMENT_QUEUE, TRANSFER_SETTLEMENT_QUEUE } from './types';
     SettlementService,
     TransferSettlementProcessor,
     SubmitSettlementProcessor,
+
+    TransferFactory,
+    BTCTransferStrategy,
+    EVMTransferStrategy,
   ],
 })
 export class SettlementModule {}

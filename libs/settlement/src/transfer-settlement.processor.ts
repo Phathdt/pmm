@@ -3,7 +3,6 @@ import {
   ITypes,
   routerService,
   tokenService,
-  transferService,
 } from 'bitfi-market-maker-sdk';
 import { Job, Queue } from 'bull';
 import { ethers } from 'ethers';
@@ -13,6 +12,7 @@ import { InjectQueue, Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { TransferFactory } from './factories';
 import {
   SUBMIT_SETTLEMENT_QUEUE,
   TRANSFER_SETTLEMENT_QUEUE,
@@ -25,13 +25,14 @@ export class TransferSettlementProcessor {
   private pmmId: string;
 
   private tokenService = tokenService;
-  private transferSerivce = transferService;
   private routerService = routerService;
+  private tokenRepo = tokenService;
 
   private readonly logger = new Logger(TransferSettlementProcessor.name);
 
   constructor(
     private configService: ConfigService,
+    private transferFactory: TransferFactory,
     @InjectQueue(SUBMIT_SETTLEMENT_QUEUE)
     private submitSettlementQueue: Queue
   ) {
@@ -55,9 +56,7 @@ export class TransferSettlementProcessor {
       const trade: ITypes.TradeDataStructOutput =
         await this.routerService.getTradeData(tradeId);
 
-      const paymentTxId = ensureHexPrefix(
-        await this.transferToken(pmmInfo, trade, tradeId)
-      );
+      const paymentTxId = await this.transferToken(pmmInfo, trade, tradeId);
 
       const eventData = {
         tradeId: tradeId,
@@ -95,14 +94,18 @@ export class TransferSettlementProcessor {
       - Token: ${toTokenAddress}
     `);
 
+    const toToken = await this.tokenRepo.getToken(networkId, toTokenAddress);
+
     try {
-      return await this.transferSerivce.transfer({
+      const strategy = this.transferFactory.getStrategy(toToken.networkType);
+      const tx = await strategy.transfer({
         toAddress: toUserAddress,
         amount,
-        networkId,
-        tokenAddress: toTokenAddress,
+        token: toToken,
         tradeId,
       });
+
+      return ensureHexPrefix(tx);
     } catch (error) {
       this.logger.error('Transfer token error:', error);
       throw error;

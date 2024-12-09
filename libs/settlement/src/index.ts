@@ -6,4 +6,7 @@ export * from './submit-settlement.processor';
 export * from './transfer-settlement.processor';
 export * from './types';
 
+export * from './factories';
+export * from './interfaces';
+export * from './strategies';
 export * from './utils';
