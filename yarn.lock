@@ -3406,10 +3406,10 @@ bitcoinjs-lib@^7.0.0-rc.0:
     valibot "^0.38.0"
     varuint-bitcoin "^2.0.0"
 
-bitfi-market-maker-sdk@^1.1.6:
-  version "1.1.6"
-  resolved "https://registry.yarnpkg.com/bitfi-market-maker-sdk/-/bitfi-market-maker-sdk-1.1.6.tgz#9c7e019413504564d41a078ab50eea756e34289d"
-  integrity sha512-oXvB7jqpm34xsddDP8WlIkD3WOMsxVwFSwEAJVoD6x/fjqofLYp19RMVchlUkmFfTQ3GQZHcKPq3PkZgYqQALg==
+bitfi-market-maker-sdk@^1.1.7:
+  version "1.1.7"
+  resolved "https://registry.yarnpkg.com/bitfi-market-maker-sdk/-/bitfi-market-maker-sdk-1.1.7.tgz#568b104510a2383307b187ff6109fba7e69716a9"
+  integrity sha512-U2MoYTkKwj8s/Q5U1ngq5YYQaABeT35NjpOKyu1oG/9/qsdmRQWL7yZF9uedYm7HWrgDe4mw7nGgZytDiraMYA==
   dependencies:
     axios "^1.7.9"
     bip174 "^3.0.0-rc.1"
