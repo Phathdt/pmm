@@ -1,48 +1,40 @@
+import {
+  ITypes,
+  routerService,
+  tokenService,
+  transferService,
+} from 'bitfi-market-maker-sdk';
 import { Job, Queue } from 'bull';
 import { ethers } from 'ethers';
 
 import { stringToHex, toObject, toString } from '@bitfi-mock-pmm/shared';
-import { TokenRepository } from '@bitfi-mock-pmm/token';
-import { ITypes, Router, Router__factory } from '@bitfi-mock-pmm/typechains';
 import { InjectQueue, Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { TransferFactory } from './factories';
 import {
-    SUBMIT_SETTLEMENT_QUEUE, TRANSFER_SETTLEMENT_QUEUE, TransferSettlementEvent
+  SUBMIT_SETTLEMENT_QUEUE,
+  TRANSFER_SETTLEMENT_QUEUE,
+  TransferSettlementEvent,
 } from './types';
 import { decodeAddress } from './utils';
 
 @Processor(TRANSFER_SETTLEMENT_QUEUE)
 export class TransferSettlementProcessor {
-  private contract: Router;
-  private provider: ethers.JsonRpcProvider;
-  private pmmWallet: ethers.Wallet;
-  private pmmPrivateKey: string;
   private pmmId: string;
+
+  private tokenService = tokenService;
+  private transferSerivce = transferService;
+  private routerService = routerService;
 
   private readonly logger = new Logger(TransferSettlementProcessor.name);
 
   constructor(
     private configService: ConfigService,
-    private tokenRepo: TokenRepository,
-    private transferFactory: TransferFactory,
     @InjectQueue(SUBMIT_SETTLEMENT_QUEUE)
     private submitSettlementQueue: Queue
   ) {
-    const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
-    const contractAddress =
-      this.configService.getOrThrow<string>('ROUTER_ADDRESS');
-    this.pmmPrivateKey =
-      this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
-
     this.pmmId = stringToHex(this.configService.getOrThrow<string>('PMM_ID'));
-    console.log('🚀 ~ TransferSettlementProcessor ~ pmmId:', this.pmmId);
-    this.provider = new ethers.JsonRpcProvider(rpcUrl);
-
-    this.pmmWallet = new ethers.Wallet(this.pmmPrivateKey, this.provider);
-    this.contract = Router__factory.connect(contractAddress, this.pmmWallet);
   }
 
   @Process('transfer')
@@ -50,7 +42,7 @@ export class TransferSettlementProcessor {
     const { tradeId } = toObject(job.data) as TransferSettlementEvent;
 
     try {
-      const pMMSelection = await this.contract.getPMMSelection(tradeId);
+      const pMMSelection = await this.routerService.getPMMSelection(tradeId);
 
       const { pmmInfo } = pMMSelection;
 
@@ -60,7 +52,7 @@ export class TransferSettlementProcessor {
       }
 
       const trade: ITypes.TradeDataStructOutput =
-        await this.contract.getTradeData(tradeId);
+        await this.routerService.getTradeData(tradeId);
 
       const paymentTxId = await this.transferToken(pmmInfo, trade, tradeId);
 
@@ -100,14 +92,12 @@ export class TransferSettlementProcessor {
       - Token: ${toTokenAddress}
     `);
 
-    const toToken = await this.tokenRepo.getToken(networkId, toTokenAddress);
-
     try {
-      const strategy = this.transferFactory.getStrategy(toToken.networkType);
-      return await strategy.transfer({
+      return await this.transferSerivce.transfer({
         toAddress: toUserAddress,
         amount,
-        token: toToken,
+        networkId,
+        tokenAddress: toTokenAddress,
         tradeId,
       });
     } catch (error) {
@@ -126,7 +116,7 @@ export class TransferSettlementProcessor {
     const networkId = ethers.toUtf8String(networkIdHex);
     const tokenAddress = ethers.toUtf8String(tokenAddressHex);
 
-    const token = await this.tokenRepo.getToken(networkId, tokenAddress);
+    const token = await this.tokenService.getToken(networkId, tokenAddress);
 
     return {
       address: decodeAddress(addressHex, token),

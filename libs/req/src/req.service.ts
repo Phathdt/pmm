@@ -4,7 +4,6 @@ import { lastValueFrom } from 'rxjs';
 import { convertToCamelCase, convertToSnakeCase } from '@bitfi-mock-pmm/shared';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 
 import { ReqModuleConfig } from './req.config';
 import { ReqLoggingInterceptor } from './req.interceptor';
@@ -26,8 +25,7 @@ export class ReqService {
   constructor(
     private readonly config: ReqModuleConfig,
     private readonly httpService: HttpService,
-    private readonly loggingInterceptor: ReqLoggingInterceptor,
-    private readonly configService: ConfigService
+    private readonly loggingInterceptor: ReqLoggingInterceptor
   ) {
     this.baseUrl = config.baseUrl;
 

@@ -1,20 +1,25 @@
+import { Token, tokenService } from 'bitfi-market-maker-sdk';
 import * as crypto from 'crypto';
 import { ethers } from 'ethers';
 
-import { Token, TokenPrice, TokenRepository } from '@bitfi-mock-pmm/token';
+import { TokenPrice, TokenRepository } from '@bitfi-mock-pmm/token';
 import { TradeService } from '@bitfi-mock-pmm/trade';
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { QuoteSessionRepository } from './quote-session.repository';
 import {
-    CommitmentQuoteResponse, GetCommitmentQuoteDto, GetIndicativeQuoteDto, IndicativeQuoteResponse
+  CommitmentQuoteResponse,
+  GetCommitmentQuoteDto,
+  GetIndicativeQuoteDto,
+  IndicativeQuoteResponse,
 } from './quote.dto';
 
 @Injectable()
 export class QuoteService {
   private readonly EVM_ADDRESS: string;
   private readonly BTC_ADDRESS: string;
+  private readonly tokenService = tokenService;
 
   constructor(
     private readonly configService: ConfigService,
@@ -74,8 +79,8 @@ export class QuoteService {
 
     try {
       const [fromToken, toToken] = await Promise.all([
-        this.tokenRepo.getTokenByTokenId(dto.fromTokenId),
-        this.tokenRepo.getTokenByTokenId(dto.toTokenId),
+        this.tokenService.getTokenByTokenId(dto.fromTokenId),
+        this.tokenService.getTokenByTokenId(dto.toTokenId),
       ]).catch((error) => {
         throw new BadRequestException(
           `Failed to fetch tokens: ${error.message}`
@@ -133,8 +138,8 @@ export class QuoteService {
       }
 
       const [fromToken, toToken] = await Promise.all([
-        this.tokenRepo.getTokenByTokenId(dto.fromTokenId),
-        this.tokenRepo.getTokenByTokenId(dto.toTokenId),
+        this.tokenService.getTokenByTokenId(dto.fromTokenId),
+        this.tokenService.getTokenByTokenId(dto.toTokenId),
       ]).catch((error) => {
         throw new BadRequestException(
           `Failed to fetch tokens: ${error.message}`

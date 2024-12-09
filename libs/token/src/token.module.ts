@@ -12,12 +12,11 @@ import { TokenRepository } from './token.repository';
   imports: [
     ReqModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        baseUrl: configService.getOrThrow<string>('DAPP_BACKEND_URL'),
-        timeout: 30000,
+      useFactory: () => ({
+        baseUrl: 'https://api.coingecko.com/api/v3',
       }),
       inject: [ConfigService],
-      serviceKey: 'TOKEN_REQ_SERVICE',
+      serviceKey: 'COINGECKO_REQ_SERVICE',
     }),
     CacheModule.registerAsync<RedisClientOptions>({
       imports: [ConfigModule],

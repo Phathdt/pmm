@@ -21,8 +21,7 @@
       "@bitfi-mock-pmm/settlement": ["libs/settlement/src/index.ts"],
       "@bitfi-mock-pmm/shared": ["libs/shared/src/index.ts"],
       "@bitfi-mock-pmm/token": ["libs/token/src/index.ts"],
-      "@bitfi-mock-pmm/trade": ["libs/trade/src/index.ts"],
-      "@bitfi-mock-pmm/typechains": ["libs/typechains/src/index.ts"]
+      "@bitfi-mock-pmm/trade": ["libs/trade/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

@@ -1,38 +1,35 @@
 import { AxiosError } from 'axios';
+import {
+  getMakePaymentHash,
+  getSignature,
+  routerService,
+  SignatureType,
+  solverService,
+} from 'bitfi-market-maker-sdk';
 import { Job } from 'bull';
 import { BytesLike, ethers } from 'ethers';
 
-import { ReqService } from '@bitfi-mock-pmm/req';
 import { toObject } from '@bitfi-mock-pmm/shared';
-import { Router, Router__factory } from '@bitfi-mock-pmm/typechains';
 import { Process, Processor } from '@nestjs/bull';
-import { Inject, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { getMakePaymentHash } from './signatures/getInfoHash';
-import getSignature, { SignatureType } from './signatures/getSignature';
-import {
-    SUBMIT_SETTLEMENT_QUEUE, SubmitSettlementEvent, SubmitSettlementTxResponse
-} from './types';
+import { SUBMIT_SETTLEMENT_QUEUE, SubmitSettlementEvent } from './types';
 
 @Processor(SUBMIT_SETTLEMENT_QUEUE)
 export class SubmitSettlementProcessor {
-  private contract: Router;
   private provider: ethers.JsonRpcProvider;
   private pmmWallet: ethers.Wallet;
   private pmmPrivateKey: string;
   private pmmId: string;
 
+  private solverSerivce = solverService;
+  private routerService = routerService;
+
   private readonly logger = new Logger(SubmitSettlementProcessor.name);
 
-  constructor(
-    private configService: ConfigService,
-    @Inject('SOLVER_REQ_SERVICE')
-    private readonly reqService: ReqService
-  ) {
+  constructor(private configService: ConfigService) {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
-    const contractAddress =
-      this.configService.getOrThrow<string>('ROUTER_ADDRESS');
     this.pmmPrivateKey =
       this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
 
@@ -41,7 +38,6 @@ export class SubmitSettlementProcessor {
 
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
     this.pmmWallet = new ethers.Wallet(this.pmmPrivateKey, this.provider);
-    this.contract = Router__factory.connect(contractAddress, this.pmmWallet);
   }
 
   @Process('submit')
@@ -57,7 +53,7 @@ export class SubmitSettlementProcessor {
       const tradeIds: BytesLike[] = [tradeId];
       const startIdx = BigInt(tradeIds.indexOf(tradeId));
 
-      const signerAddress = await this.contract.SIGNER();
+      const signerAddress = await this.routerService.getSigner();
       this.logger.log(`Signer address: ${signerAddress}`);
 
       const makePaymentInfoHash = getMakePaymentHash(
@@ -91,18 +87,11 @@ export class SubmitSettlementProcessor {
       );
 
       try {
-        const response = await this.reqService.post<SubmitSettlementTxResponse>(
-          {
-            url: '/submit-settlement-tx',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            payload: requestPayload,
-          }
+        const response = await this.solverSerivce.submitSettlementTx(
+          requestPayload
         );
 
         this.logger.log(`Solver response for trade ${tradeId}:`);
-        this.logger.log(`Status: ${response.status}`);
         this.logger.log(`Response data: ${JSON.stringify(response)}`);
         this.logger.log(
           `Submit settlement for trade ${tradeId} completed successfully`

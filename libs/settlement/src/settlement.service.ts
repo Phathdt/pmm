@@ -1,28 +1,36 @@
+import {
+  getCommitInfoHash,
+  getSignature,
+  routerService,
+  SignatureType,
+} from 'bitfi-market-maker-sdk';
 import { Queue } from 'bull';
 import * as ethers from 'ethers';
 
 import { stringToHex, toString } from '@bitfi-mock-pmm/shared';
 import { TradeService } from '@bitfi-mock-pmm/trade';
-import { Router, Router__factory } from '@bitfi-mock-pmm/typechains';
 import { InjectQueue } from '@nestjs/bull';
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Trade, TradeStatus } from '@prisma/client';
 
 import {
-    AckSettlementDto, AckSettlementResponseDto, GetSettlementSignatureDto,
-    SettlementSignatureResponseDto, SignalPaymentDto, SignalPaymentResponseDto
+  AckSettlementDto,
+  AckSettlementResponseDto,
+  GetSettlementSignatureDto,
+  SettlementSignatureResponseDto,
+  SignalPaymentDto,
+  SignalPaymentResponseDto,
 } from './settlement.dto';
-import { getCommitInfoHash } from './signatures/getInfoHash';
-import getSignature, { SignatureType } from './signatures/getSignature';
 import { TRANSFER_SETTLEMENT_QUEUE, TransferSettlementEvent } from './types';
 
 @Injectable()
 export class SettlementService {
   private readonly pmmWallet: ethers.Wallet;
-  private contract: Router;
   private provider: ethers.JsonRpcProvider;
   private pmmId: string;
+
+  private routerService = routerService;
 
   constructor(
     private readonly configService: ConfigService,
@@ -33,15 +41,12 @@ export class SettlementService {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
     const pmmPrivateKey =
       this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
-    const contractAddress =
-      this.configService.getOrThrow<string>('ROUTER_ADDRESS');
 
     this.pmmId = stringToHex(this.configService.getOrThrow<string>('PMM_ID'));
     console.log('🚀 ~ SettlementService ~ pmmId:', this.pmmId);
 
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
     this.pmmWallet = new ethers.Wallet(pmmPrivateKey, this.provider);
-    this.contract = Router__factory.connect(contractAddress, this.pmmWallet);
   }
 
   async getSettlementSignature(
@@ -52,8 +57,8 @@ export class SettlementService {
       const { tradeId } = trade;
 
       const [presigns, tradeData] = await Promise.all([
-        this.contract.getPresigns(tradeId),
-        this.contract.getTradeData(tradeId),
+        this.routerService.getPresigns(tradeId),
+        this.routerService.getTradeData(tradeId),
       ]);
 
       const { toChain } = tradeData.tradeInfo;
@@ -80,7 +85,7 @@ export class SettlementService {
       );
       console.log('🚀 ~ SettlementService ~ commitInfoHash:', commitInfoHash);
 
-      const signerAddress = await this.contract.SIGNER();
+      const signerAddress = await this.routerService.getSigner();
       console.log('🚀 ~ SettlementService ~ signerAddress:', signerAddress);
       const signature = await getSignature(
         this.pmmWallet,

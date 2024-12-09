@@ -2,11 +2,7 @@ import { HttpModule, HttpService } from '@nestjs/axios';
 import { DynamicModule, Module, Provider } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import {
-  defaultReqConfig,
-  REQ_CONFIG_KEY,
-  ReqModuleConfig,
-} from './req.config';
+import { defaultReqConfig, REQ_CONFIG_KEY, ReqModuleConfig } from './req.config';
 import { ReqLoggingInterceptor } from './req.interceptor';
 import { ReqService } from './req.service';
 
@@ -20,7 +16,7 @@ export interface ReqModuleAsyncOptions {
 @Module({})
 export class ReqModule {
   static register(
-    config: ReqModuleConfig & { serviceKey?: string },
+    config: ReqModuleConfig & { serviceKey?: string }
   ): DynamicModule {
     const serviceKey = config.serviceKey || 'DEFAULT_REQ_SERVICE';
     const finalConfig = {
@@ -41,15 +37,9 @@ export class ReqModule {
           provide: serviceKey,
           useFactory: (
             httpService: HttpService,
-            loggingInterceptor: ReqLoggingInterceptor,
-            configService: ConfigService,
+            loggingInterceptor: ReqLoggingInterceptor
           ) => {
-            return new ReqService(
-              finalConfig,
-              httpService,
-              loggingInterceptor,
-              configService,
-            );
+            return new ReqService(finalConfig, httpService, loggingInterceptor);
           },
           inject: [HttpService, ReqLoggingInterceptor, ConfigService],
         },
@@ -97,15 +87,9 @@ export class ReqModule {
           useFactory: (
             config: ReqModuleConfig,
             httpService: HttpService,
-            loggingInterceptor: ReqLoggingInterceptor,
-            configService: ConfigService,
+            loggingInterceptor: ReqLoggingInterceptor
           ) => {
-            return new ReqService(
-              config,
-              httpService,
-              loggingInterceptor,
-              configService,
-            );
+            return new ReqService(config, httpService, loggingInterceptor);
           },
           inject: [
             REQ_CONFIG_KEY,

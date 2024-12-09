@@ -1,7 +1,6 @@
+import { Token } from 'bitfi-market-maker-sdk';
 import bs58check from 'bs58check';
 import { ethers } from 'ethers';
-
-import { Token } from '@bitfi-mock-pmm/token';
 
 export const encodeAddress = (address: string, token: Token) => {
   switch (token.networkType.toUpperCase()) {
