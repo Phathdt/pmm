@@ -1,4 +1,5 @@
 import {
+  ensureHexPrefix,
   ITypes,
   routerService,
   tokenService,
@@ -54,7 +55,9 @@ export class TransferSettlementProcessor {
       const trade: ITypes.TradeDataStructOutput =
         await this.routerService.getTradeData(tradeId);
 
-      const paymentTxId = await this.transferToken(pmmInfo, trade, tradeId);
+      const paymentTxId = ensureHexPrefix(
+        await this.transferToken(pmmInfo, trade, tradeId)
+      );
 
       const eventData = {
         tradeId: tradeId,
