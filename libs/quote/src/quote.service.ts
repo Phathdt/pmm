@@ -1,9 +1,9 @@
-import { Token, tokenService } from 'bitfi-market-maker-sdk';
 import * as crypto from 'crypto';
 import { ethers } from 'ethers';
 
 import { TokenPrice, TokenRepository } from '@bitfi-mock-pmm/token';
 import { TradeService } from '@bitfi-mock-pmm/trade';
+import { Token, tokenService } from '@bitfixyz/market-maker-sdk';
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 

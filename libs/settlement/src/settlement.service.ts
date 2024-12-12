@@ -1,14 +1,14 @@
-import {
-  getCommitInfoHash,
-  getSignature,
-  routerService,
-  SignatureType,
-} from 'bitfi-market-maker-sdk';
 import { Queue } from 'bull';
 import * as ethers from 'ethers';
 
 import { stringToHex, toString } from '@bitfi-mock-pmm/shared';
 import { TradeService } from '@bitfi-mock-pmm/trade';
+import {
+  getCommitInfoHash,
+  getSignature,
+  routerService,
+  SignatureType,
+} from '@bitfixyz/market-maker-sdk';
 import { InjectQueue } from '@nestjs/bull';
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

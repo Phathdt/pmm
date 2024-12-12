@@ -1,11 +1,11 @@
+import { ethers, ZeroAddress } from 'ethers';
+
 import {
   ensureHexPrefix,
   Payment__factory,
   Router,
   Router__factory,
-} from 'bitfi-market-maker-sdk';
-import { ethers, ZeroAddress } from 'ethers';
-
+} from '@bitfixyz/market-maker-sdk';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 

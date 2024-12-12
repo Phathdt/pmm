@@ -1,4 +1,4 @@
-import { Token } from 'bitfi-market-maker-sdk';
+import { Token } from '@bitfixyz/market-maker-sdk';
 
 export interface TransferParams {
   toAddress: string;

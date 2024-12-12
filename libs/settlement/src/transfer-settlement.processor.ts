@@ -1,13 +1,13 @@
+import { Job, Queue } from 'bull';
+import { ethers } from 'ethers';
+
+import { stringToHex, toObject, toString } from '@bitfi-mock-pmm/shared';
 import {
   ensureHexPrefix,
   ITypes,
   routerService,
   tokenService,
-} from 'bitfi-market-maker-sdk';
-import { Job, Queue } from 'bull';
-import { ethers } from 'ethers';
-
-import { stringToHex, toObject, toString } from '@bitfi-mock-pmm/shared';
+} from '@bitfixyz/market-maker-sdk';
 import { InjectQueue, Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';

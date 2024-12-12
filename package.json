@@ -18,6 +18,7 @@
   },
   "private": true,
   "dependencies": {
+    "@bitfixyz/market-maker-sdk": "^0.0.1",
     "@bull-board/api": "^6.5.3",
     "@bull-board/express": "^6.5.3",
     "@bull-board/nestjs": "^6.5.3",
@@ -32,7 +33,6 @@
     "@prisma/client": "^6.0.1",
     "axios": "^1.7.7",
     "bitcoinjs-lib": "^7.0.0-rc.0",
-    "bitfi-market-maker-sdk": "^1.1.9",
     "bs58check": "^4.0.0",
     "bull": "^4.16.4",
     "cache-manager-redis-yet": "^5.1.5",
