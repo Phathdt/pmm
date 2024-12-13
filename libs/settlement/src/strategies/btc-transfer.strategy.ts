@@ -217,11 +217,11 @@ export class BTCTransferStrategy implements ITransferStrategy {
       const response = await axios.get<{ [key: string]: number }>(
         `${rpcUrl}/api/fee-estimates`
       );
-      const smallestValue = Math.min(...Object.values(response.data));
-      return smallestValue * 1.25;
+      return response.data[3];
     } catch (error) {
-      this.logger.error('Error fetching fee rate:', error);
-      return 1.54;
+      console.error(`Error fetching fee rate from ${rpcUrl}:`, error);
+
+      return 1;
     }
   }
 
