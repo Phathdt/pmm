@@ -56,8 +56,11 @@ export class SubmitSettlementProcessor {
       const signerAddress = await this.routerService.getSigner();
       this.logger.log(`Signer address: ${signerAddress}`);
 
+      const signedAt = Math.floor(Date.now() / 1000);
+
       const makePaymentInfoHash = getMakePaymentHash(
         tradeIds,
+        BigInt(signedAt),
         startIdx,
         paymentTxId
       );
@@ -79,7 +82,9 @@ export class SubmitSettlementProcessor {
         settlementTx: paymentTxId,
         signature: signature,
         startIndex: 0,
+        signedAt: signedAt,
       };
+
       this.logger.log(
         `Sending request to solver with payload: ${JSON.stringify(
           requestPayload
