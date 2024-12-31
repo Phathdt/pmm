@@ -21,15 +21,11 @@ export class EVMTransferStrategy implements ITransferStrategy {
   private readonly logger = new Logger(EVMTransferStrategy.name);
 
   private readonly rpcMap = new Map<string, string>([
-    ['ethereum', 'https://eth-mainnet.public.blastapi.io'],
     ['ethereum-sepolia', 'https://eth-sepolia.public.blastapi.io'],
-    ['base-sepolia', 'https://base-sepolia.public.blastapi.io'],
   ]);
 
   private readonly paymentAddressMap = new Map<string, string>([
-    ['ethereum', '0x5d933b2cb3a0DE221F079B450d73e6B9e35272f0'],
     ['ethereum-sepolia', '0x40b1C28197be3016D0db9Bad5efaF415244f0A73'],
-    ['base-sepolia', '0x05E12AbdC28BB9AC75Fd1f21B424bebB28b39693'],
   ]);
 
   constructor(private configService: ConfigService) {
