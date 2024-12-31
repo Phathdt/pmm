@@ -8,6 +8,7 @@ import {
   getSignature,
   routerService,
   SignatureType,
+  signerService,
   solverService,
 } from '@bitfixyz/market-maker-sdk';
 import { Process, Processor } from '@nestjs/bull';
@@ -66,13 +67,23 @@ export class SubmitSettlementProcessor {
       );
       this.logger.log(`Generated payment info hash: ${makePaymentInfoHash}`);
 
+      const domainData = await signerService.getDomain(signerAddress);
+      const domain = {
+        name: domainData.name,
+        version: domainData.version,
+        chainId: domainData.chainId,
+        verifyingContract: domainData.verifyingContract,
+      };
+      console.log('🚀 ~ SubmitSettlementProcessor ~ submit ~ domain:', domain);
+
       const signature = await getSignature(
         this.pmmWallet,
         this.provider,
         signerAddress,
         tradeId,
         makePaymentInfoHash,
-        SignatureType.MakePayment
+        SignatureType.MakePayment,
+        domain
       );
       this.logger.log(`Generated signature: ${signature}`);
 

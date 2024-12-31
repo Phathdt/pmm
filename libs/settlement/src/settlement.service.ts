@@ -8,6 +8,7 @@ import {
   getSignature,
   routerService,
   SignatureType,
+  signerService,
 } from '@bitfixyz/market-maker-sdk';
 import { InjectQueue } from '@nestjs/bull';
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
@@ -87,13 +88,23 @@ export class SettlementService {
 
       const signerAddress = await this.routerService.getSigner();
       console.log('🚀 ~ SettlementService ~ signerAddress:', signerAddress);
+
+      const domainData = await signerService.getDomain(signerAddress);
+      const domain = {
+        name: domainData.name,
+        version: domainData.version,
+        chainId: domainData.chainId,
+        verifyingContract: domainData.verifyingContract,
+      };
+      console.log('🚀 ~ SettlementService ~ domain:', domain);
       const signature = await getSignature(
         this.pmmWallet,
         this.provider,
         signerAddress,
         tradeId,
         commitInfoHash,
-        SignatureType.VerifyingContract
+        SignatureType.VerifyingContract,
+        domain
       );
       console.log('🚀 ~ SettlementService ~ tradeId:', tradeId);
       console.log('🚀 ~ SettlementService ~ signature:', signature);
