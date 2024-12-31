@@ -2,7 +2,7 @@ import { AxiosError } from 'axios';
 import { Job } from 'bull';
 import { BytesLike, ethers } from 'ethers';
 
-import { toObject } from '@bitfi-mock-pmm/shared';
+import { ensureHexPrefix, toObject } from '@bitfi-mock-pmm/shared';
 import {
   getMakePaymentHash,
   getSignature,
@@ -70,7 +70,7 @@ export class SubmitSettlementProcessor {
         tradeIds,
         BigInt(signedAt),
         startIdx,
-        paymentTxId
+        ensureHexPrefix(paymentTxId)
       );
       console.log(
         '🚀 ~ SubmitSettlementProcessor ~ submit ~ makePaymentInfoHash:',
@@ -100,7 +100,7 @@ export class SubmitSettlementProcessor {
       const requestPayload = {
         tradeIds: [tradeId],
         pmmId: this.pmmId,
-        settlementTx: paymentTxId,
+        settlementTx: ensureHexPrefix(paymentTxId),
         signature: signature,
         startIndex: 0,
         signedAt: signedAt,
