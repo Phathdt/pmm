@@ -18,7 +18,7 @@
   },
   "private": true,
   "dependencies": {
-    "@bitfixyz/market-maker-sdk": "^0.0.5",
+    "@bitfixyz/market-maker-sdk": "^0.0.6",
     "@bull-board/api": "^6.5.3",
     "@bull-board/express": "^6.5.3",
     "@bull-board/nestjs": "^6.5.3",

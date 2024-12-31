@@ -1046,10 +1046,10 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@bitfixyz/market-maker-sdk@^0.0.5":
-  version "0.0.5"
-  resolved "https://registry.yarnpkg.com/@bitfixyz/market-maker-sdk/-/market-maker-sdk-0.0.5.tgz#2aaefc6b08e39938a1bf1bbc8ad3752e96285d8d"
-  integrity sha512-nUwuRk7beVrjCSsjzJjW4SDnIU9aM3jztSVD0uoCnCj15oQFh+NxttH3WM1OZVI1Dg7BQno+XWfs8IVBbWpGZw==
+"@bitfixyz/market-maker-sdk@^0.0.6":
+  version "0.0.6"
+  resolved "https://registry.yarnpkg.com/@bitfixyz/market-maker-sdk/-/market-maker-sdk-0.0.6.tgz#2fbdd10d435dc94ae05e41b4fa51584eb8c61cba"
+  integrity sha512-1/YMJcMH1D3+xxPDBMLPl0chtAF3gGmfKizSqYeONyiGczUGssUxXi51dgQNdk5eMSBQTJGzm6KhafEtnAsJ9g==
   dependencies:
     axios "^1.7.9"
     bip174 "^3.0.0-rc.1"
