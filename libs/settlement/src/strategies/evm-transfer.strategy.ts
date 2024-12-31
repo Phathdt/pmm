@@ -56,12 +56,15 @@ export class EVMTransferStrategy implements ITransferStrategy {
 
     const protocolFee = await this.contract.getProtocolFee(tradeId);
 
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 30 * 60);
+
     const tx = await paymentContract.payment(
       tradeId,
       tokenAddress === 'native' ? ZeroAddress : tokenAddress,
       toAddress,
       amount,
       protocolFee.amount,
+      deadline,
       {
         value: tokenAddress === 'native' ? amount : 0n,
       }
