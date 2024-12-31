@@ -76,12 +76,15 @@ export class SettlementService {
       console.log('🚀 ~ dto.committedQuote:', dto.committedQuote);
       console.log('🚀 ~ deadline:', deadline);
 
+      const amountOut = BigInt(dto.committedQuote) - BigInt(dto.solverFee);
+      console.log('🚀 ~ SettlementService ~ amountOut:', amountOut);
+
       const commitInfoHash = getCommitInfoHash(
         pmmPresign.pmmId,
         pmmPresign.pmmRecvAddress,
         toChain[1],
         toChain[2],
-        BigInt(dto.committedQuote),
+        amountOut,
         deadline
       );
       console.log('🚀 ~ SettlementService ~ commitInfoHash:', commitInfoHash);
