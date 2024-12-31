@@ -21,12 +21,9 @@ export class EVMTransferStrategy implements ITransferStrategy {
   private readonly logger = new Logger(EVMTransferStrategy.name);
 
   private readonly rpcMap = new Map<string, string>([
-    ['ethereum', 'https://ethereum.blockpi.network/v1/rpc/public'],
-    [
-      'ethereum-sepolia',
-      'https://ethereum-sepolia.blockpi.network/v1/rpc/public',
-    ],
-    ['base-sepolia', 'https://base-sepolia.blockpi.network/v1/rpc/public'],
+    ['ethereum', 'https://eth-mainnet.public.blastapi.io'],
+    ['ethereum-sepolia', 'https://eth-sepolia.public.blastapi.io'],
+    ['base-sepolia', 'https://base-sepolia.public.blastapi.io'],
   ]);
 
   private readonly paymentAddressMap = new Map<string, string>([
