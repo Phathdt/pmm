@@ -63,7 +63,7 @@ export class SettlementService {
       ]);
 
       const { toChain } = tradeData.tradeInfo;
-      const scriptTimeout = BigInt(Math.floor(Date.now() / 1000) + 1800);
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800);
 
       const pmmPresign = presigns.find((t) => t.pmmId === this.pmmId);
       if (!pmmPresign) {
@@ -74,7 +74,7 @@ export class SettlementService {
       console.log('🚀 ~ pmmPresign.toChain[1]:', toChain[1]);
       console.log('🚀 ~ pmmPresign.toChain[2]:', toChain[2]);
       console.log('🚀 ~ dto.committedQuote:', dto.committedQuote);
-      console.log('🚀 ~ scriptTimeout:', scriptTimeout);
+      console.log('🚀 ~ deadline:', deadline);
 
       const commitInfoHash = getCommitInfoHash(
         pmmPresign.pmmId,
@@ -82,7 +82,7 @@ export class SettlementService {
         toChain[1],
         toChain[2],
         BigInt(dto.committedQuote),
-        scriptTimeout
+        deadline
       );
       console.log('🚀 ~ SettlementService ~ commitInfoHash:', commitInfoHash);
 
@@ -114,7 +114,7 @@ export class SettlementService {
       return {
         tradeId: tradeId,
         signature,
-        deadline: Number(scriptTimeout),
+        deadline: Number(deadline),
         error: '',
       };
     } catch (error: any) {
