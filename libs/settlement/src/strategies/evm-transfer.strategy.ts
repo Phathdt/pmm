@@ -73,7 +73,9 @@ export class EVMTransferStrategy implements ITransferStrategy {
   }
 
   private getSigner(networkId: string) {
+    console.log('🚀 ~ EVMTransferStrategy ~ getSigner ~ networkId:', networkId);
     const rpcUrl = this.rpcMap.get(networkId);
+    console.log('🚀 ~ EVMTransferStrategy ~ getSigner ~ rpcUrl:', rpcUrl);
     if (!rpcUrl) {
       throw new Error(`Unsupported networkId: ${networkId}`);
     }
