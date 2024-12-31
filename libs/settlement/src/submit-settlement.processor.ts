@@ -52,10 +52,17 @@ export class SubmitSettlementProcessor {
 
     try {
       const tradeIds: BytesLike[] = [tradeId];
+      console.log(
+        '🚀 ~ SubmitSettlementProcessor ~ submit ~ tradeId:',
+        tradeId
+      );
       const startIdx = BigInt(tradeIds.indexOf(tradeId));
 
       const signerAddress = await this.routerService.getSigner();
-      this.logger.log(`Signer address: ${signerAddress}`);
+      console.log(
+        '🚀 ~ SubmitSettlementProcessor ~ submit ~ signerAddress:',
+        signerAddress
+      );
 
       const signedAt = Math.floor(Date.now() / 1000);
 
@@ -65,7 +72,10 @@ export class SubmitSettlementProcessor {
         startIdx,
         paymentTxId
       );
-      this.logger.log(`Generated payment info hash: ${makePaymentInfoHash}`);
+      console.log(
+        '🚀 ~ SubmitSettlementProcessor ~ submit ~ makePaymentInfoHash:',
+        makePaymentInfoHash
+      );
 
       const domainData = await signerService.getDomain(signerAddress);
       const domain = {
