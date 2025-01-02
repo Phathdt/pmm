@@ -15,6 +15,7 @@ import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Trade, TradeStatus } from '@prisma/client';
 
+import { SETTLEMENT_QUEUE } from './const';
 import {
   AckSettlementDto,
   AckSettlementResponseDto,
@@ -23,7 +24,7 @@ import {
   SignalPaymentDto,
   SignalPaymentResponseDto,
 } from './settlement.dto';
-import { TRANSFER_SETTLEMENT_QUEUE, TransferSettlementEvent } from './types';
+import { TransferSettlementEvent } from './types';
 
 @Injectable()
 export class SettlementService {
@@ -36,7 +37,7 @@ export class SettlementService {
   constructor(
     private readonly configService: ConfigService,
     private readonly tradeService: TradeService,
-    @InjectQueue(TRANSFER_SETTLEMENT_QUEUE)
+    @InjectQueue(SETTLEMENT_QUEUE.TRANSFER.NAME)
     private transferSettlementQueue: Queue
   ) {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
@@ -173,7 +174,10 @@ export class SettlementService {
         tradeId: dto.tradeId,
       } as TransferSettlementEvent;
 
-      await this.transferSettlementQueue.add('transfer', toString(eventData));
+      await this.transferSettlementQueue.add(
+        SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS,
+        toString(eventData)
+      );
 
       // You might want to store the protocol fee amount or handle it in your business logic
       await this.tradeService.updateTradeStatus(

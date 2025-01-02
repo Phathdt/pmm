@@ -15,9 +15,10 @@ import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { SUBMIT_SETTLEMENT_QUEUE, SubmitSettlementEvent } from './types';
+import { SETTLEMENT_QUEUE } from '../const';
+import { SubmitSettlementEvent } from '../types';
 
-@Processor(SUBMIT_SETTLEMENT_QUEUE)
+@Processor(SETTLEMENT_QUEUE.SUBMIT.NAME)
 export class SubmitSettlementProcessor {
   private provider: ethers.JsonRpcProvider;
   private pmmWallet: ethers.Wallet;
@@ -41,7 +42,7 @@ export class SubmitSettlementProcessor {
     this.pmmWallet = new ethers.Wallet(this.pmmPrivateKey, this.provider);
   }
 
-  @Process('submit')
+  @Process(SETTLEMENT_QUEUE.SUBMIT.JOBS.PROCESS)
   async submit(job: Job<string>) {
     const { tradeId, paymentTxId } = toObject(
       job.data

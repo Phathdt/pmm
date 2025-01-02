@@ -12,15 +12,12 @@ import { InjectQueue, Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { TransferFactory } from './factories';
-import {
-  SUBMIT_SETTLEMENT_QUEUE,
-  TRANSFER_SETTLEMENT_QUEUE,
-  TransferSettlementEvent,
-} from './types';
-import { decodeAddress } from './utils';
+import { SETTLEMENT_QUEUE } from '../const';
+import { TransferFactory } from '../factories';
+import { TransferSettlementEvent } from '../types';
+import { decodeAddress } from '../utils';
 
-@Processor(TRANSFER_SETTLEMENT_QUEUE)
+@Processor(SETTLEMENT_QUEUE.TRANSFER.NAME)
 export class TransferSettlementProcessor {
   private pmmId: string;
 
@@ -33,13 +30,13 @@ export class TransferSettlementProcessor {
   constructor(
     private configService: ConfigService,
     private transferFactory: TransferFactory,
-    @InjectQueue(SUBMIT_SETTLEMENT_QUEUE)
+    @InjectQueue(SETTLEMENT_QUEUE.SUBMIT.NAME)
     private submitSettlementQueue: Queue
   ) {
     this.pmmId = stringToHex(this.configService.getOrThrow<string>('PMM_ID'));
   }
 
-  @Process('transfer')
+  @Process(SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS)
   async transfer(job: Job<string>) {
     const { tradeId } = toObject(job.data) as TransferSettlementEvent;
 
@@ -63,7 +60,10 @@ export class TransferSettlementProcessor {
         paymentTxId,
       } as TransferSettlementEvent;
 
-      await this.submitSettlementQueue.add('submit', toString(eventData));
+      await this.submitSettlementQueue.add(
+        SETTLEMENT_QUEUE.SUBMIT.JOBS.PROCESS,
+        toString(eventData)
+      );
 
       this.logger.log(
         `Processing transfer tradeId ${tradeId} success with paymentId ${paymentTxId}`

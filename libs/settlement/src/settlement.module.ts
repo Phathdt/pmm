@@ -10,13 +10,18 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
+import { SETTLEMENT_QUEUE, SETTLEMENT_QUEUE_NAMES } from './const';
 import { TransferFactory } from './factories';
+import { SubmitSettlementProcessor } from './processors/submit-settlement.processor';
+import { TransferSettlementProcessor } from './processors/transfer-settlement.processor';
 import { SettlementController } from './settlement.controller';
 import { SettlementService } from './settlement.service';
 import { BTCTransferStrategy, EVMTransferStrategy } from './strategies';
-import { SubmitSettlementProcessor } from './submit-settlement.processor';
-import { TransferSettlementProcessor } from './transfer-settlement.processor';
-import { SUBMIT_SETTLEMENT_QUEUE, TRANSFER_SETTLEMENT_QUEUE } from './types';
+
+const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
+  name: queue.NAME,
+  adapter: BullAdapter,
+}));
 
 @Module({
   imports: [
@@ -31,19 +36,9 @@ import { SUBMIT_SETTLEMENT_QUEUE, TRANSFER_SETTLEMENT_QUEUE } from './types';
       inject: [ConfigService],
     }),
     BullModule.registerQueue(
-      { name: TRANSFER_SETTLEMENT_QUEUE },
-      { name: SUBMIT_SETTLEMENT_QUEUE }
+      ...SETTLEMENT_QUEUE_NAMES.map((name) => ({ name }))
     ),
-    BullBoardModule.forFeature(
-      {
-        name: TRANSFER_SETTLEMENT_QUEUE,
-        adapter: BullAdapter,
-      },
-      {
-        name: SUBMIT_SETTLEMENT_QUEUE,
-        adapter: BullAdapter,
-      }
-    ),
+    BullBoardModule.forFeature(...QUEUE_BOARDS),
     TradeModule,
     TokenModule,
   ],
