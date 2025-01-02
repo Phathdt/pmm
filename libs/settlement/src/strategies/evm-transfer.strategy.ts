@@ -69,7 +69,9 @@ export class EVMTransferStrategy implements ITransferStrategy {
       );
 
       if (amount > allowance) {
-        await tokenContract.approve(paymentAddress, amount);
+        const approveTx = await tokenContract.approve(paymentAddress, amount);
+
+        await approveTx.wait();
       }
     }
 
