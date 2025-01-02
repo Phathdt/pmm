@@ -2,6 +2,7 @@ import { ethers, ZeroAddress } from 'ethers';
 
 import {
   ensureHexPrefix,
+  ERC20__factory,
   Payment__factory,
   Router,
   Router__factory,
@@ -48,7 +49,15 @@ export class EVMTransferStrategy implements ITransferStrategy {
 
     const signer = this.getSigner(networkId);
 
-    const paymentContract = this.getPaymentContract(networkId, signer);
+    const paymentAddress = this.getPaymentAddress(networkId);
+
+    if (tokenAddress !== 'native') {
+      const contract = ERC20__factory.connect(tokenAddress, signer);
+
+      await contract.approve(paymentAddress, amount);
+    }
+
+    const paymentContract = Payment__factory.connect(paymentAddress, signer);
 
     const protocolFee = await this.contract.getProtocolFee(tradeId);
 
@@ -83,12 +92,12 @@ export class EVMTransferStrategy implements ITransferStrategy {
     return new ethers.Wallet(this.pmmPrivateKey, provider);
   }
 
-  private getPaymentContract(networkId: string, signer: ethers.Wallet) {
+  private getPaymentAddress(networkId: string) {
     const paymentAddress = this.paymentAddressMap.get(networkId);
     if (!paymentAddress) {
       throw new Error(`Unsupported networkId: ${networkId}`);
     }
 
-    return Payment__factory.connect(paymentAddress, signer);
+    return paymentAddress;
   }
 }
