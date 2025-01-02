@@ -1,5 +1,7 @@
 import { ethers, ZeroAddress } from 'ethers';
+import { DecodedError } from 'ethers-decode-error';
 
+import { errorDecoder } from '@bitfi-mock-pmm/shared';
 import {
   ensureHexPrefix,
   ERC20__factory,
@@ -89,22 +91,46 @@ export class EVMTransferStrategy implements ITransferStrategy {
     console.log('🚀 ~ EVMTransferStrategy ~ transfer ~ deadline:', deadline);
 
     console.log(333333333);
-    const tx = await paymentContract.payment(
-      tradeId,
-      tokenAddress === 'native' ? ZeroAddress : tokenAddress,
-      toAddress,
+    console.log({
+      tradeId: tradeId,
+      tokenAddress: tokenAddress === 'native' ? ZeroAddress : tokenAddress,
+      toAddress: toAddress,
       amount,
-      protocolFee.amount,
+      protocolFee: protocolFee.amount,
       deadline,
-      {
+      payload: {
         value: tokenAddress === 'native' ? amount : 0n,
-      }
-    );
+      },
+    });
 
-    console.log(44444444);
-    this.logger.log(`Transfer transaction sent: ${tx.hash}`);
+    const decoder = errorDecoder();
 
-    return ensureHexPrefix(tx.hash);
+    try {
+      const tx = await paymentContract.payment(
+        tradeId,
+        tokenAddress === 'native' ? ZeroAddress : tokenAddress,
+        toAddress,
+        amount,
+        protocolFee.amount,
+        deadline,
+        {
+          value: tokenAddress === 'native' ? amount : 0n,
+        }
+      );
+
+      console.log(44444444);
+      this.logger.log(`Transfer transaction sent: ${tx.hash}`);
+
+      return ensureHexPrefix(tx.hash);
+    } catch (error) {
+      const decodedError: DecodedError = await decoder.decode(error);
+
+      this.logger.error(
+        `Processing transfer tradeId ${tradeId} Execution reverted!\nReason: ${decodedError.reason}`
+      );
+
+      throw error;
+    }
   }
 
   private getSigner(networkId: string) {
