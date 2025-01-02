@@ -14,7 +14,7 @@ import { ConfigService } from '@nestjs/config';
 
 import { SETTLEMENT_QUEUE } from '../const';
 import { TransferFactory } from '../factories';
-import { TransferSettlementEvent } from '../types';
+import { SubmitSettlementEvent, TransferSettlementEvent } from '../types';
 import { decodeAddress } from '../utils';
 
 @Processor(SETTLEMENT_QUEUE.TRANSFER.NAME)
@@ -58,7 +58,7 @@ export class TransferSettlementProcessor {
       const eventData = {
         tradeId: tradeId,
         paymentTxId,
-      } as TransferSettlementEvent;
+      } as SubmitSettlementEvent;
 
       await this.submitSettlementQueue.add(
         SETTLEMENT_QUEUE.SUBMIT.JOBS.PROCESS,

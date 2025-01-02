@@ -63,3 +63,10 @@ export const SignalPaymentResponseSchema = z.object({
 export class SignalPaymentResponseDto extends createZodDto(
   SignalPaymentResponseSchema
 ) {}
+
+export const SubmitTxSchema = z.object({
+  tradeId: z.string(),
+  paymentTxId: z.string(),
+});
+
+export class SubmitTxDTO extends createZodDto(SubmitTxSchema) {}

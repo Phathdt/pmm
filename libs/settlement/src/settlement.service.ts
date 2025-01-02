@@ -23,8 +23,9 @@ import {
   SettlementSignatureResponseDto,
   SignalPaymentDto,
   SignalPaymentResponseDto,
+  SubmitTxDTO,
 } from './settlement.dto';
-import { TransferSettlementEvent } from './types';
+import { SubmitSettlementEvent, TransferSettlementEvent } from './types';
 
 @Injectable()
 export class SettlementService {
@@ -38,7 +39,9 @@ export class SettlementService {
     private readonly configService: ConfigService,
     private readonly tradeService: TradeService,
     @InjectQueue(SETTLEMENT_QUEUE.TRANSFER.NAME)
-    private transferSettlementQueue: Queue
+    private transferSettlementQueue: Queue,
+    @InjectQueue(SETTLEMENT_QUEUE.SUBMIT.NAME)
+    private submitSettlementQueue: Queue
   ) {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL');
     const pmmPrivateKey =
@@ -188,6 +191,31 @@ export class SettlementService {
       return {
         tradeId: dto.tradeId,
         status: 'acknowledged',
+        error: '',
+      };
+    } catch (error: any) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new BadRequestException(error.message);
+    }
+  }
+
+  async submitTx(dto: SubmitTxDTO) {
+    try {
+      const eventData = {
+        tradeId: dto.tradeId,
+        paymentTxId: dto.paymentTxId,
+      } as SubmitSettlementEvent;
+
+      await this.submitSettlementQueue.add(
+        SETTLEMENT_QUEUE.SUBMIT.JOBS.PROCESS,
+        toString(eventData)
+      );
+
+      return {
+        tradeId: dto.tradeId,
+        status: 'enqueue ok',
         error: '',
       };
     } catch (error: any) {
