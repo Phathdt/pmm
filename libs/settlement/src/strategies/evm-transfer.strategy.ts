@@ -44,25 +44,49 @@ export class EVMTransferStrategy implements ITransferStrategy {
   }
 
   async transfer(params: TransferParams): Promise<string> {
+    console.log('🚀 ~ EVMTransferStrategy ~ transfer ~ params:', params);
     const { toAddress, amount, token, tradeId } = params;
     const { tokenAddress, networkId } = token;
 
     const signer = this.getSigner(networkId);
 
     const paymentAddress = this.getPaymentAddress(networkId);
+    console.log(
+      '🚀 ~ EVMTransferStrategy ~ transfer ~ paymentAddress:',
+      paymentAddress
+    );
 
     if (tokenAddress !== 'native') {
-      const contract = ERC20__factory.connect(tokenAddress, signer);
+      const tokenContract = ERC20__factory.connect(tokenAddress, signer);
 
-      await contract.approve(paymentAddress, amount);
+      const allowance = await tokenContract.allowance(
+        signer.address,
+        paymentAddress
+      );
+      console.log(
+        '🚀 ~ EVMTransferStrategy ~ transfer ~ allowance:',
+        allowance
+      );
+
+      if (amount > allowance) {
+        await tokenContract.approve(paymentAddress, amount);
+      }
     }
 
+    console.log(22222222222);
     const paymentContract = Payment__factory.connect(paymentAddress, signer);
 
+    console.log(55555555);
     const protocolFee = await this.contract.getProtocolFee(tradeId);
+    console.log(
+      '🚀 ~ EVMTransferStrategy ~ transfer ~ protocolFee:',
+      protocolFee
+    );
 
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 30 * 60);
+    console.log('🚀 ~ EVMTransferStrategy ~ transfer ~ deadline:', deadline);
 
+    console.log(333333333);
     const tx = await paymentContract.payment(
       tradeId,
       tokenAddress === 'native' ? ZeroAddress : tokenAddress,
@@ -75,6 +99,7 @@ export class EVMTransferStrategy implements ITransferStrategy {
       }
     );
 
+    console.log(44444444);
     this.logger.log(`Transfer transaction sent: ${tx.hash}`);
 
     return ensureHexPrefix(tx.hash);
