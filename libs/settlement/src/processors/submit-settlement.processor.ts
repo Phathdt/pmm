@@ -144,15 +144,9 @@ export class SubmitSettlementProcessor {
         }
         throw axiosError; // Re-throw to be caught by outer catch block
       }
-    } catch (error) {
-      this.logger.error(`Submit settlement failed for trade ${tradeId}:`);
-      if (error instanceof Error) {
-        this.logger.error(`Error name: ${error.name}`);
-        this.logger.error(`Error message: ${error.message}`);
-        this.logger.error(`Stack trace: ${error.stack}`);
-      } else {
-        this.logger.error(`Unknown error: ${error}`);
-      }
+    } catch (error: any) {
+      this.logger.error('submit settlement error', error.stack);
+
       throw error; // Re-throw the error for the queue to handle
     }
   }
