@@ -46,17 +46,12 @@ export class EVMTransferStrategy implements ITransferStrategy {
   }
 
   async transfer(params: TransferParams): Promise<string> {
-    console.log('🚀 ~ EVMTransferStrategy ~ transfer ~ params:', params);
     const { toAddress, amount, token, tradeId } = params;
     const { tokenAddress, networkId } = token;
 
     const signer = this.getSigner(networkId);
 
     const paymentAddress = this.getPaymentAddress(networkId);
-    console.log(
-      '🚀 ~ EVMTransferStrategy ~ transfer ~ paymentAddress:',
-      paymentAddress
-    );
 
     if (tokenAddress !== 'native') {
       const tokenContract = ERC20__factory.connect(tokenAddress, signer);
@@ -64,10 +59,6 @@ export class EVMTransferStrategy implements ITransferStrategy {
       const allowance = await tokenContract.allowance(
         signer.address,
         paymentAddress
-      );
-      console.log(
-        '🚀 ~ EVMTransferStrategy ~ transfer ~ allowance:',
-        allowance
       );
 
       if (amount > allowance) {
@@ -77,31 +68,11 @@ export class EVMTransferStrategy implements ITransferStrategy {
       }
     }
 
-    console.log(22222222222);
     const paymentContract = Payment__factory.connect(paymentAddress, signer);
 
-    console.log(55555555);
     const protocolFee = await this.contract.getProtocolFee(tradeId);
-    console.log(
-      '🚀 ~ EVMTransferStrategy ~ transfer ~ protocolFee:',
-      protocolFee
-    );
 
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 30 * 60);
-    console.log('🚀 ~ EVMTransferStrategy ~ transfer ~ deadline:', deadline);
-
-    console.log(333333333);
-    console.log({
-      tradeId: tradeId,
-      tokenAddress: tokenAddress === 'native' ? ZeroAddress : tokenAddress,
-      toAddress: toAddress,
-      amount,
-      protocolFee: protocolFee.amount,
-      deadline,
-      payload: {
-        value: tokenAddress === 'native' ? amount : 0n,
-      },
-    });
 
     const decoder = errorDecoder();
 
@@ -118,7 +89,6 @@ export class EVMTransferStrategy implements ITransferStrategy {
         }
       );
 
-      console.log(44444444);
       this.logger.log(`Transfer transaction sent: ${tx.hash}`);
 
       return ensureHexPrefix(tx.hash);
@@ -134,9 +104,8 @@ export class EVMTransferStrategy implements ITransferStrategy {
   }
 
   private getSigner(networkId: string) {
-    console.log('🚀 ~ EVMTransferStrategy ~ getSigner ~ networkId:', networkId);
     const rpcUrl = this.rpcMap.get(networkId);
-    console.log('🚀 ~ EVMTransferStrategy ~ getSigner ~ rpcUrl:', rpcUrl);
+
     if (!rpcUrl) {
       throw new Error(`Unsupported networkId: ${networkId}`);
     }

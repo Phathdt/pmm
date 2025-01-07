@@ -36,7 +36,6 @@ export class SubmitSettlementProcessor {
       this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
 
     this.pmmId = this.configService.getOrThrow<string>('PMM_ID');
-    console.log('🚀 ~ SubmitSettlementProcessor ~ pmmId:', this.pmmId);
 
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
     this.pmmWallet = new ethers.Wallet(this.pmmPrivateKey, this.provider);
@@ -53,17 +52,9 @@ export class SubmitSettlementProcessor {
 
     try {
       const tradeIds: BytesLike[] = [tradeId];
-      console.log(
-        '🚀 ~ SubmitSettlementProcessor ~ submit ~ tradeId:',
-        tradeId
-      );
       const startIdx = BigInt(tradeIds.indexOf(tradeId));
 
       const signerAddress = await this.routerService.getSigner();
-      console.log(
-        '🚀 ~ SubmitSettlementProcessor ~ submit ~ signerAddress:',
-        signerAddress
-      );
 
       const signedAt = Math.floor(Date.now() / 1000);
 
@@ -73,10 +64,6 @@ export class SubmitSettlementProcessor {
         startIdx,
         ensureHexPrefix(paymentTxId)
       );
-      console.log(
-        '🚀 ~ SubmitSettlementProcessor ~ submit ~ makePaymentInfoHash:',
-        makePaymentInfoHash
-      );
 
       const domainData = await signerService.getDomain(signerAddress);
       const domain = {
@@ -85,7 +72,6 @@ export class SubmitSettlementProcessor {
         chainId: domainData.chainId,
         verifyingContract: domainData.verifyingContract,
       };
-      console.log('🚀 ~ SubmitSettlementProcessor ~ submit ~ domain:', domain);
 
       const signature = await getSignature(
         this.pmmWallet,

@@ -48,7 +48,6 @@ export class SettlementService {
       this.configService.getOrThrow<string>('PMM_PRIVATE_KEY');
 
     this.pmmId = stringToHex(this.configService.getOrThrow<string>('PMM_ID'));
-    console.log('🚀 ~ SettlementService ~ pmmId:', this.pmmId);
 
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
     this.pmmWallet = new ethers.Wallet(pmmPrivateKey, this.provider);
@@ -73,15 +72,8 @@ export class SettlementService {
       if (!pmmPresign) {
         throw new BadRequestException('pmmPresign not found');
       }
-      console.log('🚀 ~ pmmPresign.pmmId:', pmmPresign.pmmId);
-      console.log('🚀 ~ pmmPresign.pmmRecvAddress:', pmmPresign.pmmRecvAddress);
-      console.log('🚀 ~ pmmPresign.toChain[1]:', toChain[1]);
-      console.log('🚀 ~ pmmPresign.toChain[2]:', toChain[2]);
-      console.log('🚀 ~ dto.committedQuote:', dto.committedQuote);
-      console.log('🚀 ~ deadline:', deadline);
 
       const amountOut = BigInt(dto.committedQuote) - BigInt(dto.solverFee);
-      console.log('🚀 ~ SettlementService ~ amountOut:', amountOut);
 
       const commitInfoHash = getCommitInfoHash(
         pmmPresign.pmmId,
@@ -91,10 +83,8 @@ export class SettlementService {
         amountOut,
         deadline
       );
-      console.log('🚀 ~ SettlementService ~ commitInfoHash:', commitInfoHash);
 
       const signerAddress = await this.routerService.getSigner();
-      console.log('🚀 ~ SettlementService ~ signerAddress:', signerAddress);
 
       const domainData = await signerService.getDomain(signerAddress);
       const domain = {
@@ -103,7 +93,7 @@ export class SettlementService {
         chainId: domainData.chainId,
         verifyingContract: domainData.verifyingContract,
       };
-      console.log('🚀 ~ SettlementService ~ domain:', domain);
+
       const signature = await getSignature(
         this.pmmWallet,
         this.provider,
@@ -113,8 +103,6 @@ export class SettlementService {
         SignatureType.VerifyingContract,
         domain
       );
-      console.log('🚀 ~ SettlementService ~ tradeId:', tradeId);
-      console.log('🚀 ~ SettlementService ~ signature:', signature);
 
       await this.tradeService.updateTradeStatus(tradeId, TradeStatus.COMMITTED);
 
@@ -208,8 +196,8 @@ export class SettlementService {
         paymentTxId: dto.paymentTxId,
       } as SubmitSettlementEvent;
 
-      await this.submitSettlementQueue.add(
-        SETTLEMENT_QUEUE.SUBMIT.JOBS.PROCESS,
+      await this.transferSettlementQueue.add(
+        SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS,
         toString(eventData)
       );
 
