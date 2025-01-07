@@ -2,8 +2,7 @@ import { ethers, ZeroAddress } from 'ethers'
 import { DecodedError } from 'ethers-decode-error'
 
 import { errorDecoder } from '@bitfi-mock-pmm/shared'
-import { ensureHexPrefix, ERC20__factory, Payment__factory, routerService } from '@bitfixyz/market-maker-sdk'
-import config from '@bitfixyz/market-maker-sdk/dist/config/config'
+import { config, ensureHexPrefix, ERC20__factory, Payment__factory, routerService } from '@bitfixyz/market-maker-sdk'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
