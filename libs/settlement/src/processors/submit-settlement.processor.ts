@@ -19,11 +19,6 @@ import { SETTLEMENT_QUEUE } from '../const'
 import { SubmitSettlementEvent } from '../types'
 
 function generatePaymentTxIds(initialTxId: string): string[] {
-  // Validate the initial transaction ID format
-  if (!initialTxId.match(/^0x[a-fA-F0-9]{64}$/)) {
-    throw new Error('Invalid initial transaction ID format')
-  }
-
   const paymentTxIds: string[] = [initialTxId]
 
   // Generate 99 more transaction IDs
