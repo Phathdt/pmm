@@ -38,7 +38,6 @@
     "axios": "^1.7.7",
     "bitcoinjs-lib": "^7.0.0-rc.0",
     "bs58": "^6.0.0",
-    "bs58check": "^4.0.0",
     "bull": "^4.16.4",
     "cache-manager-redis-yet": "^5.1.5",
     "ecpair": "^3.0.0-rc.0",
