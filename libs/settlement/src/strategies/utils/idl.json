@@ -1,0 +1,866 @@
+{
+  "address": "GweDPiGrzuJCxgxS81bAzdU81gTMP2tUwfrR5bWGi8qN",
+  "metadata": {
+    "name": "bitfi_sol_smartcontract",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "claim",
+      "docs": [
+        "@notice Claim the deposited amount after the timeout\n        @dev\n        - Requirements:\n            - Caller must be authorized:\n                - Caller can be anyone\n            - Available to call when `timestamp > timeout`\n        - Params:\n            - claim_args           Arguments required for the claim"
+      ],
+      "discriminator": [62, 198, 214, 193, 213, 159, 108, 210],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_account",
+          "writable": true
+        },
+        {
+          "name": "user_trade_detail",
+          "writable": true
+        },
+        {
+          "name": "user_protocol_fee",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117, 115, 101, 114, 95, 112, 114, 111, 116, 111, 99, 111, 108,
+                  95, 102, 101, 101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user_trade_detail"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [118, 97, 117, 108, 116]
+              }
+            ]
+          }
+        },
+        {
+          "name": "refund_account",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "claim_args",
+          "type": {
+            "defined": {
+              "name": "ClaimArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "deposit",
+      "docs": [
+        "@notice Handles the deposit of either tokens or SOL into the vault\n        @dev\n        - Requirements:\n            - Available to call when `timestamp <= timeout`\n        - Params:\n            - deposit_args         Arguments required for the deposit"
+      ],
+      "discriminator": [242, 35, 198, 137, 82, 225, 242, 182],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_trade_detail",
+          "writable": true
+        },
+        {
+          "name": "user_protocol_fee",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117, 115, 101, 114, 95, 112, 114, 111, 116, 111, 99, 111, 108,
+                  95, 102, 101, 101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user_trade_detail"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [118, 97, 117, 108, 116]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "deposit_args",
+          "type": {
+            "defined": {
+              "name": "DepositArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "init",
+      "docs": [
+        "@notice Initializes the vault and protocol accounts\n        @dev\n        - Requirements:\n            - Caller must be authorized\n        - Params:\n            - init_args            Arguments required for initialization (currently empty)"
+      ],
+      "discriminator": [220, 59, 207, 236, 108, 250, 47, 100],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [118, 97, 117, 108, 116]
+              }
+            ]
+          }
+        },
+        {
+          "name": "protocol",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [112, 114, 111, 116, 111, 99, 111, 108]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "program",
+          "address": "GweDPiGrzuJCxgxS81bAzdU81gTMP2tUwfrR5bWGi8qN"
+        },
+        {
+          "name": "program_data"
+        }
+      ],
+      "args": [
+        {
+          "name": "init_args",
+          "type": {
+            "defined": {
+              "name": "InitArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "payment",
+      "docs": [
+        "@notice Handles the payment process\n        @dev\n        - Requirements:\n            - Caller must be authorized\n        - Params:\n            - deposit_args         Arguments required for the payment"
+      ],
+      "discriminator": [156, 226, 80, 91, 104, 252, 49, 142],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": ["The signer account, which must be mutable."],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "to_user",
+          "docs": ["The account to which the payment will be sent."],
+          "writable": true
+        },
+        {
+          "name": "protocol",
+          "docs": [
+            "The protocol account to which the protocol fee will be sent."
+          ],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [112, 114, 111, 116, 111, 99, 111, 108]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "payment_args",
+          "type": {
+            "defined": {
+              "name": "PaymentArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_protocol_fee",
+      "docs": [
+        "@notice Sets the protocol fee for a trade\n        @dev\n        - Requirements:\n            - Signature that signed by MPC\n        - Params:\n            - set_protocol_fee_args Arguments required for setting the protocol fee"
+      ],
+      "discriminator": [173, 239, 83, 242, 136, 43, 144, 217],
+      "accounts": [
+        {
+          "name": "signer",
+          "docs": ["The signer account, which must be mutable and authorized"],
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_trade_detail",
+          "docs": ["The user trade detail account"]
+        },
+        {
+          "name": "user_protocol_fee",
+          "docs": ["The user protocol fee account"],
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117, 115, 101, 114, 95, 112, 114, 111, 116, 111, 99, 111, 108,
+                  95, 102, 101, 101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user_trade_detail"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "set_protocol_fee_args",
+          "type": {
+            "defined": {
+              "name": "SetProtocolFeeArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "settlement",
+      "docs": [
+        "@notice Transfer `amount` to `toAddress` to finalize the `tradeId`\n        @dev\n        - Requirements:\n            - Caller must be authorized:\n                - Signature that signed by MPC\n                - Signature that signed by the user\n            - Available to call when `timestamp <= timeout`\n        - Params:\n            - payment_args         Arguments required for the settlement"
+      ],
+      "discriminator": [128, 21, 174, 60, 47, 86, 130, 108],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_account",
+          "writable": true
+        },
+        {
+          "name": "user_ephemeral_account",
+          "signer": true
+        },
+        {
+          "name": "user_trade_detail",
+          "writable": true
+        },
+        {
+          "name": "user_protocol_fee",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117, 115, 101, 114, 95, 112, 114, 111, 116, 111, 99, 111, 108,
+                  95, 102, 101, 101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "user_trade_detail"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [118, 97, 117, 108, 116]
+              }
+            ]
+          }
+        },
+        {
+          "name": "refund_account",
+          "writable": true
+        },
+        {
+          "name": "protocol",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [112, 114, 111, 116, 111, 99, 111, 108]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pmm",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "payment_args",
+          "type": {
+            "defined": {
+              "name": "SettlementArgs"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "TradeDetail",
+      "discriminator": [241, 58, 83, 75, 150, 155, 85, 205]
+    },
+    {
+      "name": "UserProtocolFee",
+      "discriminator": [163, 86, 182, 157, 16, 177, 224, 222]
+    }
+  ],
+  "events": [
+    {
+      "name": "Claimed",
+      "discriminator": [217, 192, 123, 72, 108, 150, 248, 33]
+    },
+    {
+      "name": "Deposited",
+      "discriminator": [111, 141, 26, 45, 161, 35, 100, 57]
+    },
+    {
+      "name": "PaymentTransferred",
+      "discriminator": [206, 116, 224, 136, 100, 105, 246, 173]
+    },
+    {
+      "name": "Settled",
+      "discriminator": [232, 210, 40, 17, 142, 124, 145, 238]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidTradeId"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidTimeout"
+    },
+    {
+      "code": 6002,
+      "name": "Unauthorized"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidPublicKey"
+    },
+    {
+      "code": 6004,
+      "name": "DepositZeroAmount"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidAmount"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidMintKey"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidSourceAta"
+    },
+    {
+      "code": 6008,
+      "name": "InvalidDestinationAta"
+    },
+    {
+      "code": 6009,
+      "name": "TimeOut"
+    },
+    {
+      "code": 6010,
+      "name": "InvalidRefundPubkey"
+    },
+    {
+      "code": 6011,
+      "name": "CLaimNotAvailable"
+    },
+    {
+      "code": 6012,
+      "name": "DeadlineExceeded"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidUserAccount"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidUserEphemeralPubkey"
+    }
+  ],
+  "types": [
+    {
+      "name": "ClaimArgs",
+      "docs": ["Arguments required for the claim function"],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "trade_id",
+            "docs": ["Unique identifier for the trade"],
+            "type": {
+              "array": ["u8", 32]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Claimed",
+      "docs": [
+        "- @dev Event emitted when a user successfully claims the deposit after timeout\n    - Related function: claim()"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "trade_id",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "token",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "to_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DepositArgs",
+      "docs": ["Arguments required for the deposit function"],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "input",
+            "docs": ["Input trade information"],
+            "type": {
+              "defined": {
+                "name": "TradeInput"
+              }
+            }
+          },
+          {
+            "name": "data",
+            "docs": ["Detailed trade data"],
+            "type": {
+              "defined": {
+                "name": "TradeDetail"
+              }
+            }
+          },
+          {
+            "name": "trade_id",
+            "docs": ["Unique identifier for the trade"],
+            "type": {
+              "array": ["u8", 32]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Deposited",
+      "docs": [
+        "- @dev Event emitted when a user successfully deposits tokens or SOL\n    - Related function: deposit()"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "trade_id",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "depositor",
+            "type": "pubkey"
+          },
+          {
+            "name": "token",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "InitArgs",
+      "docs": ["Arguments required for the init function"],
+      "type": {
+        "kind": "struct",
+        "fields": []
+      }
+    },
+    {
+      "name": "PaymentArgs",
+      "docs": ["Arguments for the payment instruction."],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "trade_id",
+            "docs": ["Unique identifier for the trade."],
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "token",
+            "docs": ["Optional token public key for SPL token payments."],
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "amount",
+            "docs": ["Amount to be transferred."],
+            "type": "u64"
+          },
+          {
+            "name": "protocol_fee",
+            "docs": ["Protocol fee to be deducted from the amount."],
+            "type": "u64"
+          },
+          {
+            "name": "deadline",
+            "docs": ["Deadline for the payment transaction."],
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentTransferred",
+      "docs": [
+        "- @dev Event emitted when PMM successfully settle the payment\n    - Related function: payment();"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "trade_id",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "from_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "to_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "token",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "protocol_fee",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SetProtocolFeeArgs",
+      "docs": ["Arguments required for setting the protocol fee"],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "trade_id",
+            "docs": ["Unique identifier for the trade"],
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "amount",
+            "docs": ["Amount of the protocol fee"],
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Settled",
+      "docs": [
+        "- @dev Event emitted when MPC successfully settles the trade\n    - Related function: settlement()"
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "trade_id",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "token",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "to_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "operator",
+            "type": "pubkey"
+          },
+          {
+            "name": "settlement_amount",
+            "type": "u64"
+          },
+          {
+            "name": "fee_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SettlementArgs",
+      "docs": ["Arguments required for the settlement function"],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "trade_id",
+            "docs": ["Unique identifier for the trade"],
+            "type": {
+              "array": ["u8", 32]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "TradeDetail",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "token",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "timeout",
+            "type": "i64"
+          },
+          {
+            "name": "mpc_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "user_ephemeral_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "refund_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "user_pubkey",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TradeInfo",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount_in",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "from_chain",
+            "type": {
+              "array": ["bytes", 3]
+            }
+          },
+          {
+            "name": "to_chain",
+            "type": {
+              "array": ["bytes", 3]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "TradeInput",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "session_id",
+            "type": {
+              "array": ["u8", 32]
+            }
+          },
+          {
+            "name": "solver",
+            "type": {
+              "array": ["u8", 20]
+            }
+          },
+          {
+            "name": "trade_info",
+            "type": {
+              "defined": {
+                "name": "TradeInfo"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "UserProtocolFee",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}
