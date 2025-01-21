@@ -2,7 +2,7 @@ import { AxiosError } from 'axios'
 import { Job } from 'bull'
 import { BytesLike, ethers } from 'ethers'
 
-import { ensureHexPrefix, toObject } from '@bitfi-mock-pmm/shared'
+import { toObject } from '@bitfi-mock-pmm/shared'
 import {
   getMakePaymentHash,
   getSignature,
@@ -15,9 +15,10 @@ import { Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
+import { removeHexPrefix } from '@bitfi-mock-pmm/shared'
 import { SETTLEMENT_QUEUE } from '../const'
 import { SubmitSettlementEvent } from '../types'
-import { convertToBytesLike } from '../utils'
+import { convertToHexString } from '../utils'
 
 @Processor(SETTLEMENT_QUEUE.SUBMIT.NAME)
 export class SubmitSettlementProcessor {
@@ -49,7 +50,7 @@ export class SubmitSettlementProcessor {
     this.logger.log(`Payment Transaction ID: ${paymentId}`)
 
     try {
-      const paymentTxId = convertToBytesLike(paymentId)
+      const paymentTxId = convertToHexString(removeHexPrefix(paymentId))
       const tradeIds: BytesLike[] = [tradeId]
       const startIdx = BigInt(tradeIds.indexOf(tradeId))
 
@@ -75,7 +76,7 @@ export class SubmitSettlementProcessor {
       const requestPayload = {
         tradeIds: [tradeId],
         pmmId: this.pmmId,
-        settlementTx: ensureHexPrefix(paymentId),
+        settlementTx: paymentTxId,
         signature: signature,
         startIndex: 0,
         signedAt: signedAt,

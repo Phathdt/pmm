@@ -1,4 +1,4 @@
-import { BytesLike, ethers } from 'ethers'
+import { ethers } from 'ethers'
 
 import { Token } from '@bitfixyz/market-maker-sdk'
 
@@ -28,12 +28,12 @@ export const decodeAddress = (value: string, token: Token) => {
   }
 }
 
-export const convertToBytesLike = (input: string): BytesLike => {
+export const convertToHexString = (input: string): string => {
   if (ethers.isHexString(input)) {
     return input
   }
 
-  return ethers.toUtf8Bytes(input)
+  return ethers.hexlify(ethers.toUtf8Bytes(input))
 }
 
 export const decodeFromBytesLike = (input: string): string => {
