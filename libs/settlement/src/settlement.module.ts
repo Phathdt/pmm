@@ -16,7 +16,7 @@ import { SubmitSettlementProcessor } from './processors/submit-settlement.proces
 import { TransferSettlementProcessor } from './processors/transfer-settlement.processor'
 import { SettlementController } from './settlement.controller'
 import { SettlementService } from './settlement.service'
-import { BTCTransferStrategy, EVMTransferStrategy } from './strategies'
+import { BTCTransferStrategy, EVMTransferStrategy, SolanaTransferStrategy } from './strategies'
 
 const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
   name: queue.NAME,
@@ -49,6 +49,7 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
     TransferFactory,
     BTCTransferStrategy,
     EVMTransferStrategy,
+    SolanaTransferStrategy,
   ],
 })
 export class SettlementModule {}

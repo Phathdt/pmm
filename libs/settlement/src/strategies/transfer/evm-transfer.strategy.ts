@@ -6,7 +6,7 @@ import { config, ensureHexPrefix, ERC20__factory, Payment__factory, routerServic
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
-import { ITransferStrategy, TransferParams } from '../interfaces/transfer-strategy.interface'
+import { ITransferStrategy, TransferParams } from '../../interfaces/transfer-strategy.interface'
 
 @Injectable()
 export class EVMTransferStrategy implements ITransferStrategy {

@@ -19,6 +19,7 @@ import {
 export class QuoteService {
   private readonly EVM_ADDRESS: string
   private readonly BTC_ADDRESS: string
+  private readonly PMM_SOLANA_ADDRESS: string
   private readonly tokenService = tokenService
 
   constructor(
@@ -29,6 +30,7 @@ export class QuoteService {
   ) {
     this.EVM_ADDRESS = this.configService.getOrThrow<string>('PMM_EVM_ADDRESS')
     this.BTC_ADDRESS = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS')
+    this.PMM_SOLANA_ADDRESS = this.configService.getOrThrow<string>('PMM_SOLANA_ADDRESS')
   }
 
   private getPmmAddressByNetworkType(token: Token): string {
@@ -38,6 +40,8 @@ export class QuoteService {
       case 'BTC':
       case 'TBTC':
         return this.BTC_ADDRESS
+      case 'SOLANA':
+        return this.PMM_SOLANA_ADDRESS
       default:
         throw new BadRequestException(`Unsupported network type: ${token.networkType}`)
     }

@@ -8,7 +8,7 @@ import { getTradeIdsHash, Token } from '@bitfixyz/market-maker-sdk'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
-import { ITransferStrategy, TransferParams } from '../interfaces/transfer-strategy.interface'
+import { ITransferStrategy, TransferParams } from '../../interfaces/transfer-strategy.interface'
 
 interface UTXO {
   txid: string

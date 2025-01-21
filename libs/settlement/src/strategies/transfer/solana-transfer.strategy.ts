@@ -5,7 +5,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Connection, Keypair, PublicKey } from '@solana/web3.js'
 
-import { ITransferStrategy, TransferParams } from '../interfaces'
+import { ITransferStrategy, TransferParams } from '../../interfaces'
 import { payment } from './utils/payment'
 
 @Injectable()
