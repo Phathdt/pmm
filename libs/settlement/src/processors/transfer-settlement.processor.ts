@@ -59,6 +59,7 @@ export class TransferSettlementProcessor {
       this.logger.log(`Processing transfer tradeId ${tradeId} success with paymentId ${paymentTxId}`)
     } catch (error) {
       this.logger.error(`Processing transfer tradeId ${tradeId} failed: ${error}`)
+      throw error
     }
   }
 
