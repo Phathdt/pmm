@@ -27,7 +27,7 @@ jobs:
           COMMIT_SHORT_SHA="$(git rev-parse --short HEAD)"
 
           echo "::set-output name=COMMIT_SHORT_SHA::${COMMIT_SHORT_SHA}"
-          echo "::set-output name=IMAGE_TAG::${IMAGE_REPOSITORY}:develop-${COMMIT_SHORT_SHA}"
+          echo "::set-output name=IMAGE_TAG::${IMAGE_REPOSITORY}:main-${COMMIT_SHORT_SHA}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
