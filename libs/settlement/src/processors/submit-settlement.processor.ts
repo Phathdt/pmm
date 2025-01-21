@@ -17,6 +17,7 @@ import { ConfigService } from '@nestjs/config'
 
 import { SETTLEMENT_QUEUE } from '../const'
 import { SubmitSettlementEvent } from '../types'
+import { convertToBytesLike } from '../utils'
 
 @Processor(SETTLEMENT_QUEUE.SUBMIT.NAME)
 export class SubmitSettlementProcessor {
@@ -42,12 +43,13 @@ export class SubmitSettlementProcessor {
 
   @Process(SETTLEMENT_QUEUE.SUBMIT.JOBS.PROCESS)
   async submit(job: Job<string>) {
-    const { tradeId, paymentTxId } = toObject(job.data) as SubmitSettlementEvent
+    const { tradeId, paymentTxId: paymentId } = toObject(job.data) as SubmitSettlementEvent
 
     this.logger.log(`Starting settlement submission for Trade ID: ${tradeId}`)
-    this.logger.log(`Payment Transaction ID: ${paymentTxId}`)
+    this.logger.log(`Payment Transaction ID: ${paymentId}`)
 
     try {
+      const paymentTxId = convertToBytesLike(paymentId)
       const tradeIds: BytesLike[] = [tradeId]
       const startIdx = BigInt(tradeIds.indexOf(tradeId))
 
@@ -55,7 +57,7 @@ export class SubmitSettlementProcessor {
 
       const signedAt = Math.floor(Date.now() / 1000)
 
-      const makePaymentInfoHash = getMakePaymentHash(tradeIds, BigInt(signedAt), startIdx, ensureHexPrefix(paymentTxId))
+      const makePaymentInfoHash = getMakePaymentHash(tradeIds, BigInt(signedAt), startIdx, paymentTxId)
 
       const domain = await signerService.getDomain()
 
@@ -73,7 +75,7 @@ export class SubmitSettlementProcessor {
       const requestPayload = {
         tradeIds: [tradeId],
         pmmId: this.pmmId,
-        settlementTx: ensureHexPrefix(paymentTxId),
+        settlementTx: ensureHexPrefix(paymentId),
         signature: signature,
         startIndex: 0,
         signedAt: signedAt,

@@ -1,4 +1,4 @@
-import { ethers } from 'ethers'
+import { BytesLike, ethers } from 'ethers'
 
 import { Token } from '@bitfixyz/market-maker-sdk'
 
@@ -26,4 +26,24 @@ export const decodeAddress = (value: string, token: Token) => {
     default:
       throw new Error(`Unsupported network: ${token.networkType}`)
   }
+}
+
+export const convertToBytesLike = (input: string): BytesLike => {
+  if (ethers.isHexString(input)) {
+    return input
+  }
+
+  return ethers.toUtf8Bytes(input)
+}
+
+export const decodeFromBytesLike = (input: string): string => {
+  if (input.startsWith('0x')) {
+    if (input.length === 34) {
+      return input
+    }
+
+    return ethers.toUtf8String(input)
+  }
+
+  return ethers.toUtf8String(input)
 }
