@@ -15,7 +15,6 @@ import { Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
-import { removeHexPrefix } from '@bitfi-mock-pmm/shared'
 import { SETTLEMENT_QUEUE } from '../const'
 import { SubmitSettlementEvent } from '../types'
 import { convertToHexString } from '../utils'
@@ -50,7 +49,7 @@ export class SubmitSettlementProcessor {
     this.logger.log(`Payment Transaction ID: ${paymentId}`)
 
     try {
-      const paymentTxId = convertToHexString(removeHexPrefix(paymentId))
+      const paymentTxId = convertToHexString(paymentId)
       const tradeIds: BytesLike[] = [tradeId]
       const startIdx = BigInt(tradeIds.indexOf(tradeId))
 

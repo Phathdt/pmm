@@ -1,5 +1,6 @@
 import { ethers } from 'ethers'
 
+import { removeHexPrefix } from '@bitfi-mock-pmm/shared'
 import { Token } from '@bitfixyz/market-maker-sdk'
 
 export const encodeAddress = (address: string, token: Token) => {
@@ -33,12 +34,14 @@ export const convertToHexString = (input: string): string => {
     return input
   }
 
+  input = removeHexPrefix(input)
+
   return ethers.hexlify(ethers.toUtf8Bytes(input))
 }
 
-export const decodeFromBytesLike = (input: string): string => {
+export const decodeFromHexString = (input: string): string => {
   if (input.startsWith('0x')) {
-    if (input.length === 34) {
+    if (input.length === 34 || input.length === 66) {
       return input
     }
 
