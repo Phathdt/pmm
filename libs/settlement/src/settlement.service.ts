@@ -148,7 +148,9 @@ export class SettlementService {
         tradeId: dto.tradeId,
       } as TransferSettlementEvent
 
-      await this.transferSettlementQueue.add(SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS, toString(eventData))
+      await this.transferSettlementQueue.add(SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS, toString(eventData), {
+        removeOnComplete: true,
+      })
 
       // You might want to store the protocol fee amount or handle it in your business logic
       await this.tradeService.updateTradeStatus(dto.tradeId, TradeStatus.SETTLING)
@@ -173,7 +175,9 @@ export class SettlementService {
         paymentTxId: dto.paymentTxId,
       } as SubmitSettlementEvent
 
-      await this.transferSettlementQueue.add(SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS, toString(eventData))
+      await this.transferSettlementQueue.add(SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS, toString(eventData), {
+        removeOnComplete: true,
+      })
 
       return {
         tradeId: dto.tradeId,

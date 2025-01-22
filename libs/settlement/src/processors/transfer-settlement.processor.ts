@@ -54,7 +54,9 @@ export class TransferSettlementProcessor {
         paymentTxId,
       } as SubmitSettlementEvent
 
-      await this.submitSettlementQueue.add(SETTLEMENT_QUEUE.SUBMIT.JOBS.PROCESS, toString(eventData))
+      await this.submitSettlementQueue.add(SETTLEMENT_QUEUE.SUBMIT.JOBS.PROCESS, toString(eventData), {
+        removeOnComplete: true,
+      })
 
       this.logger.log(`Processing transfer tradeId ${tradeId} success with paymentId ${paymentTxId}`)
     } catch (error) {
