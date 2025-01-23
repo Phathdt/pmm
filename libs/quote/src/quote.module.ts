@@ -18,7 +18,7 @@ import { QuoteService } from './quote.service'
       useFactory: async (configService: ConfigService) => ({
         store: await redisStore({
           url: configService.getOrThrow<string>('REDIS_URL'),
-          ttl: configService.get<number>('QUOTE_SESSION_TIMEOUT') || 5 * 60 * 1000,
+          ttl: configService.get<number>('QUOTE_SESSION_TIMEOUT') || 24 * 60 * 60 * 1000,
         }),
       }),
       inject: [ConfigService],
