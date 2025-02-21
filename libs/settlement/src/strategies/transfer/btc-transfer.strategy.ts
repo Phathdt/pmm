@@ -4,7 +4,7 @@ import { ECPairFactory } from 'ecpair'
 import * as ecc from 'tiny-secp256k1'
 
 import { ensureHexPrefix } from '@bitfi-mock-pmm/shared'
-import { getTradeIdsHash, Token } from '@bitfixyz/market-maker-sdk'
+import { getTradeIdsHash, Token } from '@petafixyz/market-maker-sdk'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 

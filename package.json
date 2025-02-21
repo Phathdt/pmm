@@ -19,7 +19,6 @@
   },
   "private": true,
   "dependencies": {
-    "@bitfixyz/market-maker-sdk": "^0.1.6",
     "@bull-board/api": "^6.5.3",
     "@bull-board/express": "^6.5.3",
     "@bull-board/nestjs": "^6.5.3",
@@ -32,6 +31,7 @@
     "@nestjs/core": "^10.0.2",
     "@nestjs/platform-express": "^10.0.2",
     "@nestjs/swagger": "^8.0.2",
+    "@petafixyz/market-maker-sdk": "^0.1.1-dev.1",
     "@prisma/client": "^6.0.1",
     "@solana/spl-token": "^0.4.9",
     "@solana/web3.js": "^1.98.0",

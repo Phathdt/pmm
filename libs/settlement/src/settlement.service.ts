@@ -9,7 +9,7 @@ import {
   routerService,
   SignatureType,
   signerService,
-} from '@bitfixyz/market-maker-sdk'
+} from '@petafixyz/market-maker-sdk'
 import { InjectQueue } from '@nestjs/bull'
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'

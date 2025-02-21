@@ -1,6 +1,6 @@
 import bs58 from 'bs58'
 
-import { routerService } from '@bitfixyz/market-maker-sdk'
+import { routerService } from '@petafixyz/market-maker-sdk'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Connection, Keypair, PublicKey } from '@solana/web3.js'
@@ -33,13 +33,13 @@ export class SolanaTransferStrategy implements ITransferStrategy {
     const deadline = Math.floor(Date.now() / 1000) + 3600
     const toUserPubkey = new PublicKey(toAddress)
 
-    const protocolFee = await this.routerService.getProtocolFee(tradeId)
+    const feeDetails = await this.routerService.getFeeDetails(tradeId)
 
     const transaction = await payment({
       signer: this.signer,
       tradeId: tradeId,
       amount: amount.toString(),
-      protocolFee: protocolFee.amount.toString(),
+      protocolFee: feeDetails.totalAmount.toString(),
       deadline,
       toUserPubkey,
       connection: this.connection,

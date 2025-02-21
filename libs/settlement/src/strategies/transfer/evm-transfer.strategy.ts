@@ -2,7 +2,7 @@ import { ethers, ZeroAddress } from 'ethers'
 import { DecodedError } from 'ethers-decode-error'
 
 import { errorDecoder } from '@bitfi-mock-pmm/shared'
-import { config, ensureHexPrefix, ERC20__factory, Payment__factory, routerService } from '@bitfixyz/market-maker-sdk'
+import { config, ensureHexPrefix, ERC20__factory, Payment__factory, routerService } from '@petafixyz/market-maker-sdk'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 
@@ -42,7 +42,7 @@ export class EVMTransferStrategy implements ITransferStrategy {
 
     const paymentContract = Payment__factory.connect(paymentAddress, signer)
 
-    const protocolFee = await this.routerService.getProtocolFee(tradeId)
+    const feeDetails = await this.routerService.getFeeDetails(tradeId)
 
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 30 * 60)
 
@@ -54,7 +54,7 @@ export class EVMTransferStrategy implements ITransferStrategy {
         tokenAddress === 'native' ? ZeroAddress : tokenAddress,
         toAddress,
         amount,
-        protocolFee.amount,
+        feeDetails.totalAmount,
         deadline,
         {
           value: tokenAddress === 'native' ? amount : 0n,

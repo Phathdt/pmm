@@ -10,7 +10,7 @@ import {
   SignatureType,
   signerService,
   solverService,
-} from '@bitfixyz/market-maker-sdk'
+} from '@petafixyz/market-maker-sdk'
 import { Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
