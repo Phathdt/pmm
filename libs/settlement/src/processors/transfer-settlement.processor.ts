@@ -2,15 +2,15 @@ import { Job, Queue } from 'bull'
 import { ethers } from 'ethers'
 
 import { stringToHex, toObject, toString } from '@bitfi-mock-pmm/shared'
-import { ensureHexPrefix, ITypes, routerService, tokenService } from '@petafixyz/market-maker-sdk'
 import { InjectQueue, Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { ensureHexPrefix, ITypes, routerService, tokenService } from '@petafixyz/market-maker-sdk'
 
 import { SETTLEMENT_QUEUE } from '../const'
 import { TransferFactory } from '../factories'
 import { SubmitSettlementEvent, TransferSettlementEvent } from '../types'
-import { decodeAddress } from '../utils'
+import { l2Decode } from '../utils'
 
 @Processor(SETTLEMENT_QUEUE.TRANSFER.NAME)
 export class TransferSettlementProcessor {
@@ -112,10 +112,8 @@ export class TransferSettlementProcessor {
     const networkId = ethers.toUtf8String(networkIdHex)
     const tokenAddress = ethers.toUtf8String(tokenAddressHex)
 
-    const token = await this.tokenService.getToken(networkId, tokenAddress)
-
     return {
-      address: decodeAddress(addressHex, token),
+      address: l2Decode(addressHex),
       networkId,
       tokenAddress,
     }

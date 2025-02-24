@@ -1,23 +1,22 @@
-import { AxiosError } from 'axios'
-import { Job } from 'bull'
-import { BytesLike, ethers } from 'ethers'
-
-import { toObject } from '@bitfi-mock-pmm/shared'
+import { Process, Processor } from '@nestjs/bull'
 import {
+  SignatureType,
   getMakePaymentHash,
   getSignature,
   routerService,
-  SignatureType,
   signerService,
   solverService,
 } from '@petafixyz/market-maker-sdk'
-import { Process, Processor } from '@nestjs/bull'
+import { BytesLike, ethers } from 'ethers'
+
+import { toObject } from '@bitfi-mock-pmm/shared'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-
+import { AxiosError } from 'axios'
+import { Job } from 'bull'
 import { SETTLEMENT_QUEUE } from '../const'
 import { SubmitSettlementEvent } from '../types'
-import { convertToHexString } from '../utils'
+import { l2Encode } from '../utils'
 
 @Processor(SETTLEMENT_QUEUE.SUBMIT.NAME)
 export class SubmitSettlementProcessor {
@@ -49,7 +48,7 @@ export class SubmitSettlementProcessor {
     this.logger.log(`Payment Transaction ID: ${paymentId}`)
 
     try {
-      const paymentTxId = convertToHexString(paymentId)
+      const paymentTxId = l2Encode(paymentId)
       const tradeIds: BytesLike[] = [tradeId]
       const startIdx = BigInt(tradeIds.indexOf(tradeId))
 

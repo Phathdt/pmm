@@ -1,20 +1,7 @@
-import { ethers } from 'ethers'
-
-import { removeHexPrefix } from '@bitfi-mock-pmm/shared'
+import { ensureHexPrefix } from '@bitfi-mock-pmm/shared'
 import { Token } from '@petafixyz/market-maker-sdk'
-
-export const encodeAddress = (address: string, token: Token) => {
-  switch (token.networkType.toUpperCase()) {
-    case 'EVM':
-      return ethers.hexlify(address)
-    case 'BTC':
-    case 'TBTC':
-    case 'SOLANA':
-      return ethers.toUtf8Bytes(address)
-    default:
-      throw new Error(`Unsupported network: ${token.networkType}`)
-  }
-}
+import { toUtf8Bytes, toUtf8String } from 'ethers'
+import { ethers } from 'ethers'
 
 export const decodeAddress = (value: string, token: Token) => {
   switch (token.networkType.toUpperCase()) {
@@ -29,24 +16,18 @@ export const decodeAddress = (value: string, token: Token) => {
   }
 }
 
-export const convertToHexString = (input: string): string => {
-  if (ethers.isHexString(input)) {
-    return input
+export const l2Encode = (info: string) => {
+  if (/^0x[0-9a-fA-F]*$/.test(info)) {
+    return info
   }
 
-  input = removeHexPrefix(input)
-
-  return ethers.hexlify(ethers.toUtf8Bytes(input))
+  return ensureHexPrefix(ethers.hexlify(toUtf8Bytes(info)))
 }
 
-export const decodeFromHexString = (input: string): string => {
-  if (input.startsWith('0x')) {
-    if (input.length === 34 || input.length === 66) {
-      return input
-    }
-
-    return ethers.toUtf8String(input)
+export const l2Decode = (info: string) => {
+  try {
+    return toUtf8String(info)
+  } catch {
+    return info
   }
-
-  return ethers.toUtf8String(input)
 }
