@@ -31,12 +31,29 @@ export class EVMTransferStrategy implements ITransferStrategy {
     if (tokenAddress !== 'native') {
       const tokenContract = ERC20__factory.connect(tokenAddress, signer)
 
-      const allowance = await tokenContract.allowance(signer.address, paymentAddress)
+      const currentAllowance = await tokenContract.allowance(signer.address, paymentAddress)
+      const requiredAmount = ethers.parseUnits(amount.toString(), token.tokenDecimals)
 
-      if (amount > allowance) {
-        const approveTx = await tokenContract.approve(paymentAddress, amount * BigInt(1000))
+      if (currentAllowance < requiredAmount) {
+        if (currentAllowance !== 0n) {
+          const resetTx = await tokenContract.approve(paymentAddress, 0n)
+
+          await resetTx.wait()
+        }
+
+        const approveTx = await tokenContract.approve(paymentAddress, ethers.MaxUint256)
 
         await approveTx.wait()
+      }
+
+      const updatedAllowance = await tokenContract.allowance(signer.address, paymentAddress)
+
+      if (updatedAllowance < requiredAmount) {
+        throw new Error(
+          `Insufficient token spending allowance. Please increase your approve limit. ` +
+            `Current allowance: ${ethers.formatUnits(updatedAllowance, token.tokenDecimals)} ${token.tokenSymbol}\n` +
+            `Required allowance: ${amount} ${token.tokenSymbol}`
+        )
       }
     }
 
