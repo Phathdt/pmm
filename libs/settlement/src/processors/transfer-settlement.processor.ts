@@ -2,10 +2,9 @@ import { stringToHex, toObject, toString } from '@bitfi-mock-pmm/shared'
 import { InjectQueue, Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { ensureHexPrefix, ITypes, routerService, tokenService } from '@petafixyz/market-maker-sdk'
+import { ITypes, routerService, tokenService } from '@petafixyz/market-maker-sdk'
 
 import { Job, Queue } from 'bull'
-import { ethers } from 'ethers'
 
 import { SETTLEMENT_QUEUE } from '../const'
 import { TransferFactory } from '../factories'
@@ -16,7 +15,6 @@ import { l2Decode } from '../utils'
 export class TransferSettlementProcessor {
   private pmmId: string
 
-  private tokenService = tokenService
   private routerService = routerService
   private tokenRepo = tokenService
 
@@ -95,7 +93,7 @@ export class TransferSettlementProcessor {
         tradeId,
       })
 
-      return ensureHexPrefix(tx)
+      return tx
     } catch (error) {
       this.logger.error('Transfer token error:', error)
       throw error
@@ -109,13 +107,10 @@ export class TransferSettlementProcessor {
   }> {
     const [addressHex, networkIdHex, tokenAddressHex] = chainInfo
 
-    const networkId = ethers.toUtf8String(networkIdHex)
-    const tokenAddress = ethers.toUtf8String(tokenAddressHex)
-
     return {
       address: l2Decode(addressHex),
-      networkId,
-      tokenAddress,
+      networkId: l2Decode(networkIdHex),
+      tokenAddress: l2Decode(tokenAddressHex),
     }
   }
 }
