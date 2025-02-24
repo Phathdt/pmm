@@ -6,7 +6,7 @@ import { config, ensureHexPrefix, ERC20__factory, Payment__factory, routerServic
 import { ethers, ZeroAddress } from 'ethers'
 import { DecodedError } from 'ethers-decode-error'
 
-import { ITransferStrategy, TransferParams } from '../../interfaces/transfer-strategy.interface'
+import { ITransferStrategy, TransferParams } from '../../interfaces'
 
 @Injectable()
 export class EVMTransferStrategy implements ITransferStrategy {
