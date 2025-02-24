@@ -1,20 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { routerService } from '@petafixyz/market-maker-sdk'
-import { Connection, Keypair, PublicKey } from '@solana/web3.js'
+import { Router, Router__factory } from '@petafixyz/market-maker-sdk'
+import { Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction } from '@solana/web3.js'
 
 import bs58 from 'bs58'
-
-import { payment } from './utils/payment'
+import { ethers } from 'ethers'
+import { createPaymentAndRefundAtaAndProtocolAtaIfNeededInstructions } from 'petafi-solana-js'
 
 import { ITransferStrategy, TransferParams } from '../../interfaces'
 
 @Injectable()
 export class SolanaTransferStrategy implements ITransferStrategy {
-  private signer: PublicKey
+  private pmmKeypair: Keypair
   private connection: Connection
-  private keypair: Keypair
-  private routerService = routerService
+  private contract: Router
 
   private readonly logger = new Logger(SolanaTransferStrategy.name)
 
@@ -24,43 +23,43 @@ export class SolanaTransferStrategy implements ITransferStrategy {
 
     const privateKeyString = configService.getOrThrow('PMM_SOLANA_PRIVATE_KEY')
     const privateKeyBytes = bs58.decode(privateKeyString)
-    this.signer = Keypair.fromSecretKey(privateKeyBytes).publicKey
+    this.pmmKeypair = Keypair.fromSecretKey(privateKeyBytes)
 
-    this.keypair = Keypair.fromSecretKey(privateKeyBytes)
+    const rpcUrl = configService.getOrThrow<string>('RPC_URL')
+    const contractAddress = configService.getOrThrow<string>('ROUTER_ADDRESS')
+
+    const provider = new ethers.JsonRpcProvider(rpcUrl)
+
+    this.contract = Router__factory.connect(contractAddress, provider)
   }
 
   async transfer(params: TransferParams): Promise<string> {
-    const { toAddress, amount, tradeId } = params
+    const { toAddress, amount, tradeId, token } = params
     const deadline = Math.floor(Date.now() / 1000) + 3600
-    const toUserPubkey = new PublicKey(toAddress)
+    const userPubkey = new PublicKey(toAddress)
 
-    const feeDetails = await this.routerService.getFeeDetails(tradeId)
+    const feeDetails = await this.contract.getFeeDetails(tradeId)
 
-    const transaction = await payment({
-      signer: this.signer,
-      tradeId: tradeId,
-      amount: amount.toString(),
-      protocolFee: feeDetails.totalAmount.toString(),
+    const toToken = token.tokenAddress === 'native' ? null : new PublicKey(token.tokenAddress)
+
+    const paymentInstructions = await createPaymentAndRefundAtaAndProtocolAtaIfNeededInstructions({
+      fromUser: this.pmmKeypair.publicKey,
+      toUser: userPubkey,
+      tradeId,
+      token: toToken,
+      amount: ethers.formatUnits(amount, token.tokenDecimals),
+      totalFee: ethers.formatUnits(feeDetails.totalAmount, token.tokenDecimals),
       deadline,
-      toUserPubkey,
       connection: this.connection,
     })
 
-    transaction.sign(this.keypair)
-
-    const signature = await this.connection.sendRawTransaction(transaction.serialize())
-
-    const latestBlockhash = await this.connection.getLatestBlockhash()
-    const confirmation = await this.connection.confirmTransaction({
-      signature,
-      blockhash: latestBlockhash.blockhash,
-      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+    const transaction = new Transaction().add(...paymentInstructions)
+    const txHash = await sendAndConfirmTransaction(this.connection, transaction, [this.pmmKeypair], {
+      commitment: 'confirmed',
     })
-
     this.logger.log('Payment successful!')
-    this.logger.log('Transaction signature:', signature)
-    this.logger.log('Confirmation:', confirmation)
+    this.logger.log('Transaction signature:', txHash)
 
-    return signature
+    return txHash
   }
 }
