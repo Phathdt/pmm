@@ -1,6 +1,3 @@
-import { redisStore } from 'cache-manager-redis-yet'
-import { RedisClientOptions } from 'redis'
-
 import { TokenModule } from '@bitfi-mock-pmm/token'
 import { TradeModule } from '@bitfi-mock-pmm/trade'
 import { BullAdapter } from '@bull-board/api/bullAdapter'
@@ -9,6 +6,9 @@ import { BullModule } from '@nestjs/bull'
 import { CacheModule } from '@nestjs/cache-manager'
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
+
+import { redisStore } from 'cache-manager-redis-yet'
+import { RedisClientOptions } from 'redis'
 
 import { SETTLEMENT_QUEUE, SETTLEMENT_QUEUE_NAMES } from './const'
 import { TransferFactory } from './factories'

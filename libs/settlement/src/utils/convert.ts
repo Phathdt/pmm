@@ -1,7 +1,6 @@
 import { ensureHexPrefix } from '@bitfi-mock-pmm/shared'
 
-import { toUtf8Bytes, toUtf8String } from 'ethers'
-import { ethers } from 'ethers'
+import { ethers, toUtf8Bytes, toUtf8String } from 'ethers'
 
 export const l2Encode = (info: string) => {
   if (/^0x[0-9a-fA-F]*$/.test(info)) {

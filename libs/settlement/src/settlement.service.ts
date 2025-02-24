@@ -1,8 +1,8 @@
-import { Queue } from 'bull'
-import * as ethers from 'ethers'
-
 import { stringToHex, toString } from '@bitfi-mock-pmm/shared'
 import { TradeService } from '@bitfi-mock-pmm/trade'
+import { InjectQueue } from '@nestjs/bull'
+import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import {
   getCommitInfoHash,
   getSignature,
@@ -10,10 +10,10 @@ import {
   SignatureType,
   signerService,
 } from '@petafixyz/market-maker-sdk'
-import { InjectQueue } from '@nestjs/bull'
-import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { Trade, TradeStatus } from '@prisma/client'
+
+import { Queue } from 'bull'
+import * as ethers from 'ethers'
 
 import { SETTLEMENT_QUEUE } from './const'
 import {

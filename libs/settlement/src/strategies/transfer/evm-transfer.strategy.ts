@@ -1,10 +1,10 @@
-import { ethers, ZeroAddress } from 'ethers'
-import { DecodedError } from 'ethers-decode-error'
-
 import { errorDecoder } from '@bitfi-mock-pmm/shared'
-import { config, ensureHexPrefix, ERC20__factory, Payment__factory, routerService } from '@petafixyz/market-maker-sdk'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { config, ensureHexPrefix, ERC20__factory, Payment__factory, routerService } from '@petafixyz/market-maker-sdk'
+
+import { ethers, ZeroAddress } from 'ethers'
+import { DecodedError } from 'ethers-decode-error'
 
 import { ITransferStrategy, TransferParams } from '../../interfaces/transfer-strategy.interface'
 

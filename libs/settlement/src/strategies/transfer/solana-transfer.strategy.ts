@@ -1,12 +1,13 @@
-import bs58 from 'bs58'
-
-import { routerService } from '@petafixyz/market-maker-sdk'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { routerService } from '@petafixyz/market-maker-sdk'
 import { Connection, Keypair, PublicKey } from '@solana/web3.js'
 
-import { ITransferStrategy, TransferParams } from '../../interfaces'
+import bs58 from 'bs58'
+
 import { payment } from './utils/payment'
+
+import { ITransferStrategy, TransferParams } from '../../interfaces'
 
 @Injectable()
 export class SolanaTransferStrategy implements ITransferStrategy {

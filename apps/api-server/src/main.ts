@@ -3,12 +3,12 @@
  * This is only a minimal backend to get started.
  */
 
-import { Logger as PinoLogger, LoggerErrorInterceptor } from 'nestjs-pino'
-import { patchNestJsSwagger, ZodValidationPipe } from 'nestjs-zod'
-
 import { Logger } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+
+import { LoggerErrorInterceptor, Logger as PinoLogger } from 'nestjs-pino'
+import { patchNestJsSwagger, ZodValidationPipe } from 'nestjs-zod'
 
 import { AppModule } from './app/app.module'
 import { ResponseExceptionFilter } from './interceptors/response-exception.filter'

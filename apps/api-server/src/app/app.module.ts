@@ -1,8 +1,3 @@
-import { LoggerModule } from 'nestjs-pino'
-import { PrismaModule, PrismaServiceOptions } from 'nestjs-prisma'
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import pretty from 'pino-pretty'
-
 import { QuoteModule } from '@bitfi-mock-pmm/quote'
 import { SettlementModule } from '@bitfi-mock-pmm/settlement'
 import { TokenModule } from '@bitfi-mock-pmm/token'
@@ -12,7 +7,15 @@ import { BullModule } from '@nestjs/bull'
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 
+import { LoggerModule } from 'nestjs-pino'
+import { PrismaModule, PrismaServiceOptions } from 'nestjs-prisma'
+/* prettier-ignore-start */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import pretty from 'pino-pretty'
+
 import { AppController } from './app.controller'
+
+/* prettier-ignore-end */
 
 @Module({
   imports: [

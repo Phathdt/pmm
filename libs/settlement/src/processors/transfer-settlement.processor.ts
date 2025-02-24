@@ -1,11 +1,11 @@
-import { Job, Queue } from 'bull'
-import { ethers } from 'ethers'
-
 import { stringToHex, toObject, toString } from '@bitfi-mock-pmm/shared'
 import { InjectQueue, Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { ensureHexPrefix, ITypes, routerService, tokenService } from '@petafixyz/market-maker-sdk'
+
+import { Job, Queue } from 'bull'
+import { ethers } from 'ethers'
 
 import { SETTLEMENT_QUEUE } from '../const'
 import { TransferFactory } from '../factories'

@@ -1,11 +1,11 @@
 import * as crypto from 'crypto'
-import { ethers } from 'ethers'
-
 import { TokenPrice, TokenRepository } from '@bitfi-mock-pmm/token'
 import { TradeService } from '@bitfi-mock-pmm/trade'
-import { Token, tokenService } from '@petafixyz/market-maker-sdk'
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { Token, tokenService } from '@petafixyz/market-maker-sdk'
+
+import { ethers } from 'ethers'
 
 import { QuoteSessionRepository } from './quote-session.repository'
 import {

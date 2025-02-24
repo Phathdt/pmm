@@ -1,19 +1,20 @@
+import { toObject } from '@bitfi-mock-pmm/shared'
 import { Process, Processor } from '@nestjs/bull'
+import { Logger } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import {
-  SignatureType,
   getMakePaymentHash,
   getSignature,
   routerService,
+  SignatureType,
   signerService,
   solverService,
 } from '@petafixyz/market-maker-sdk'
-import { BytesLike, ethers } from 'ethers'
 
-import { toObject } from '@bitfi-mock-pmm/shared'
-import { Logger } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { AxiosError } from 'axios'
 import { Job } from 'bull'
+import { BytesLike, ethers } from 'ethers'
+
 import { SETTLEMENT_QUEUE } from '../const'
 import { SubmitSettlementEvent } from '../types'
 import { l2Encode } from '../utils'

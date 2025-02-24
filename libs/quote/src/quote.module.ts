@@ -1,11 +1,11 @@
-import { redisStore } from 'cache-manager-redis-yet'
-import { RedisClientOptions } from 'redis'
-
 import { TokenModule } from '@bitfi-mock-pmm/token'
 import { TradeModule } from '@bitfi-mock-pmm/trade'
 import { CacheModule } from '@nestjs/cache-manager'
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
+
+import { redisStore } from 'cache-manager-redis-yet'
+import { RedisClientOptions } from 'redis'
 
 import { QuoteSessionRepository } from './quote-session.repository'
 import { QuoteController } from './quote.controller'
