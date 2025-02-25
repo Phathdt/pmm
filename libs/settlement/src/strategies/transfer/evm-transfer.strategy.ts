@@ -1,9 +1,9 @@
-import { errorDecoder } from '@bitfi-mock-pmm/shared'
+import { errorDecoder, getProvider } from '@bitfi-mock-pmm/shared'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { config, ensureHexPrefix, ERC20__factory, Payment__factory, routerService } from '@petafixyz/market-maker-sdk'
 
-import { ethers, ZeroAddress } from 'ethers'
+import { ethers, TransactionRequest, ZeroAddress } from 'ethers'
 import { DecodedError } from 'ethers-decode-error'
 
 import { ITransferStrategy, TransferParams } from '../../interfaces'
@@ -14,7 +14,6 @@ export class EVMTransferStrategy implements ITransferStrategy {
   private readonly logger = new Logger(EVMTransferStrategy.name)
 
   private routerService = routerService
-  private readonly rpcMap = new Map<string, string>([['ethereum-sepolia', 'https://eth-sepolia.public.blastapi.io']])
 
   constructor(private configService: ConfigService) {
     this.pmmPrivateKey = this.configService.getOrThrow<string>('PMM_EVM_PRIVATE_KEY')
@@ -24,29 +23,45 @@ export class EVMTransferStrategy implements ITransferStrategy {
     const { toAddress, amount, token, tradeId } = params
     const { tokenAddress, networkId } = token
 
-    const signer = this.getSigner(networkId)
+    const assetProvider = getProvider(token.networkId)
+    const wallet = new ethers.Wallet(this.pmmPrivateKey, assetProvider)
 
     const paymentAddress = this.getPaymentAddress(networkId)
 
     if (tokenAddress !== 'native') {
-      const tokenContract = ERC20__factory.connect(tokenAddress, signer)
+      const erc20Contract = ERC20__factory.connect(tokenAddress, assetProvider)
 
-      const currentAllowance = await tokenContract.allowance(signer.address, paymentAddress)
+      const currentAllowance = await erc20Contract.allowance(wallet.address, paymentAddress)
+
       const requiredAmount = ethers.parseUnits(amount.toString(), token.tokenDecimals)
 
       if (currentAllowance < requiredAmount) {
         if (currentAllowance !== 0n) {
-          const resetTx = await tokenContract.approve(paymentAddress, 0n)
+          const erc20Interface = ERC20__factory.createInterface()
+          const approveData = erc20Interface.encodeFunctionData('approve', [paymentAddress, 0n])
 
-          await resetTx.wait()
+          const tx: TransactionRequest = {
+            to: token.tokenAddress,
+            data: approveData,
+            value: 0n,
+          }
+
+          await wallet.sendTransaction(tx)
         }
 
-        const approveTx = await tokenContract.approve(paymentAddress, ethers.MaxUint256)
+        const erc20Interface = ERC20__factory.createInterface()
+        const approveData = erc20Interface.encodeFunctionData('approve', [paymentAddress, ethers.MaxUint256])
 
-        await approveTx.wait()
+        const tx: TransactionRequest = {
+          to: token.tokenAddress,
+          data: approveData,
+          value: 0n,
+        }
+
+        await wallet.sendTransaction(tx)
       }
 
-      const updatedAllowance = await tokenContract.allowance(signer.address, paymentAddress)
+      const updatedAllowance = await erc20Contract.allowance(wallet.address, paymentAddress)
 
       if (updatedAllowance < requiredAmount) {
         throw new Error(
@@ -57,7 +72,7 @@ export class EVMTransferStrategy implements ITransferStrategy {
       }
     }
 
-    const paymentContract = Payment__factory.connect(paymentAddress, signer)
+    const paymentContract = Payment__factory.connect(paymentAddress, wallet)
 
     const feeDetails = await this.routerService.getFeeDetails(tradeId)
 
@@ -88,17 +103,6 @@ export class EVMTransferStrategy implements ITransferStrategy {
 
       throw error
     }
-  }
-
-  private getSigner(networkId: string) {
-    const rpcUrl = this.rpcMap.get(networkId)
-
-    if (!rpcUrl) {
-      throw new Error(`Unsupported networkId: ${networkId}`)
-    }
-
-    const provider = new ethers.JsonRpcProvider(rpcUrl)
-    return new ethers.Wallet(this.pmmPrivateKey, provider)
   }
 
   private getPaymentAddress(networkId: string) {
