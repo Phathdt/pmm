@@ -41,7 +41,6 @@ export class AckSettlementResponseDto extends createZodDto(AckSettlementResponse
 
 export const SignalPaymentSchema = z.object({
   tradeId: z.string(),
-  protocolFeeAmount: z.string(),
   tradeDeadline: z.string(),
   scriptDeadline: z.string(),
 })
