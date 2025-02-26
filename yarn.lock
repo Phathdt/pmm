@@ -2278,10 +2278,10 @@
     "@parcel/watcher-win32-ia32" "2.5.0"
     "@parcel/watcher-win32-x64" "2.5.0"
 
-"@petafixyz/market-maker-sdk@^0.1.1-dev.1":
-  version "0.1.1-dev.1"
-  resolved "https://registry.yarnpkg.com/@petafixyz/market-maker-sdk/-/market-maker-sdk-0.1.1-dev.1.tgz#4f919c34f3d8bb7d186c4a91f180fa519cc31b76"
-  integrity sha512-eRc/3Qu3xd5Pmx7PSo8eqfRt+e/LdgaE688lq8E2Ohxy9a5vIhKpCbcQcItCvXa9BoDiiLSj/0i7LEbWYpI7IA==
+"@petafixyz/market-maker-sdk@^0.1.1-dev.2":
+  version "0.1.1-dev.2"
+  resolved "https://registry.yarnpkg.com/@petafixyz/market-maker-sdk/-/market-maker-sdk-0.1.1-dev.2.tgz#6ad89b2cd4e69e9d6412c909ba471f1aa3e625e6"
+  integrity sha512-Olw4HOPporBfMKYOA9h5R09PieaZsFGdXCMXepsrEiE1voQhtPBGZdrfJuaXp1YoNgqWIoIthbneMQqtDYmctw==
   dependencies:
     axios "^1.7.9"
     bip174 "^3.0.0-rc.1"
