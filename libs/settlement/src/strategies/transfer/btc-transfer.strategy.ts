@@ -1,4 +1,4 @@
-import { ensureHexPrefix } from '@bitfi-mock-pmm/shared'
+import { BTC, BTC_TESTNET, ensureHexPrefix } from '@bitfi-mock-pmm/shared'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { getTradeIdsHash, Token } from '@petafixyz/market-maker-sdk'
@@ -29,13 +29,13 @@ export class BTCTransferStrategy implements ITransferStrategy {
   private readonly ECPair = ECPairFactory(ecc)
 
   private readonly networkMap = new Map<string, bitcoin.Network>([
-    ['bitcoin-testnet', bitcoin.networks.testnet],
-    ['bitcoin', bitcoin.networks.bitcoin],
+    [BTC_TESTNET, bitcoin.networks.testnet],
+    [BTC, bitcoin.networks.bitcoin],
   ])
 
   private readonly rpcMap = new Map<string, string>([
-    ['bitcoin-testnet', 'https://blockstream.info/testnet'],
-    ['bitcoin', 'https://blockstream.info'],
+    [BTC_TESTNET, 'https://blockstream.info/testnet'],
+    [BTC, 'https://blockstream.info'],
   ])
 
   constructor(private configService: ConfigService) {
