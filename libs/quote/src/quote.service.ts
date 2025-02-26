@@ -1,19 +1,19 @@
 import * as crypto from 'crypto'
-import { TokenPrice, TokenRepository } from '@bitfi-mock-pmm/token'
-import { TradeService } from '@bitfi-mock-pmm/trade'
+
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import { Token, tokenService } from '@petafixyz/market-maker-sdk'
-
-import { ethers } from 'ethers'
-
-import { QuoteSessionRepository } from './quote-session.repository'
 import {
   CommitmentQuoteResponse,
   GetCommitmentQuoteDto,
   GetIndicativeQuoteDto,
   IndicativeQuoteResponse,
 } from './quote.dto'
+import { Token, tokenService } from '@petafixyz/market-maker-sdk'
+import { TokenPrice, TokenRepository } from '@bitfi-mock-pmm/token'
+
+import { ConfigService } from '@nestjs/config'
+import { QuoteSessionRepository } from './quote-session.repository'
+import { TradeService } from '@bitfi-mock-pmm/trade'
+import { ethers } from 'ethers'
 
 @Injectable()
 export class QuoteService {
@@ -64,7 +64,7 @@ export class QuoteService {
     const toPrice = ethers.getBigInt(Math.round(toTokenPrice.currentPrice * 1e6))
     const rawQuote = (amount * fromPrice * 10n ** toDecimals) / (toPrice * 10n ** fromDecimals)
 
-    const quoteWithBonus = (rawQuote * 103n) / 100n
+    const quoteWithBonus = (rawQuote * 110n) / 100n
     return quoteWithBonus.toString()
   }
 
