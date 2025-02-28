@@ -1,4 +1,4 @@
-import { BTC, BTC_TESTNET, ensureHexPrefix } from '@bitfi-mock-pmm/shared'
+import { BTC, BTC_TESTNET } from '@bitfi-mock-pmm/shared'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { getTradeIdsHash, Token } from '@petafixyz/market-maker-sdk'
@@ -56,7 +56,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
       this.logger.log(`Transfer successful with txId: ${txId}`)
 
-      return ensureHexPrefix(txId)
+      return txId
     } catch (error) {
       this.logger.error('BTC transfer failed:', error)
       throw error

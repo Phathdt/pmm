@@ -1,7 +1,7 @@
 import { errorDecoder, getProvider } from '@bitfi-mock-pmm/shared'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { config, ensureHexPrefix, ERC20__factory, Payment__factory, routerService } from '@petafixyz/market-maker-sdk'
+import { config, ERC20__factory, Payment__factory, routerService } from '@petafixyz/market-maker-sdk'
 
 import { ethers, TransactionRequest, ZeroAddress } from 'ethers'
 import { DecodedError } from 'ethers-decode-error'
@@ -95,7 +95,7 @@ export class EVMTransferStrategy implements ITransferStrategy {
 
       this.logger.log(`Transfer transaction sent: ${tx.hash}`)
 
-      return ensureHexPrefix(tx.hash)
+      return tx.hash
     } catch (error) {
       const decodedError: DecodedError = await decoder.decode(error)
 
