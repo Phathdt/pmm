@@ -69,7 +69,7 @@ export class SettlementService {
         throw new BadRequestException('pmmPresign not found')
       }
 
-      const amountOut = BigInt(dto.committedQuote) - BigInt(dto.solverFee)
+      const amountOut = BigInt(dto.committedQuote)
 
       const commitInfoHash = getCommitInfoHash(
         pmmPresign.pmmId,

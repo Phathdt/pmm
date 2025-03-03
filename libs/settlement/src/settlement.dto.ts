@@ -4,7 +4,6 @@ import { z } from 'zod'
 export const GetSettlementSignatureSchema = z.object({
   tradeId: z.string(),
   committedQuote: z.string(),
-  solverFee: z.string(),
   tradeDeadline: z.string(),
   scriptDeadline: z.string(),
 })
