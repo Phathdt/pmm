@@ -79,6 +79,13 @@ export class QuoteService {
         throw new BadRequestException(`Failed to fetch tokens: ${error.message}`)
       })
 
+      const isFromTokenSolana = fromToken.networkType.toUpperCase() === 'SOLANA'
+      const isToTokenSolana = toToken.networkType.toUpperCase() === 'SOLANA'
+
+      if (!isFromTokenSolana && !isToTokenSolana) {
+        throw new Error('At least one token must be on the Solana network. Please check your token IDs.')
+      }
+
       const [fromTokenPrice, toTokenPrice] = await Promise.all([
         this.tokenRepo.getTokenPrice(fromToken.tokenSymbol),
         this.tokenRepo.getTokenPrice(toToken.tokenSymbol),
