@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { Router, Router__factory } from '@petafixyz/market-maker-sdk'
+import { Router, Router__factory } from '@optimex-xyz/market-maker-sdk'
 import { Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction } from '@solana/web3.js'
 
 import bs58 from 'bs58'

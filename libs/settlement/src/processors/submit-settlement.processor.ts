@@ -9,7 +9,7 @@ import {
   SignatureType,
   signerService,
   solverService,
-} from '@petafixyz/market-maker-sdk'
+} from '@optimex-xyz/market-maker-sdk'
 
 import { AxiosError } from 'axios'
 import { Job } from 'bull'

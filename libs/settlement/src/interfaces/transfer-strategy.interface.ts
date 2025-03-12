@@ -1,4 +1,4 @@
-import { Token } from '@petafixyz/market-maker-sdk'
+import { Token } from '@optimex-xyz/market-maker-sdk'
 
 export interface TransferParams {
   toAddress: string

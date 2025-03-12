@@ -1,7 +1,7 @@
 import { BTC, BTC_TESTNET } from '@bitfi-mock-pmm/shared'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { getTradeIdsHash, Token } from '@petafixyz/market-maker-sdk'
+import { getTradeIdsHash, Token } from '@optimex-xyz/market-maker-sdk'
 
 import axios from 'axios'
 import * as bitcoin from 'bitcoinjs-lib'

@@ -9,7 +9,7 @@ import {
   routerService,
   SignatureType,
   signerService,
-} from '@petafixyz/market-maker-sdk'
+} from '@optimex-xyz/market-maker-sdk'
 import { Trade, TradeStatus } from '@prisma/client'
 
 import { Queue } from 'bull'
