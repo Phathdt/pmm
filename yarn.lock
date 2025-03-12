@@ -2189,12 +2189,12 @@
     tslib "^2.3.0"
     yargs-parser "21.1.1"
 
-"@optimex-xyz/market-maker-sdk@^0.4.1":
-  version "0.4.1"
-  resolved "https://registry.yarnpkg.com/@optimex-xyz/market-maker-sdk/-/market-maker-sdk-0.4.1.tgz#6bf5bf98fe1e7108040cbb3772e10e39598a810e"
-  integrity sha512-w8TW/2wONa/aHk7+v0GxWnYoy77j4IPgLJLD4ltsUchZFL+eBoR89ASGLxdTF2dLuqcksnYoCoz93mXWpCl2Kw==
+"@optimex-xyz/market-maker-sdk@^0.4.2":
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/@optimex-xyz/market-maker-sdk/-/market-maker-sdk-0.4.2.tgz#5aa79e0760184bf11aab35c65bd204c62c2c0173"
+  integrity sha512-9zUBqOSzXdz5ZP4q7j0vkNOl5eh9KH3GwgEvLXe0UO7mvABYl7dazofebpTdQlIDQxTFkfg7nPhV2peDXh9ezA==
   dependencies:
-    axios "^1.7.9"
+    axios "^1.8.2"
     bip174 "^3.0.0-rc.1"
     bitcoinjs-lib "^7.0.0-rc.0"
     ecpair "^3.0.0-rc.0"
@@ -3513,10 +3513,10 @@ axios@^1.7.4, axios@^1.7.7:
     form-data "^4.0.0"
     proxy-from-env "^1.1.0"
 
-axios@^1.7.9:
-  version "1.7.9"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-1.7.9.tgz#d7d071380c132a24accda1b2cfc1535b79ec650a"
-  integrity sha512-LhLcE7Hbiryz8oMDdDptSrWowmB4Bl6RCt6sIJKpRB4XtVf0iEgewX3au/pJqm+Py1kCASkb/FFKjxQaLtxJvw==
+axios@^1.8.2:
+  version "1.8.3"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.8.3.tgz#9ebccd71c98651d547162a018a1a95a4b4ed4de8"
+  integrity sha512-iP4DebzoNlP/YN2dpwCgb8zoCmhtkajzS48JvwmkSkXvPI3DHc7m+XYL5tGnSlJtR6nImXZmdCuN5aP8dh1d8A==
   dependencies:
     follow-redirects "^1.15.6"
     form-data "^4.0.0"
