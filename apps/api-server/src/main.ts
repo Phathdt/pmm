@@ -6,6 +6,7 @@
 import { Logger } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { Environment, sdk } from '@optimex-xyz/market-maker-sdk'
 
 import { LoggerErrorInterceptor, Logger as PinoLogger } from 'nestjs-pino'
 import { patchNestJsSwagger, ZodValidationPipe } from 'nestjs-zod'
@@ -39,6 +40,8 @@ async function bootstrap() {
     .build()
   const documentFactory = () => SwaggerModule.createDocument(app, config)
   SwaggerModule.setup('api', app, documentFactory)
+
+  sdk.setEnvironment('dev' as Environment)
 
   const port = process.env.PORT || 3000
   await app.listen(port)
