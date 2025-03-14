@@ -2189,18 +2189,18 @@
     tslib "^2.3.0"
     yargs-parser "21.1.1"
 
-"@optimex-xyz/market-maker-sdk@^0.4.5":
-  version "0.4.5"
-  resolved "https://registry.yarnpkg.com/@optimex-xyz/market-maker-sdk/-/market-maker-sdk-0.4.5.tgz#27fdd7fa2c1a1229632a067e146bf2e16b9b7b1e"
-  integrity sha512-/wcxctOtRa2uFmWsOD/lbcU6QeezBiv+/7uLYeE2mnG/o7NrpxEcTrdbA4QjekEyipm914UoAm5pz6SbcxB/kQ==
+"@optimex-xyz/market-maker-sdk@^0.4.7":
+  version "0.4.7"
+  resolved "https://registry.yarnpkg.com/@optimex-xyz/market-maker-sdk/-/market-maker-sdk-0.4.7.tgz#984aa57f63a26895cfd78fa2822e0d946d8c843e"
+  integrity sha512-GjBxIAuAaX9hHRMopTzHifnpAxAoO3wNEvwUXN20MQAsLM5HO8PuDPOOk4jIBh8RWSfR2ERmQEI57AhO9yv0DQ==
   dependencies:
-    axios "^1.8.2"
+    axios "^1.8.3"
     bip174 "^3.0.0-rc.1"
     bitcoinjs-lib "^7.0.0-rc.0"
-    ecpair "^3.0.0-rc.0"
-    ethers "^6.13.4"
+    ecpair "^3.0.0"
+    ethers "^6.13.5"
     tiny-secp256k1 "^2.2.3"
-    zod "^3.23.8"
+    zod "^3.24.2"
 
 "@parcel/watcher-android-arm64@2.5.0":
   version "2.5.0"
@@ -3513,7 +3513,7 @@ axios@^1.7.4, axios@^1.7.7:
     form-data "^4.0.0"
     proxy-from-env "^1.1.0"
 
-axios@^1.8.2:
+axios@^1.8.3:
   version "1.8.3"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.8.3.tgz#9ebccd71c98651d547162a018a1a95a4b4ed4de8"
   integrity sha512-iP4DebzoNlP/YN2dpwCgb8zoCmhtkajzS48JvwmkSkXvPI3DHc7m+XYL5tGnSlJtR6nImXZmdCuN5aP8dh1d8A==
@@ -4753,6 +4753,15 @@ eastasianwidth@^0.2.0:
   resolved "https://registry.yarnpkg.com/eastasianwidth/-/eastasianwidth-0.2.0.tgz#696ce2ec0aa0e6ea93a397ffcf24aa7840c827cb"
   integrity sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==
 
+ecpair@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/ecpair/-/ecpair-3.0.0.tgz#7a9c5fcebbefd074b3759fe0a4ee20976ead44ea"
+  integrity sha512-kf4JxjsRQoD4EBzpYjGAcR0t9i/4oAeRPtyCpKvSwyotgkc6oA4E4M0/e+kep7cXe+mgxAvoeh/jdgH9h5+Wxw==
+  dependencies:
+    uint8array-tools "^0.0.8"
+    valibot "^0.37.0"
+    wif "^5.0.0"
+
 ecpair@^3.0.0-rc.0:
   version "3.0.0-rc.0"
   resolved "https://registry.yarnpkg.com/ecpair/-/ecpair-3.0.0-rc.0.tgz#411137d9a43f1d79a656d89715b5dc24c2b76310"
@@ -5047,6 +5056,19 @@ ethers@^6.13.4:
   version "6.13.4"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-6.13.4.tgz#bd3e1c3dc1e7dc8ce10f9ffb4ee40967a651b53c"
   integrity sha512-21YtnZVg4/zKkCQPjrDj38B1r4nQvTZLopUGMLQ1ePU2zV/joCfDC3t3iKQjWRzjjjbzR+mdAIoikeBRNkdllA==
+  dependencies:
+    "@adraffy/ens-normalize" "1.10.1"
+    "@noble/curves" "1.2.0"
+    "@noble/hashes" "1.3.2"
+    "@types/node" "22.7.5"
+    aes-js "4.0.0-beta.5"
+    tslib "2.7.0"
+    ws "8.17.1"
+
+ethers@^6.13.5:
+  version "6.13.5"
+  resolved "https://registry.yarnpkg.com/ethers/-/ethers-6.13.5.tgz#8c1d6ac988ac08abc3c1d8fabbd4b8b602851ac4"
+  integrity sha512-+knKNieu5EKRThQJWwqaJ10a6HE9sSehGeqWN65//wE7j47ZpFhKAnHB/JJFibwwg61I/koxaPsXbXpD/skNOQ==
   dependencies:
     "@adraffy/ens-normalize" "1.10.1"
     "@noble/curves" "1.2.0"
@@ -9906,3 +9928,8 @@ zod@^3.23.8:
   version "3.23.8"
   resolved "https://registry.yarnpkg.com/zod/-/zod-3.23.8.tgz#e37b957b5d52079769fb8097099b592f0ef4067d"
   integrity sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==
+
+zod@^3.24.2:
+  version "3.24.2"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-3.24.2.tgz#8efa74126287c675e92f46871cfc8d15c34372b3"
+  integrity sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==
