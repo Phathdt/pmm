@@ -62,7 +62,6 @@
     "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
     "@nestjs/schematics": "^10.0.1",
     "@nestjs/testing": "^10.0.2",
-    "eslint-config-prettier": "^9.0.0",
     "@nx/eslint": "20.6.0",
     "@nx/eslint-plugin": "20.6.0",
     "@nx/jest": "20.6.0",
