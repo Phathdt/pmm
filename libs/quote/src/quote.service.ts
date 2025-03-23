@@ -21,6 +21,7 @@ export class QuoteService {
   private readonly BTC_ADDRESS: string
   private readonly PMM_SOLANA_ADDRESS: string
   private readonly tokenService = tokenService
+  private readonly ONLY_SOLANA: boolean
 
   constructor(
     private readonly configService: ConfigService,
@@ -31,6 +32,7 @@ export class QuoteService {
     this.EVM_ADDRESS = this.configService.getOrThrow<string>('PMM_EVM_ADDRESS')
     this.BTC_ADDRESS = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS')
     this.PMM_SOLANA_ADDRESS = this.configService.getOrThrow<string>('PMM_SOLANA_ADDRESS')
+    this.ONLY_SOLANA = this.configService.get<string>('ONLY_SOLANA') === 'true'
   }
 
   private getPmmAddressByNetworkType(token: Token): string {
@@ -68,6 +70,19 @@ export class QuoteService {
     return quoteWithBonus.toString()
   }
 
+  private validateSolanaRequirement(fromToken: Token, toToken: Token) {
+    if (!this.ONLY_SOLANA) {
+      return
+    }
+
+    const isFromTokenSolana = fromToken.networkType.toUpperCase() === 'SOLANA'
+    const isToTokenSolana = toToken.networkType.toUpperCase() === 'SOLANA'
+
+    if (!isFromTokenSolana && !isToTokenSolana) {
+      throw new Error('At least one token must be on the Solana network. Please check your token IDs.')
+    }
+  }
+
   async getIndicativeQuote(dto: GetIndicativeQuoteDto): Promise<IndicativeQuoteResponse> {
     const sessionId = dto.sessionId || this.generateSessionId()
 
@@ -79,12 +94,7 @@ export class QuoteService {
         throw new BadRequestException(`Failed to fetch tokens: ${error.message}`)
       })
 
-      const isFromTokenSolana = fromToken.networkType.toUpperCase() === 'SOLANA'
-      const isToTokenSolana = toToken.networkType.toUpperCase() === 'SOLANA'
-
-      if (!isFromTokenSolana && !isToTokenSolana) {
-        throw new Error('At least one token must be on the Solana network. Please check your token IDs.')
-      }
+      this.validateSolanaRequirement(fromToken, toToken)
 
       const [fromTokenPrice, toTokenPrice] = await Promise.all([
         this.tokenRepo.getTokenPrice(fromToken.tokenSymbol),
@@ -133,12 +143,7 @@ export class QuoteService {
         throw new BadRequestException(`Failed to fetch tokens: ${error.message}`)
       })
 
-      const isFromTokenSolana = fromToken.networkType.toUpperCase() === 'SOLANA'
-      const isToTokenSolana = toToken.networkType.toUpperCase() === 'SOLANA'
-
-      if (!isFromTokenSolana && !isToTokenSolana) {
-        throw new Error('At least one token must be on the Solana network. Please check your token IDs.')
-      }
+      this.validateSolanaRequirement(fromToken, toToken)
 
       const [fromTokenPrice, toTokenPrice] = await Promise.all([
         this.tokenRepo.getTokenPrice(fromToken.tokenSymbol),
