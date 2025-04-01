@@ -1,20 +1,22 @@
-import bs58 from 'bs58';
+import { BN } from '@coral-xyz/anchor'
+import { Injectable, Logger } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { routerService } from '@optimex-xyz/market-maker-sdk'
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token'
+import { AccountMeta, Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction } from '@solana/web3.js'
 
-import { BN } from '@coral-xyz/anchor';
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { routerService } from '@optimex-xyz/market-maker-sdk';
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import {
-    AccountMeta, Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction
-} from '@solana/web3.js';
+import bs58 from 'bs58'
 
-import { optimexSolProgram } from '../../artifacts';
-import { ITransferStrategy, TransferParams } from '../../interfaces';
+import { optimexSolProgram } from '../../artifacts'
+import { ITransferStrategy, TransferParams } from '../../interfaces'
 import {
-    bigintToBytes32, createAssociatedTokenAccountInstructionIfNeeded, getPaymentReceiptPda,
-    getProtocolPda, getWhitelistPda, WSOL_MINT
-} from '../../utils';
+  bigintToBytes32,
+  createAssociatedTokenAccountInstructionIfNeeded,
+  getPaymentReceiptPda,
+  getProtocolPda,
+  getWhitelistPda,
+  WSOL_MINT,
+} from '../../utils'
 
 @Injectable()
 export class SolanaTransferStrategy implements ITransferStrategy {
@@ -89,10 +91,11 @@ export class SolanaTransferStrategy implements ITransferStrategy {
       token: toToken,
     })
 
+    this.logger.log(`Payment SOL tradeId ${tradeId}`, { whitelistToken, paymentReceiptPda, protocolPda, toToken })
     const paymentIns = await optimexSolProgram.methods
       .payment({
         tradeId: bigintToBytes32(BigInt(tradeId)),
-        token,
+        token: toToken,
         amount: new BN(amount.toString()),
         totalFee: new BN(feeDetails.totalAmount.toString()),
         deadline: new BN(deadline),
