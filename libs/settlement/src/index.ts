@@ -5,6 +5,7 @@ export * from './settlement.module'
 export * from './settlement.service'
 export * from './types'
 
+export * from './artifacts'
 export * from './factories'
 export * from './interfaces'
 export * from './processors'

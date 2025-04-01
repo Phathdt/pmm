@@ -46,7 +46,6 @@
     "nestjs-pino": "^4.3.1",
     "nestjs-prisma": "^0.25.0",
     "nestjs-zod": "^4.3.1",
-    "petafi-solana-js": "^1.0.4",
     "pino": "^9.6.0",
     "pino-http": "^10.4.0",
     "pino-pretty": "^13.0.0",
