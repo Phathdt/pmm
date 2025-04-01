@@ -1,29 +1,25 @@
-import { BN } from '@coral-xyz/anchor'
-import { Injectable, Logger } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import { Router, Router__factory } from '@optimex-xyz/market-maker-sdk'
-import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token'
-import { AccountMeta, Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction } from '@solana/web3.js'
+import bs58 from 'bs58';
 
-import bs58 from 'bs58'
-import { ethers } from 'ethers'
-
-import { optimexSolProgram } from '../../artifacts'
-import { ITransferStrategy, TransferParams } from '../../interfaces'
+import { BN } from '@coral-xyz/anchor';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { routerService } from '@optimex-xyz/market-maker-sdk';
+import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import {
-  bigintToBytes32,
-  createAssociatedTokenAccountInstructionIfNeeded,
-  getPaymentReceiptPda,
-  getProtocolPda,
-  getWhitelistPda,
-  WSOL_MINT,
-} from '../../utils'
+    AccountMeta, Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction
+} from '@solana/web3.js';
+
+import { optimexSolProgram } from '../../artifacts';
+import { ITransferStrategy, TransferParams } from '../../interfaces';
+import {
+    bigintToBytes32, createAssociatedTokenAccountInstructionIfNeeded, getPaymentReceiptPda,
+    getProtocolPda, getWhitelistPda, WSOL_MINT
+} from '../../utils';
 
 @Injectable()
 export class SolanaTransferStrategy implements ITransferStrategy {
   private pmmKeypair: Keypair
   private connection: Connection
-  private contract: Router
 
   private readonly logger = new Logger(SolanaTransferStrategy.name)
 
@@ -34,13 +30,6 @@ export class SolanaTransferStrategy implements ITransferStrategy {
     const privateKeyString = configService.getOrThrow('PMM_SOLANA_PRIVATE_KEY')
     const privateKeyBytes = bs58.decode(privateKeyString)
     this.pmmKeypair = Keypair.fromSecretKey(privateKeyBytes)
-
-    const rpcUrl = configService.getOrThrow<string>('RPC_URL')
-    const contractAddress = configService.getOrThrow<string>('ROUTER_ADDRESS')
-
-    const provider = new ethers.JsonRpcProvider(rpcUrl)
-
-    this.contract = Router__factory.connect(contractAddress, provider)
   }
 
   async transfer(params: TransferParams): Promise<string> {
@@ -50,7 +39,7 @@ export class SolanaTransferStrategy implements ITransferStrategy {
     const toUser = new PublicKey(toAddress)
     const toToken = token.tokenAddress === 'native' ? null : new PublicKey(token.tokenAddress)
 
-    const feeDetails = await this.contract.getFeeDetails(tradeId)
+    const feeDetails = await routerService.getFeeDetails(tradeId)
     const protocolPda = getProtocolPda()
 
     const remainingAccounts: AccountMeta[] = []
