@@ -37,12 +37,19 @@ export class SolanaTransferStrategy implements ITransferStrategy {
   async transfer(params: TransferParams): Promise<string> {
     const { toAddress, amount, tradeId, token } = params
     const deadline = Math.floor(Date.now() / 1000) + 3600
+    this.logger.log(`Transfer SOL tradeId ${tradeId}`, { toAddress, amount, token })
+    this.logger.log(`Pmm pubkey tradeId ${tradeId}: ${this.pmmKeypair.publicKey.toBase58()}`)
     const fromUser = new PublicKey(this.pmmKeypair.publicKey)
     const toUser = new PublicKey(toAddress)
     const toToken = token.tokenAddress === 'native' ? null : new PublicKey(token.tokenAddress)
+    this.logger.log(
+      `To token tradeId ${tradeId}: ${toToken?.toBase58()}, fromuser: ${fromUser.toBase58()} toUser: ${toUser.toBase58()}`
+    )
 
     const feeDetails = await routerService.getFeeDetails(tradeId)
+    this.logger.log(`TradeId ${tradeId} ${optimexSolProgram.programId}`)
     const protocolPda = getProtocolPda()
+    this.logger.log(`Protocol PDA tradeId ${tradeId}: ${protocolPda.toBase58()}`)
 
     const remainingAccounts: AccountMeta[] = []
     let whitelistToken: PublicKey
