@@ -1,30 +1,22 @@
-import { stringToHex, toString } from '@bitfi-mock-pmm/shared'
-import { TradeService } from '@bitfi-mock-pmm/trade'
-import { InjectQueue } from '@nestjs/bull'
-import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import {
-  getCommitInfoHash,
-  getSignature,
-  routerService,
-  SignatureType,
-  signerService,
-} from '@optimex-xyz/market-maker-sdk'
-import { Trade, TradeStatus } from '@prisma/client'
+import { Queue } from 'bull';
+import * as ethers from 'ethers';
 
-import { Queue } from 'bull'
-import * as ethers from 'ethers'
-
-import { SETTLEMENT_QUEUE } from './const'
+import { stringToHex, toString } from '@bitfi-mock-pmm/shared';
+import { TradeService } from '@bitfi-mock-pmm/trade';
+import { InjectQueue } from '@nestjs/bull';
+import { BadRequestException, HttpException, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
-  AckSettlementDto,
-  AckSettlementResponseDto,
-  GetSettlementSignatureDto,
-  SettlementSignatureResponseDto,
-  SignalPaymentDto,
-  SignalPaymentResponseDto,
-} from './settlement.dto'
-import { TransferSettlementEvent } from './types'
+    getCommitInfoHash, getSignature, routerService, SignatureType, signerService
+} from '@optimex-xyz/market-maker-sdk';
+import { Trade, TradeStatus } from '@prisma/client';
+
+import { SETTLEMENT_QUEUE } from './const';
+import {
+    AckSettlementDto, AckSettlementResponseDto, GetSettlementSignatureDto,
+    SettlementSignatureResponseDto, SignalPaymentDto, SignalPaymentResponseDto
+} from './settlement.dto';
+import { TransferSettlementEvent } from './types';
 
 @Injectable()
 export class SettlementService {
@@ -54,7 +46,7 @@ export class SettlementService {
       const { tradeId } = trade
 
       const [presigns, tradeData] = await Promise.all([
-        this.routerService.getPresigns(tradeId),
+        this.routerService.getSettlementPresigns(tradeId),
         this.routerService.getTradeData(tradeId),
       ])
 
