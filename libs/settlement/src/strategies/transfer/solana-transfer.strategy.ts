@@ -15,6 +15,7 @@ import {
   getPaymentReceiptPda,
   getProtocolPda,
   getWhitelistPda,
+  sendTransactionWithRetry,
   WSOL_MINT,
 } from '../../utils'
 
@@ -133,9 +134,7 @@ export class SolanaTransferStrategy implements ITransferStrategy {
 
     const transaction = new Transaction().add(...createDestinationAtaIns, paymentIns)
     try {
-      const txHash = await sendAndConfirmTransaction(this.connection, transaction, [this.pmmKeypair], {
-        commitment: 'confirmed',
-      })
+      const txHash = await sendTransactionWithRetry(this.connection, transaction, [this.pmmKeypair])
       this.logger.log('Payment successful! ', tradeId)
       this.logger.log('Transaction signature:', txHash)
 

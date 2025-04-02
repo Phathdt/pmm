@@ -1,6 +1,6 @@
 import { BN } from '@coral-xyz/anchor'
 import { createAssociatedTokenAccountInstruction, getAssociatedTokenAddressSync } from '@solana/spl-token'
-import { Commitment, Connection, PublicKey } from '@solana/web3.js'
+import { Commitment, Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction } from '@solana/web3.js'
 
 import { optimexSolProgram } from '../artifacts'
 
@@ -102,4 +102,43 @@ export function bigintToBytes32(value: bigint): number[] {
   // Convert to hex, pad to 64 chars (32 bytes) and remove 0x
   const hex = value.toString(16).padStart(64, '0')
   return Array.from(Buffer.from(hex, 'hex'))
+}
+
+export async function sendTransactionWithRetry(
+  connection: Connection,
+  transaction: Transaction,
+  signers: Keypair[],
+  commitment: Commitment = 'confirmed',
+  maxRetryCount: number = 10
+): Promise<string> {
+  const blockhash = await connection.getLatestBlockhashAndContext(commitment)
+  const blockHeight = await connection.getBlockHeight({
+    commitment,
+    minContextSlot: blockhash.context.slot,
+  })
+
+  const transactionTTL = blockHeight + 151
+
+  let retryCount = 0
+  let lastErr: any
+  while (true) {
+    const blockHeight = await connection.getBlockHeight(commitment)
+    if (blockHeight >= transactionTTL || retryCount >= maxRetryCount) {
+      throw lastErr
+    }
+    try {
+      const txHash = await sendAndConfirmTransaction(connection, transaction, signers, {
+        commitment,
+      })
+      return txHash
+    } catch (error) {
+      retryCount += 1
+      lastErr = error
+      await waitToRetry()
+    }
+  }
+
+  async function waitToRetry(): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+  }
 }
