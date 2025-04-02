@@ -108,7 +108,8 @@ export async function sendTransactionWithRetry(
   connection: Connection,
   transaction: Transaction,
   signers: Keypair[],
-  commitment: Commitment = 'confirmed'
+  commitment: Commitment = 'confirmed',
+  maxRetryCount: number = 10
 ): Promise<string> {
   const blockhash = await connection.getLatestBlockhashAndContext(commitment)
   const blockHeight = await connection.getBlockHeight({
@@ -122,7 +123,7 @@ export async function sendTransactionWithRetry(
   let lastErr: any
   while (true) {
     const blockHeight = await connection.getBlockHeight(commitment)
-    if (blockHeight >= transactionTTL) {
+    if (blockHeight >= transactionTTL || retryCount >= maxRetryCount) {
       throw lastErr
     }
     try {
