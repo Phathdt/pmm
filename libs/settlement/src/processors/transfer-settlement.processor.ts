@@ -1,15 +1,15 @@
-import { stringToHex, toObject, toString } from '@bitfi-mock-pmm/shared'
-import { InjectQueue, Process, Processor } from '@nestjs/bull'
-import { Logger } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import { ITypes, routerService, tokenService } from '@optimex-xyz/market-maker-sdk'
+import { Job, Queue } from 'bull';
 
-import { Job, Queue } from 'bull'
+import { stringToHex, toObject, toString } from '@bitfi-mock-pmm/shared';
+import { InjectQueue, Process, Processor } from '@nestjs/bull';
+import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { ITypes, routerService, tokenService } from '@optimex-xyz/market-maker-sdk';
 
-import { SETTLEMENT_QUEUE } from '../const'
-import { TransferFactory } from '../factories'
-import { SubmitSettlementEvent, TransferSettlementEvent } from '../types'
-import { l2Decode } from '../utils'
+import { SETTLEMENT_QUEUE } from '../const';
+import { TransferFactory } from '../factories';
+import { SubmitSettlementEvent, TransferSettlementEvent } from '../types';
+import { l2Decode } from '../utils';
 
 @Processor(SETTLEMENT_QUEUE.TRANSFER.NAME)
 export class TransferSettlementProcessor {
@@ -53,7 +53,12 @@ export class TransferSettlementProcessor {
       } as SubmitSettlementEvent
 
       await this.submitSettlementQueue.add(SETTLEMENT_QUEUE.SUBMIT.JOBS.PROCESS, toString(eventData), {
-        removeOnComplete: true,
+        removeOnComplete: {
+          age: 24 * 3600,
+        },
+        removeOnFail: {
+          age: 24 * 3600,
+        },
       })
 
       this.logger.log(`Processing transfer tradeId ${tradeId} success with paymentId ${paymentTxId}`)
