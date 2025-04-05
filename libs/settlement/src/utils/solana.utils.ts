@@ -109,7 +109,7 @@ export async function sendTransactionWithRetry(
   transaction: Transaction,
   signers: Keypair[],
   commitment: Commitment = 'confirmed',
-  maxRetryCount: 10
+  maxRetryCount = 10
 ): Promise<string> {
   const blockhash = await connection.getLatestBlockhashAndContext(commitment)
   const blockHeight = await connection.getBlockHeight({
