@@ -3,7 +3,7 @@ import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { routerService } from '@optimex-xyz/market-maker-sdk'
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token'
-import { AccountMeta, Connection, Keypair, PublicKey, sendAndConfirmTransaction, Transaction } from '@solana/web3.js'
+import { AccountMeta, Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js'
 
 import bs58 from 'bs58'
 
@@ -43,8 +43,9 @@ export class SolanaTransferStrategy implements ITransferStrategy {
     const fromUser = new PublicKey(this.pmmKeypair.publicKey)
     const toUser = new PublicKey(toAddress)
     const toToken = token.tokenAddress === 'native' ? null : new PublicKey(token.tokenAddress)
+    this.logger.log(`Sender wallet address: ${fromUser.toBase58()}`)
     this.logger.log(
-      `To token tradeId ${tradeId}: ${toToken?.toBase58()}, fromuser: ${fromUser.toBase58()} toUser: ${toUser.toBase58()}`
+      `To token tradeId ${tradeId}: ${toToken?.toBase58() || 'native'}, fromuser: ${fromUser.toBase58()} toUser: ${toUser.toBase58()}`
     )
 
     const feeDetails = await routerService.getFeeDetails(tradeId)
