@@ -24,6 +24,7 @@ export class QuoteService {
   private readonly ONLY_SOLANA: boolean
   private readonly MIN_TRADE: number
   private readonly MAX_TRADE: number
+  private readonly BONUS_PERCENTAGE: number
 
   constructor(
     private readonly configService: ConfigService,
@@ -37,6 +38,7 @@ export class QuoteService {
     this.ONLY_SOLANA = this.configService.get<string>('ONLY_SOLANA') === 'true'
     this.MIN_TRADE = Number(this.configService.getOrThrow<string>('MIN_TRADE'))
     this.MAX_TRADE = Number(this.configService.getOrThrow<string>('MAX_TRADE'))
+    this.BONUS_PERCENTAGE = Number(this.configService.getOrThrow<string>('BONUS_PERCENTAGE', '103'))
   }
 
   private getPmmAddressByNetworkType(token: Token): string {
@@ -70,7 +72,7 @@ export class QuoteService {
     const toPrice = ethers.getBigInt(Math.round(toTokenPrice.currentPrice * 1e6))
     const rawQuote = (amount * fromPrice * 10n ** toDecimals) / (toPrice * 10n ** fromDecimals)
 
-    const quoteWithBonus = (rawQuote * 101n) / 100n
+    const quoteWithBonus = (rawQuote * BigInt(this.BONUS_PERCENTAGE)) / 100n
     return quoteWithBonus.toString()
   }
 
