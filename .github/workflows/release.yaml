@@ -12,7 +12,7 @@ on:
 
 env:
   SERVICE: pmm
-  # IMAGE_REPOSITORY: asia-southeast1-docker.pkg.dev/bitfiprod/bitfi-repo/bitfi-backend 
+  # IMAGE_REPOSITORY: asia-southeast1-docker.pkg.dev/bitfiprod/bitfi-repo/bitfi-backend
 
 jobs:
   prepare:
@@ -44,7 +44,7 @@ jobs:
       - name: prepare
         id: before_script
         env:
-          IMAGE_REPOSITORY: asia-southeast1-docker.pkg.dev/bitfiprod/bitfi-repo/mock-pmm 
+          IMAGE_REPOSITORY: asia-southeast1-docker.pkg.dev/bitfiprod/bitfi-repo/mock-pmm
           INPUT_TAG: ${{ github.event.inputs.version }}
         run: |
           #!/bin/bash
@@ -62,7 +62,7 @@ jobs:
       - name: Gcloud Auth
         uses: google-github-actions/auth@v2
         with:
-          credentials_json: "${{ secrets.AR_CREDENTIALS }}"
+          credentials_json: '${{ secrets.AR_CREDENTIALS }}'
 
       - name: Setup Gcloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -99,10 +99,10 @@ jobs:
     env:
       VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
     steps:
-    #   - name: Setup Go
-    #     uses: actions/setup-go@v5
-    #     with:
-    #       go-version: "1.22.x"
+      #   - name: Setup Go
+      #     uses: actions/setup-go@v5
+      #     with:
+      #       go-version: "1.22.x"
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -117,7 +117,7 @@ jobs:
       - name: Create tag
         run: |
           git tag -d "$VERSION_TAG" 2> /dev/null || echo "Release tag '$VERSION_TAG' does NOT exist"
-          git tag --annotate --message "Bitfi backend $VERSION_TAG" "$VERSION_TAG"
+          git tag --annotate --message "Optimex PMM $VERSION_TAG" "$VERSION_TAG"
           git push origin "refs/tags/$VERSION_TAG"
 
       - name: Create release
@@ -126,4 +126,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ env.VERSION_TAG }}
           prerelease: false
-          name: "Bitfi backend ${{ env.VERSION_TAG }}"
+          name: 'Optimex PMM ${{ env.VERSION_TAG }}'
