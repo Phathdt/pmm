@@ -17,6 +17,8 @@ import { ResponseLoggerInterceptor } from './interceptors/response-logger.interc
 import { TraceIdInterceptor } from './interceptors/trace-id.interceptor'
 import { ZodValidationExceptionFilter } from './interceptors/zod-validation-exception.filter'
 
+sdk.setEnvironment(process.env.ENV as Environment)
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
@@ -40,8 +42,6 @@ async function bootstrap() {
     .build()
   const documentFactory = () => SwaggerModule.createDocument(app, config)
   SwaggerModule.setup('api', app, documentFactory)
-
-  sdk.setEnvironment(process.env.ENV as Environment)
 
   const port = process.env.PORT || 3000
   await app.listen(port)
