@@ -19,6 +19,17 @@ interface ExplorerBalanceResponse {
   }
 }
 
+interface MempoolBalanceResponse {
+  chain_stats: {
+    funded_txo_sum: number
+    spent_txo_sum: number
+  }
+  mempool_stats: {
+    funded_txo_sum: number
+    spent_txo_sum: number
+  }
+}
+
 @Injectable()
 export class BalanceMonitorScheduler {
   private readonly logger = new Logger(BalanceMonitorScheduler.name)
@@ -51,25 +62,69 @@ export class BalanceMonitorScheduler {
   }
 
   private async getBtcBalance(): Promise<number> {
-    try {
+    const maxRetries = 3
+    const sleepTime = 5000
+
+    const getBalanceFromBlockstream = async (): Promise<number> => {
       const baseUrl =
         this.btcNetwork === 'mainnet' ? 'https://blockstream.info/api' : 'https://blockstream.info/testnet/api'
-
       const response = await axios.get<ExplorerBalanceResponse>(`${baseUrl}/address/${this.btcAddress}`)
-
       if (response?.data) {
         const confirmedBalance =
           response.data.chain_stats?.funded_txo_sum - response.data.chain_stats?.spent_txo_sum || 0
         const unconfirmedBalance =
           response.data.mempool_stats?.funded_txo_sum - response.data.mempool_stats?.spent_txo_sum || 0
-        const totalBalance = Math.max(0, confirmedBalance + unconfirmedBalance)
-        return totalBalance / 1e8 // Convert satoshis to BTC
+        return Math.max(0, confirmedBalance + unconfirmedBalance) / 1e8
       }
       return 0
-    } catch (error) {
-      this.logger.error(error, 'Error fetching BTC balance:')
+    }
+
+    const getBalanceFromMempool = async (): Promise<number> => {
+      const baseUrl = this.btcNetwork === 'mainnet' ? 'https://mempool.space/api' : 'https://mempool.space/testnet/api'
+      const response = await axios.get<MempoolBalanceResponse>(`${baseUrl}/address/${this.btcAddress}`)
+      if (response?.data) {
+        const confirmedBalance =
+          response.data.chain_stats?.funded_txo_sum - response.data.chain_stats?.spent_txo_sum || 0
+        const unconfirmedBalance =
+          response.data.mempool_stats?.funded_txo_sum - response.data.mempool_stats?.spent_txo_sum || 0
+        return Math.max(0, confirmedBalance + unconfirmedBalance) / 1e8
+      }
       return 0
     }
+
+    for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
+      try {
+        this.logger.log(`Attempting to fetch BTC balance (Attempt ${retryCount}/${maxRetries})`)
+
+        const [blockstreamBalance, mempoolBalance] = await Promise.allSettled([
+          getBalanceFromBlockstream(),
+          getBalanceFromMempool(),
+        ])
+
+        if (blockstreamBalance.status === 'fulfilled' && blockstreamBalance.value > 0) {
+          this.logger.log('Successfully fetched balance from Blockstream')
+          return blockstreamBalance.value
+        }
+
+        if (mempoolBalance.status === 'fulfilled' && mempoolBalance.value > 0) {
+          this.logger.log('Successfully fetched balance from Mempool')
+          return mempoolBalance.value
+        }
+
+        throw new Error('Both APIs failed to return valid balance')
+      } catch (error) {
+        this.logger.error(`Error fetching BTC balance (Attempt ${retryCount}/${maxRetries}):`, error)
+
+        if (retryCount < maxRetries) {
+          this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
+          await new Promise((resolve) => setTimeout(resolve, sleepTime))
+        } else {
+          this.logger.error('Max retries reached for BTC balance check')
+          return 0
+        }
+      }
+    }
+    return 0
   }
 
   @Cron('*/5 * * * *')

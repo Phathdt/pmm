@@ -49,21 +49,70 @@ export class BTCTransferStrategy implements ITransferStrategy {
     bitcoin.initEccLib(ecc)
   }
 
-  private async checkBalance(amount: bigint, rpcUrl: string): Promise<boolean> {
-    try {
-      const utxos = await this.getUTXOs(this.btcAddress, rpcUrl)
-      const totalBalance = utxos.reduce((sum, utxo) => sum + BigInt(utxo.value), 0n)
+  private async checkBalance(amount: bigint, networkId: string): Promise<boolean> {
+    const maxRetries = 3
+    const sleepTime = 5000
 
-      if (totalBalance < amount) {
-        const message = `⚠️ Insufficient BTC Balance Alert\n\nRequired: ${amount.toString()} satoshis\nAvailable: ${totalBalance.toString()} satoshis\nAddress: ${this.btcAddress}`
-        await this.telegramHelper.sendMessage(message)
-        return false
+    const getBalanceFromBlockstream = async (): Promise<bigint> => {
+      const network = this.getNetwork(networkId)
+      const baseUrl =
+        network === bitcoin.networks.bitcoin ? 'https://blockstream.info/api' : 'https://blockstream.info/testnet/api'
+      const response = await axios.get(`${baseUrl}/address/${this.btcAddress}/utxo`)
+      if (response?.data) {
+        return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
       }
-      return true
-    } catch (error) {
-      this.logger.error(error, 'Error checking balance:')
-      return false
+      return 0n
     }
+
+    const getBalanceFromMempool = async (): Promise<bigint> => {
+      const network = this.getNetwork(networkId)
+      const baseUrl =
+        network === bitcoin.networks.bitcoin ? 'https://mempool.space/api' : 'https://mempool.space/testnet/api'
+      const response = await axios.get(`${baseUrl}/address/${this.btcAddress}/utxo`)
+      if (response?.data) {
+        return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
+      }
+      return 0n
+    }
+
+    for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
+      try {
+        this.logger.log(`Attempting to check BTC balance (Attempt ${retryCount}/${maxRetries})`)
+
+        const [blockstreamBalance, mempoolBalance] = await Promise.allSettled([
+          getBalanceFromBlockstream(),
+          getBalanceFromMempool(),
+        ])
+
+        let totalBalance = 0n
+
+        if (blockstreamBalance.status === 'fulfilled') {
+          this.logger.log('Successfully fetched balance from Blockstream')
+          totalBalance = blockstreamBalance.value
+        } else if (mempoolBalance.status === 'fulfilled') {
+          this.logger.log('Successfully fetched balance from Mempool')
+          totalBalance = mempoolBalance.value
+        }
+
+        if (totalBalance < amount) {
+          const message = `⚠️ Insufficient BTC Balance Alert\n\nRequired: ${amount.toString()} satoshis\nAvailable: ${totalBalance.toString()} satoshis\nAddress: ${this.btcAddress}`
+          await this.telegramHelper.sendMessage(message)
+          return false
+        }
+        return true
+      } catch (error) {
+        this.logger.error(`Error checking balance (Attempt ${retryCount}/${maxRetries}):`, error)
+
+        if (retryCount < maxRetries) {
+          this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
+          await new Promise((resolve) => setTimeout(resolve, sleepTime))
+        } else {
+          this.logger.error('Max retries reached for BTC balance check')
+          return false
+        }
+      }
+    }
+    return false
   }
 
   async transfer(params: TransferParams): Promise<string> {
@@ -76,7 +125,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
       this.logger.log(`Starting transfer of ${amount} satoshis to ${toAddress} on ${token.networkName}`)
 
       // Check balance before proceeding
-      const hasSufficientBalance = await this.checkBalance(amount, rpcUrl)
+      const hasSufficientBalance = await this.checkBalance(amount, token.networkId)
       if (!hasSufficientBalance) {
         throw new Error('Insufficient balance for transfer')
       }
