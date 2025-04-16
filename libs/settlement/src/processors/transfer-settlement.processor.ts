@@ -14,6 +14,8 @@ import { l2Decode } from '../utils'
 @Processor(SETTLEMENT_QUEUE.TRANSFER.NAME)
 export class TransferSettlementProcessor {
   private pmmId: string
+  private readonly MAX_RETRIES = 3
+  private readonly RETRY_DELAY = 30000
 
   private routerService = routerService
   private tokenRepo = tokenService
@@ -23,15 +25,17 @@ export class TransferSettlementProcessor {
   constructor(
     private configService: ConfigService,
     private transferFactory: TransferFactory,
-    @InjectQueue(SETTLEMENT_QUEUE.SUBMIT.NAME)
-    private submitSettlementQueue: Queue
+    @InjectQueue(SETTLEMENT_QUEUE.SUBMIT.NAME) private submitSettlementQueue: Queue,
+    @InjectQueue(SETTLEMENT_QUEUE.TRANSFER.NAME) private transferSettlementQueue: Queue
   ) {
     this.pmmId = stringToHex(this.configService.getOrThrow<string>('PMM_ID'))
   }
 
   @Process(SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS)
   async transfer(job: Job<string>) {
-    const { tradeId } = toObject(job.data) as TransferSettlementEvent
+    const { tradeId, retryCount = 0 } = toObject(job.data) as TransferSettlementEvent & { retryCount?: number }
+
+    this.logger.log(`Processing retry ${retryCount}/${this.MAX_RETRIES} for tradeId ${tradeId}`)
 
     try {
       const pMMSelection = await this.routerService.getPMMSelection(tradeId)
@@ -63,7 +67,26 @@ export class TransferSettlementProcessor {
 
       this.logger.log(`Processing transfer tradeId ${tradeId} success with paymentId ${paymentTxId}`)
     } catch (error) {
-      this.logger.error(`Processing transfer tradeId ${tradeId} failed: ${error}`)
+      if (retryCount < this.MAX_RETRIES - 1) {
+        this.logger.warn(`Retry ${retryCount + 1}/${this.MAX_RETRIES} for tradeId ${tradeId}: ${error}`)
+
+        await this.transferSettlementQueue.add(
+          SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS,
+          toString({ tradeId, retryCount: retryCount + 1 }),
+          {
+            delay: this.RETRY_DELAY,
+            removeOnComplete: {
+              age: 24 * 3600,
+            },
+            removeOnFail: {
+              age: 24 * 3600,
+            },
+          }
+        )
+        return
+      }
+      this.logger.error(`Processing transfer tradeId ${tradeId} failed after ${this.MAX_RETRIES} attempts: ${error}`)
+
       throw error
     }
   }
