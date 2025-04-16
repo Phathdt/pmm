@@ -6,10 +6,12 @@ import { BullModule } from '@nestjs/bull'
 import { CacheModule } from '@nestjs/cache-manager'
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
+import { ScheduleModule } from '@nestjs/schedule'
 
 import { redisStore } from 'cache-manager-redis-yet'
 import { RedisClientOptions } from 'redis'
 
+import { BalanceMonitorScheduler } from './balance-monitor.scheduler'
 import { SETTLEMENT_QUEUE, SETTLEMENT_QUEUE_NAMES } from './const'
 import { TransferFactory } from './factories'
 import { SubmitSettlementProcessor } from './processors/submit-settlement.processor'
@@ -25,6 +27,7 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     CacheModule.registerAsync<RedisClientOptions>({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -45,6 +48,7 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
     SettlementService,
     TransferSettlementProcessor,
     SubmitSettlementProcessor,
+    BalanceMonitorScheduler,
 
     TransferFactory,
     BTCTransferStrategy,
