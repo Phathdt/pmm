@@ -72,7 +72,7 @@ export class BalanceMonitorScheduler {
     }
   }
 
-  @Cron('*/10 * * * * *')
+  @Cron('*/5 * * * *')
   async checkBTCBalance(): Promise<void> {
     try {
       const [btcPrice, btcBalance] = await Promise.all([this.tokenRepo.getTokenPrice('BTC'), this.getBtcBalance()])
@@ -95,7 +95,7 @@ export class BalanceMonitorScheduler {
     }
   }
 
-  @Cron('*/10 * * * * *')
+  @Cron('*/5 * * * *')
   async checkSOLBalance(): Promise<void> {
     try {
       const [solPrice, solBalance] = await Promise.all([this.tokenRepo.getTokenPrice('SOL'), this.getSolanaBalance()])
