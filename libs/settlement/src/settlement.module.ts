@@ -19,6 +19,7 @@ import { TransferSettlementProcessor } from './processors/transfer-settlement.pr
 import { SettlementController } from './settlement.controller'
 import { SettlementService } from './settlement.service'
 import { BTCTransferStrategy, EVMTransferStrategy, SolanaTransferStrategy } from './strategies'
+import { TelegramHelper } from './utils/telegram.helper'
 
 const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
   name: queue.NAME,
@@ -49,6 +50,7 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
     TransferSettlementProcessor,
     SubmitSettlementProcessor,
     BalanceMonitorScheduler,
+    TelegramHelper,
 
     TransferFactory,
     BTCTransferStrategy,

@@ -6,6 +6,8 @@ import { Connection, PublicKey } from '@solana/web3.js'
 
 import axios from 'axios'
 
+import { TelegramHelper } from './utils/telegram.helper'
+
 interface ExplorerBalanceResponse {
   chain_stats: {
     funded_txo_sum: number
@@ -28,7 +30,8 @@ export class BalanceMonitorScheduler {
 
   constructor(
     private readonly tokenRepo: TokenRepository,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    private readonly telegramHelper: TelegramHelper
   ) {
     this.solanaConnection = new Connection(this.configService.getOrThrow<string>('SOLANA_RPC_URL'))
     this.btcNetwork = this.configService.getOrThrow<string>('BTC_NETWORK')
@@ -77,9 +80,11 @@ export class BalanceMonitorScheduler {
       const btcValue = btcBalance * btcPrice.currentPrice
 
       if (btcValue < this.MIN_BALANCE_USD) {
+        const message = `⚠️ BTC Balance Alert\n\nBalance: $${btcValue.toFixed(2)} (${btcBalance} BTC)\nAddress: ${this.btcAddress}\n\nBalance is below minimum threshold of $${this.MIN_BALANCE_USD}`
         this.logger.warn(
           `BTC balance is below minimum threshold: $${btcValue.toFixed(2)} (${btcBalance} BTC) - Address: ${this.btcAddress}`
         )
+        await this.telegramHelper.sendMessage(message)
       }
 
       this.logger.log(
@@ -98,9 +103,11 @@ export class BalanceMonitorScheduler {
       const solValue = solBalance * solPrice.currentPrice
 
       if (solValue < this.MIN_BALANCE_USD) {
+        const message = `⚠️ SOL Balance Alert\n\nBalance: $${solValue.toFixed(2)} (${solBalance} SOL)\nAddress: ${this.solAddress}\n\nBalance is below minimum threshold of $${this.MIN_BALANCE_USD}`
         this.logger.warn(
           `SOL balance is below minimum threshold: $${solValue.toFixed(2)} (${solBalance} SOL) - Address: ${this.solAddress}`
         )
+        await this.telegramHelper.sendMessage(message)
       }
 
       this.logger.log(
