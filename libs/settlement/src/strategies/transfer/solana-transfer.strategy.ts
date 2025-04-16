@@ -18,6 +18,7 @@ import {
   sendTransactionWithRetry,
   WSOL_MINT,
 } from '../../utils'
+import { TelegramHelper } from '../../utils/telegram.helper'
 
 @Injectable()
 export class SolanaTransferStrategy implements ITransferStrategy {
@@ -26,13 +27,45 @@ export class SolanaTransferStrategy implements ITransferStrategy {
 
   private readonly logger = new Logger(SolanaTransferStrategy.name)
 
-  constructor(configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly telegramHelper: TelegramHelper
+  ) {
     const endpoint = configService.getOrThrow('SOLANA_RPC_URL')
     this.connection = new Connection(endpoint, 'confirmed')
 
     const privateKeyString = configService.getOrThrow('PMM_SOLANA_PRIVATE_KEY')
     const privateKeyBytes = bs58.decode(privateKeyString)
     this.pmmKeypair = Keypair.fromSecretKey(privateKeyBytes)
+  }
+
+  private async checkBalance(token: PublicKey | null, amount: bigint): Promise<boolean> {
+    try {
+      let balance: bigint
+      if (token === null) {
+        // Check SOL balance
+        balance = BigInt(await this.connection.getBalance(this.pmmKeypair.publicKey))
+        this.logger.log(`Checking SOL balance - Address: ${this.pmmKeypair.publicKey.toBase58()}`)
+      } else {
+        // Check SPL token balance
+        const ata = await getAssociatedTokenAddress(token, this.pmmKeypair.publicKey, true)
+        const tokenBalance = await this.connection.getTokenAccountBalance(ata)
+        balance = BigInt(tokenBalance.value.amount)
+        this.logger.log(
+          `Checking SPL token balance - Token: ${token.toBase58()}, ATA: ${ata.toBase58()}, Decimals: ${tokenBalance.value.decimals}`
+        )
+      }
+
+      if (balance < amount) {
+        const message = `⚠️ Insufficient Balance Alert\n\nToken: ${token ? token.toBase58() : 'SOL'}\nRequired: ${amount.toString()}\nAvailable: ${balance.toString()}\nAddress: ${this.pmmKeypair.publicKey.toBase58()}`
+        await this.telegramHelper.sendMessage(message)
+        return false
+      }
+      return true
+    } catch (error) {
+      this.logger.error(error, `Error checking balance for token ${token ? token.toBase58() : 'SOL'}:`)
+      return false
+    }
   }
 
   async transfer(params: TransferParams): Promise<string> {
@@ -47,6 +80,12 @@ export class SolanaTransferStrategy implements ITransferStrategy {
     this.logger.log(
       `To token tradeId ${tradeId}: ${toToken?.toBase58() || 'native'}, fromuser: ${fromUser.toBase58()} toUser: ${toUser.toBase58()}`
     )
+
+    // Check balance before proceeding
+    const hasSufficientBalance = await this.checkBalance(toToken, amount)
+    if (!hasSufficientBalance) {
+      throw new Error('Insufficient balance for transfer')
+    }
 
     const feeDetails = await routerService.getFeeDetails(tradeId)
     this.logger.log(`TradeId ${tradeId} ${optimexSolProgram.programId}`)

@@ -8,7 +8,8 @@ import * as bitcoin from 'bitcoinjs-lib'
 import { ECPairFactory } from 'ecpair'
 import * as ecc from 'tiny-secp256k1'
 
-import { ITransferStrategy, TransferParams } from '../../interfaces/transfer-strategy.interface'
+import { ITransferStrategy, TransferParams } from '../../interfaces'
+import { TelegramHelper } from '../../utils'
 
 interface UTXO {
   txid: string
@@ -26,6 +27,7 @@ interface UTXO {
 export class BTCTransferStrategy implements ITransferStrategy {
   private readonly logger = new Logger(BTCTransferStrategy.name)
   private readonly privateKey: string
+  private readonly btcAddress: string
   private readonly ECPair = ECPairFactory(ecc)
 
   private readonly networkMap = new Map<string, bitcoin.Network>([
@@ -38,9 +40,30 @@ export class BTCTransferStrategy implements ITransferStrategy {
     [BTC, 'https://blockstream.info'],
   ])
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private readonly telegramHelper: TelegramHelper
+  ) {
     this.privateKey = this.configService.getOrThrow<string>('PMM_BTC_PRIVATE_KEY')
+    this.btcAddress = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS')
     bitcoin.initEccLib(ecc)
+  }
+
+  private async checkBalance(amount: bigint, rpcUrl: string): Promise<boolean> {
+    try {
+      const utxos = await this.getUTXOs(this.btcAddress, rpcUrl)
+      const totalBalance = utxos.reduce((sum, utxo) => sum + BigInt(utxo.value), 0n)
+
+      if (totalBalance < amount) {
+        const message = `⚠️ Insufficient BTC Balance Alert\n\nRequired: ${amount.toString()} satoshis\nAvailable: ${totalBalance.toString()} satoshis\nAddress: ${this.btcAddress}`
+        await this.telegramHelper.sendMessage(message)
+        return false
+      }
+      return true
+    } catch (error) {
+      this.logger.error(error, 'Error checking balance:')
+      return false
+    }
   }
 
   async transfer(params: TransferParams): Promise<string> {
@@ -51,6 +74,12 @@ export class BTCTransferStrategy implements ITransferStrategy {
       const rpcUrl = this.getRpcUrl(token.networkId)
 
       this.logger.log(`Starting transfer of ${amount} satoshis to ${toAddress} on ${token.networkName}`)
+
+      // Check balance before proceeding
+      const hasSufficientBalance = await this.checkBalance(amount, rpcUrl)
+      if (!hasSufficientBalance) {
+        throw new Error('Insufficient balance for transfer')
+      }
 
       const txId = await this.sendBTC(this.privateKey, toAddress, amount, network, rpcUrl, token, [tradeId])
 
@@ -91,9 +120,9 @@ export class BTCTransferStrategy implements ITransferStrategy {
       throw new Error('Could not generate address')
     }
 
-    this.logger.log(`Sender address: ${payment.address} (${token.networkSymbol})`)
+    this.logger.log(`Sender address: ${this.btcAddress} (${token.networkSymbol})`)
 
-    const utxos = await this.getUTXOs(payment.address, rpcUrl)
+    const utxos = await this.getUTXOs(this.btcAddress, rpcUrl)
     if (utxos.length === 0) {
       throw new Error(`No UTXOs found in ${token.networkSymbol} wallet`)
     }
@@ -145,7 +174,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
     if (changeAmount > 546n) {
       psbt.addOutput({
-        address: payment.address,
+        address: this.btcAddress,
         value: changeAmount,
       })
     }
