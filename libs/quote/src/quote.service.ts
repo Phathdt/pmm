@@ -63,7 +63,8 @@ export class QuoteService {
     fromToken: Token,
     toToken: Token,
     fromTokenPrice: TokenPrice,
-    toTokenPrice: TokenPrice
+    toTokenPrice: TokenPrice,
+    isCommitment = false
   ): string {
     const amount = ethers.getBigInt(amountIn)
     const fromDecimals = ethers.getBigInt(fromToken.tokenDecimals)
@@ -72,7 +73,8 @@ export class QuoteService {
     const toPrice = ethers.getBigInt(Math.round(toTokenPrice.currentPrice * 1e6))
     const rawQuote = (amount * fromPrice * 10n ** toDecimals) / (toPrice * 10n ** fromDecimals)
 
-    const quoteWithBonus = (rawQuote * BigInt(this.BONUS_PERCENTAGE)) / 100n
+    const bonusPercentage = isCommitment ? this.BONUS_PERCENTAGE + 2 : this.BONUS_PERCENTAGE
+    const quoteWithBonus = (rawQuote * BigInt(bonusPercentage)) / 100n
     return quoteWithBonus.toString()
   }
 
@@ -132,10 +134,9 @@ export class QuoteService {
         throw new BadRequestException(`Failed to fetch token prices: ${error.message}`)
       })
 
-      // Validate trade amount
       this.validateTradeAmount(dto.amount, fromTokenPrice, fromToken)
 
-      const quote = this.calculateBestQuote(dto.amount, fromToken, toToken, fromTokenPrice, toTokenPrice)
+      const quote = this.calculateBestQuote(dto.amount, fromToken, toToken, fromTokenPrice, toTokenPrice, false)
 
       const pmmAddress = this.getPmmAddressByNetworkType(fromToken)
 
@@ -186,7 +187,7 @@ export class QuoteService {
 
       await this.tradeService.deleteTrade(dto.tradeId)
 
-      const quote = this.calculateBestQuote(dto.amount, fromToken, toToken, fromTokenPrice, toTokenPrice)
+      const quote = this.calculateBestQuote(dto.amount, fromToken, toToken, fromTokenPrice, toTokenPrice, true)
 
       const trade = await this.tradeService
         .createTrade({
