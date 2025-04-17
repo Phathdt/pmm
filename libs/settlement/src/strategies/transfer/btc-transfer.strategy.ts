@@ -29,6 +29,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
   private readonly privateKey: string
   private readonly btcAddress: string
   private readonly ECPair = ECPairFactory(ecc)
+  private maxFeeRate: number
 
   private readonly networkMap = new Map<string, bitcoin.Network>([
     [BTC_TESTNET, bitcoin.networks.testnet],
@@ -44,6 +45,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
     private configService: ConfigService,
     private readonly telegramHelper: TelegramHelper
   ) {
+    this.maxFeeRate = this.configService.getOrThrow<number>('PMM_BTC_MAX_FEE_RATE', 5)
     this.privateKey = this.configService.getOrThrow<string>('PMM_BTC_PRIVATE_KEY')
     this.btcAddress = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS')
     bitcoin.initEccLib(ecc)
@@ -209,7 +211,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
     }
 
     const feeRate = await this.getFeeRate(rpcUrl)
-    const fee = BigInt(Math.ceil(200 * feeRate))
+    const fee = BigInt(Math.ceil(250 * feeRate))
     const changeAmount = totalInput - amountInSatoshis - fee
 
     this.logger.log(`Network fee: ${fee.toString()} satoshis`)
@@ -266,12 +268,12 @@ export class BTCTransferStrategy implements ITransferStrategy {
   private async getFeeRate(rpcUrl: string): Promise<number> {
     try {
       const response = await axios.get<{ [key: string]: number }>(`${rpcUrl}/api/fee-estimates`)
-      const fee = response.data[3]
-      return Math.max(fee, 3)
+      const fee = response.data[1]
+      return Math.min(fee, this.maxFeeRate)
     } catch (error) {
       console.error(`Error fetching fee rate from ${rpcUrl}:`, error)
 
-      return 3
+      return this.maxFeeRate
     }
   }
 
