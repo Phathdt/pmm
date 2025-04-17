@@ -211,6 +211,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
     }
 
     const feeRate = await this.getFeeRate(rpcUrl)
+    this.logger.log(`Fee rate: ${feeRate}`)
     const fee = BigInt(Math.ceil(250 * feeRate))
     const changeAmount = totalInput - amountInSatoshis - fee
 
