@@ -103,7 +103,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
         }
         return true
       } catch (error) {
-        this.logger.error(`Error checking balance (Attempt ${retryCount}/${maxRetries}):`, error)
+        this.logger.error(error, `Error checking balance (Attempt ${retryCount}/${maxRetries}):`)
 
         if (retryCount < maxRetries) {
           this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
@@ -138,7 +138,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
       return txId
     } catch (error) {
-      this.logger.error('BTC transfer failed:', error)
+      this.logger.error(error, 'BTC transfer failed:')
       throw error
     }
   }
