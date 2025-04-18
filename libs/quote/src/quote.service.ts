@@ -73,7 +73,7 @@ export class QuoteService {
     const toPrice = ethers.getBigInt(Math.round(toTokenPrice.currentPrice * 1e6))
     const rawQuote = (amount * fromPrice * 10n ** toDecimals) / (toPrice * 10n ** fromDecimals)
 
-    const bonusPercentage = isCommitment ? this.BONUS_PERCENTAGE + 2 : this.BONUS_PERCENTAGE
+    const bonusPercentage = isCommitment ? this.BONUS_PERCENTAGE + 0.2 : this.BONUS_PERCENTAGE
     const quoteWithBonus = (rawQuote * BigInt(bonusPercentage)) / 100n
     return quoteWithBonus.toString()
   }
