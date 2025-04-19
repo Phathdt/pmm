@@ -21,7 +21,7 @@ export class SettlementController {
     return this.settlementService.getSettlementSignature(query, req.trade)
   }
 
-  @Get('ack-settlement')
+  @Post('ack-settlement')
   @UseGuards(TradeExistsGuard)
   ackSettlement(@Query() query: AckSettlementDto, @Req() req: any) {
     return this.settlementService.ackSettlement(query, req.trade)
@@ -29,7 +29,7 @@ export class SettlementController {
 
   @Post('signal-payment')
   @UseGuards(TradeExistsGuard)
-  signalPayment(@Query() body: SignalPaymentDto, @Req() req: any): Promise<SignalPaymentResponseDto> {
-    return this.settlementService.signalPayment(body, req.trade)
+  signalPayment(@Query() query: SignalPaymentDto, @Req() req: any): Promise<SignalPaymentResponseDto> {
+    return this.settlementService.signalPayment(query, req.trade)
   }
 }
