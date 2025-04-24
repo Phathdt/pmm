@@ -110,12 +110,12 @@ export class SettlementService {
   async ackSettlement(dto: AckSettlementDto): Promise<AckSettlementResponseDto> {
     try {
       // Update trade status based on chosen status
-      const newStatus = dto.chosen === 'true' ? TradeStatus.SETTLING : TradeStatus.FAILED
+      const newStatus = dto.chosen ? TradeStatus.SETTLING : TradeStatus.FAILED
 
       await this.tradeService.updateTradeStatus(
         dto.tradeId,
         newStatus,
-        dto.chosen === 'false' ? 'PMM not chosen for settlement' : undefined
+        dto.chosen ? 'PMM not chosen for settlement' : undefined
       )
 
       return {
