@@ -107,12 +107,8 @@ export class SettlementService {
     }
   }
 
-  async ackSettlement(dto: AckSettlementDto, trade: Trade): Promise<AckSettlementResponseDto> {
+  async ackSettlement(dto: AckSettlementDto): Promise<AckSettlementResponseDto> {
     try {
-      if (trade.status !== TradeStatus.SETTLING) {
-        throw new BadRequestException(`Invalid trade status: ${trade.status}`)
-      }
-
       // Update trade status based on chosen status
       const newStatus = dto.chosen === 'true' ? TradeStatus.SETTLING : TradeStatus.FAILED
 

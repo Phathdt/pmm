@@ -1,6 +1,6 @@
 import { SnakeToCamelInterceptor } from '@bitfi-mock-pmm/shared'
 import { TradeExistsGuard } from '@bitfi-mock-pmm/trade'
-import { Controller, Get, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Get, Post, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common'
 
 import {
   AckSettlementDto,
@@ -21,15 +21,15 @@ export class SettlementController {
     return this.settlementService.getSettlementSignature(query, req.trade)
   }
 
-  @Get('ack-settlement')
+  @Post('ack-settlement')
   @UseGuards(TradeExistsGuard)
-  ackSettlement(@Query() query: AckSettlementDto, @Req() req: any) {
-    return this.settlementService.ackSettlement(query, req.trade)
+  ackSettlement(@Body() body: AckSettlementDto) {
+    return this.settlementService.ackSettlement(body)
   }
 
   @Post('signal-payment')
   @UseGuards(TradeExistsGuard)
-  signalPayment(@Query() body: SignalPaymentDto, @Req() req: any): Promise<SignalPaymentResponseDto> {
+  signalPayment(@Body() body: SignalPaymentDto, @Req() req: any): Promise<SignalPaymentResponseDto> {
     return this.settlementService.signalPayment(body, req.trade)
   }
 }
