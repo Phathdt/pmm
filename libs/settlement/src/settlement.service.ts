@@ -110,7 +110,7 @@ export class SettlementService {
   async ackSettlement(dto: AckSettlementDto): Promise<AckSettlementResponseDto> {
     try {
       // Update trade status based on chosen status
-      const newStatus = dto.chosen ? TradeStatus.SETTLING : TradeStatus.FAILED
+      const newStatus = dto.chosen ? TradeStatus.SELECTED : TradeStatus.FAILED
 
       await this.tradeService.updateTradeStatus(
         dto.tradeId,
@@ -133,7 +133,7 @@ export class SettlementService {
 
   async signalPayment(dto: SignalPaymentDto, trade: Trade): Promise<SignalPaymentResponseDto> {
     try {
-      if (trade.status !== TradeStatus.COMMITTED) {
+      if (trade.status !== TradeStatus.SELECTED) {
         throw new BadRequestException(`Invalid trade status: ${trade.status}`)
       }
 
