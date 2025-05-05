@@ -1,8 +1,8 @@
-import { stringToHex, toString } from '@bitfi-mock-pmm/shared'
-import { TradeService } from '@bitfi-mock-pmm/trade'
 import { InjectQueue } from '@nestjs/bull'
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { stringToHex, toString } from '@optimex-pmm/shared'
+import { TradeService } from '@optimex-pmm/trade'
 import {
   getCommitInfoHash,
   getSignature,

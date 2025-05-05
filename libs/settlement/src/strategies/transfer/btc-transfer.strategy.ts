@@ -1,6 +1,6 @@
-import { BTC, BTC_TESTNET } from '@bitfi-mock-pmm/shared'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { BTC, BTC_TESTNET } from '@optimex-pmm/shared'
 import { getTradeIdsHash, Token } from '@optimex-xyz/market-maker-sdk'
 
 import axios from 'axios'
