@@ -6,9 +6,12 @@ export const GetIndicativeQuoteSchema = z.object({
   toTokenId: z.string(),
   amount: z.string(),
   sessionId: z.string().optional(),
-  deposited: z.boolean().optional(),
-  tradeTimeout: z.string().optional(),
-  scriptTimeout: z.string().optional(),
+  deposited: z
+    .string()
+    .transform((val) => val === 'true')
+    .optional(),
+  tradeTimeout: z.coerce.number().optional(),
+  scriptTimeout: z.coerce.number().optional(),
 })
 
 export class GetIndicativeQuoteDto extends createZodDto(GetIndicativeQuoteSchema) {}
