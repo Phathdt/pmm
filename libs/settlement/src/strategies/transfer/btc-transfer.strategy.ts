@@ -281,7 +281,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
   private async getFeeRate(rpcUrl: string): Promise<number> {
     try {
       const response = await axios.get<{ [key: string]: number }>(`${rpcUrl}/api/fee-estimates`)
-      const fee = response.data[1]
+      const fee = response.data[1] * 1.125
       return Math.min(fee, this.maxFeeRate)
     } catch (error) {
       console.error(`Error fetching fee rate from ${rpcUrl}:`, error)
