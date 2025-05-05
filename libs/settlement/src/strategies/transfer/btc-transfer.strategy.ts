@@ -1,15 +1,15 @@
-import { BTC, BTC_TESTNET } from '@bitfi-mock-pmm/shared'
-import { Injectable, Logger } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import { getTradeIdsHash, Token } from '@optimex-xyz/market-maker-sdk'
+import axios from 'axios';
+import * as bitcoin from 'bitcoinjs-lib';
+import { ECPairFactory } from 'ecpair';
+import * as ecc from 'tiny-secp256k1';
 
-import axios from 'axios'
-import * as bitcoin from 'bitcoinjs-lib'
-import { ECPairFactory } from 'ecpair'
-import * as ecc from 'tiny-secp256k1'
+import { BTC, BTC_TESTNET } from '@bitfi-mock-pmm/shared';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { getTradeIdsHash, Token } from '@optimex-xyz/market-maker-sdk';
 
-import { ITransferStrategy, TransferParams } from '../../interfaces'
-import { TelegramHelper } from '../../utils'
+import { ITransferStrategy, TransferParams } from '../../interfaces';
+import { TelegramHelper } from '../../utils';
 
 interface UTXO {
   txid: string
@@ -155,6 +155,15 @@ export class BTCTransferStrategy implements ITransferStrategy {
     }
   }
 
+  private calculateTxSize(inputCount: number, outputCount: number): number {
+    const baseTxSize = 10 // version, locktime, etc.
+    const inputSize = 107 // outpoint (41) + sequence (1) + witness (65)
+    const p2trOutputSize = 42 // value (8) + script (34)
+    const opReturnOutputSize = 41 // value (8) + OP_RETURN (1) + data (32)
+
+    return baseTxSize + (inputSize * inputCount) + (p2trOutputSize * outputCount) + opReturnOutputSize
+  }
+
   private async sendBTC(
     privateKey: string,
     toAddress: string,
@@ -212,9 +221,12 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
     const feeRate = await this.getFeeRate(rpcUrl)
     this.logger.log(`Fee rate: ${feeRate}`)
-    const fee = BigInt(Math.ceil(250 * feeRate))
+
+    const txSize = this.calculateTxSize(utxos.length, amountInSatoshis > 546n ? 2 : 1)
+    const fee = BigInt(Math.ceil(txSize * feeRate))
     const changeAmount = totalInput - amountInSatoshis - fee
 
+    this.logger.log(`txSize: ${txSize.toString()} satoshis`)
     this.logger.log(`Network fee: ${fee.toString()} satoshis`)
     this.logger.log(`Amount to send: ${amountInSatoshis.toString()} satoshis`)
     this.logger.log(`Change amount: ${changeAmount.toString()} satoshis`)
