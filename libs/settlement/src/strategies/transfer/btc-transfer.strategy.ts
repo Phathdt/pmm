@@ -1,15 +1,15 @@
-import axios from 'axios';
-import * as bitcoin from 'bitcoinjs-lib';
-import { ECPairFactory } from 'ecpair';
-import * as ecc from 'tiny-secp256k1';
+import { BTC, BTC_TESTNET } from '@bitfi-mock-pmm/shared'
+import { Injectable, Logger } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import { getTradeIdsHash, Token } from '@optimex-xyz/market-maker-sdk'
 
-import { BTC, BTC_TESTNET } from '@bitfi-mock-pmm/shared';
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { getTradeIdsHash, Token } from '@optimex-xyz/market-maker-sdk';
+import axios from 'axios'
+import * as bitcoin from 'bitcoinjs-lib'
+import { ECPairFactory } from 'ecpair'
+import * as ecc from 'tiny-secp256k1'
 
-import { ITransferStrategy, TransferParams } from '../../interfaces';
-import { TelegramHelper } from '../../utils';
+import { ITransferStrategy, TransferParams } from '../../interfaces'
+import { TelegramHelper } from '../../utils'
 
 interface UTXO {
   txid: string
@@ -161,7 +161,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
     const p2trOutputSize = 42 // value (8) + script (34)
     const opReturnOutputSize = 41 // value (8) + OP_RETURN (1) + data (32)
 
-    return baseTxSize + (inputSize * inputCount) + (p2trOutputSize * outputCount) + opReturnOutputSize
+    return baseTxSize + inputSize * inputCount + p2trOutputSize * outputCount + opReturnOutputSize
   }
 
   private async sendBTC(
