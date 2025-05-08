@@ -38,7 +38,7 @@ export class QuoteService {
     this.ONLY_SOLANA = this.configService.get<string>('ONLY_SOLANA') === 'true'
     this.MIN_TRADE = Number(this.configService.getOrThrow<string>('MIN_TRADE'))
     this.MAX_TRADE = Number(this.configService.getOrThrow<string>('MAX_TRADE'))
-    this.BONUS_PERCENTAGE = Number(this.configService.getOrThrow<string>('BONUS_PERCENTAGE', '103'))
+    this.BONUS_PERCENTAGE = Number(this.configService.getOrThrow<string>('BONUS_PERCENTAGE', '10300'))
   }
 
   private getPmmAddressByNetworkType(token: Token): string {
@@ -73,8 +73,13 @@ export class QuoteService {
     const toPrice = ethers.getBigInt(Math.round(toTokenPrice.currentPrice * 1e6))
     const rawQuote = (amount * fromPrice * 10n ** toDecimals) / (toPrice * 10n ** fromDecimals)
 
-    const bonusPercentage = isCommitment ? this.BONUS_PERCENTAGE + 1 : this.BONUS_PERCENTAGE
-    const quoteWithBonus = (rawQuote * BigInt(bonusPercentage)) / 100n
+    const basePercentage = 10000n
+    const extraCommitmentBonus = 100n // 1% extra for commitment
+    const bonusMultiplier = isCommitment
+      ? basePercentage + BigInt(this.BONUS_PERCENTAGE) + extraCommitmentBonus
+      : basePercentage + BigInt(this.BONUS_PERCENTAGE)
+
+    const quoteWithBonus = (rawQuote * bonusMultiplier) / basePercentage
     return quoteWithBonus.toString()
   }
 
