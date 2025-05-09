@@ -24,8 +24,8 @@ export class QuoteService {
   private readonly ONLY_SOLANA: boolean
   private readonly MIN_TRADE: number
   private readonly MAX_TRADE: number
-  private readonly BPS_MULTIPLIER: number
-  private readonly COMMITMENT_BONUS_BPS: number
+  private readonly COMMITMENT_BPS: number
+  private readonly INDICATIVE_BPS: number
 
   constructor(
     private readonly configService: ConfigService,
@@ -39,8 +39,8 @@ export class QuoteService {
     this.ONLY_SOLANA = this.configService.get<string>('ONLY_SOLANA') === 'true'
     this.MIN_TRADE = Number(this.configService.getOrThrow<string>('MIN_TRADE'))
     this.MAX_TRADE = Number(this.configService.getOrThrow<string>('MAX_TRADE'))
-    this.BPS_MULTIPLIER = Number(this.configService.getOrThrow<string>('BPS_MULTIPLIER', '9000'))
-    this.COMMITMENT_BONUS_BPS = Number(this.configService.getOrThrow<string>('COMMITMENT_BONUS_BPS', '100'))
+    this.COMMITMENT_BPS = Number(this.configService.getOrThrow<string>('COMMITMENT_BPS', '9000'))
+    this.INDICATIVE_BPS = Number(this.configService.getOrThrow<string>('INDICATIVE_BPS', '9000'))
   }
 
   private getPmmAddressByNetworkType(token: Token): string {
@@ -76,9 +76,7 @@ export class QuoteService {
     const rawQuote = (amount * fromPrice * 10n ** toDecimals) / (toPrice * 10n ** fromDecimals)
 
     const baseBps = 10000n
-    const bpsMultiplier = isCommitment
-      ? BigInt(this.BPS_MULTIPLIER) + BigInt(this.COMMITMENT_BONUS_BPS)
-      : BigInt(this.BPS_MULTIPLIER)
+    const bpsMultiplier = isCommitment ? BigInt(this.COMMITMENT_BPS) : BigInt(this.INDICATIVE_BPS)
 
     const finalQuote = (rawQuote * bpsMultiplier) / baseBps
     return finalQuote.toString()
