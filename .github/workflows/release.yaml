@@ -44,7 +44,7 @@ jobs:
       - name: prepare
         id: before_script
         env:
-          IMAGE_REPOSITORY: asia-southeast1-docker.pkg.dev/bitfiprod/bitfi-repo/mock-pmm
+          IMAGE_REPOSITORY: asia-southeast1-docker.pkg.dev/bitfiprod/bitfi-repo/pmm
           INPUT_TAG: ${{ github.event.inputs.version }}
         run: |
           #!/bin/bash
