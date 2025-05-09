@@ -99,11 +99,6 @@ jobs:
     env:
       VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
     steps:
-      #   - name: Setup Go
-      #     uses: actions/setup-go@v5
-      #     with:
-      #       go-version: "1.22.x"
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -127,3 +122,34 @@ jobs:
           tag_name: ${{ env.VERSION_TAG }}
           prerelease: false
           name: 'Optimex PMM ${{ env.VERSION_TAG }}'
+
+  notification:
+    needs:
+      - prepare
+      - build
+      - release
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Send Telegram Notification
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.BF_DEVOPS_CHANNEL_ID }}
+          token: ${{ secrets.BF_MONITOR_BOT }}
+          message: |
+            🚀 *Optimex PMM Release Status*
+
+            📌 Version: ${{ needs.prepare.outputs.version_tag }}
+            📅 Build Date: ${{ needs.prepare.outputs.build_date }}
+
+            🔍 Build Status: ${{ needs.build.status }}
+            📦 Release Status: ${{ needs.release.status }}
+
+            👤 Released by: ${{ github.actor }}
+
+            🏗 Project: ${{ github.repository }}
+
+            ${{ github.event.head_commit.message }}
+
+            🔗 [View Workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            🔗 [View Release](https://github.com/${{ github.repository }}/releases/tag/${{ needs.prepare.outputs.version_tag }})
