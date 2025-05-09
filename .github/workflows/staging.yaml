@@ -1,15 +1,15 @@
-name: Deploy To Develop
+name: Deploy To Staging
 on:
   push:
     branches:
-      - 'develop'
+      - 'staging'
 
 env:
   SERVICE: pmm
   IMAGE_REPOSITORY: asia-southeast1-docker.pkg.dev/bfproject-dd95c/bitfi-repo/pmm
 
 jobs:
-  build-develop:
+  build-staging:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -27,7 +27,7 @@ jobs:
           COMMIT_SHORT_SHA="$(git rev-parse --short HEAD)"
 
           echo "::set-output name=COMMIT_SHORT_SHA::${COMMIT_SHORT_SHA}"
-          echo "::set-output name=IMAGE_TAG::${IMAGE_REPOSITORY}:develop-${COMMIT_SHORT_SHA}"
+          echo "::set-output name=IMAGE_TAG::${IMAGE_REPOSITORY}:staging-${COMMIT_SHORT_SHA}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -66,7 +66,7 @@ jobs:
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
   notification:
-    needs: [build-develop]
+    needs: [build-staging]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -79,7 +79,7 @@ jobs:
           message: |
             🏗 Project: ${{ github.repository }}
 
-            🌍 Environment: develop
+            🌍 Environment: staging
 
             📝 Event: ${{ github.event_name }}
 
