@@ -25,6 +25,7 @@ export class QuoteService {
   private readonly MIN_TRADE: number
   private readonly MAX_TRADE: number
   private readonly BPS_MULTIPLIER: number
+  private readonly COMMITMENT_BONUS_BPS: number
 
   constructor(
     private readonly configService: ConfigService,
@@ -39,6 +40,7 @@ export class QuoteService {
     this.MIN_TRADE = Number(this.configService.getOrThrow<string>('MIN_TRADE'))
     this.MAX_TRADE = Number(this.configService.getOrThrow<string>('MAX_TRADE'))
     this.BPS_MULTIPLIER = Number(this.configService.getOrThrow<string>('BPS_MULTIPLIER', '9000'))
+    this.COMMITMENT_BONUS_BPS = Number(this.configService.getOrThrow<string>('COMMITMENT_BONUS_BPS', '100'))
   }
 
   private getPmmAddressByNetworkType(token: Token): string {
@@ -74,8 +76,9 @@ export class QuoteService {
     const rawQuote = (amount * fromPrice * 10n ** toDecimals) / (toPrice * 10n ** fromDecimals)
 
     const baseBps = 10000n
-    const commitmentBonusBps = 100n // 1% extra for commitment
-    const bpsMultiplier = isCommitment ? BigInt(this.BPS_MULTIPLIER) + commitmentBonusBps : BigInt(this.BPS_MULTIPLIER)
+    const bpsMultiplier = isCommitment
+      ? BigInt(this.BPS_MULTIPLIER) + BigInt(this.COMMITMENT_BONUS_BPS)
+      : BigInt(this.BPS_MULTIPLIER)
 
     const finalQuote = (rawQuote * bpsMultiplier) / baseBps
     return finalQuote.toString()
