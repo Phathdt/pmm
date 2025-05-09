@@ -24,7 +24,7 @@ export class QuoteService {
   private readonly ONLY_SOLANA: boolean
   private readonly MIN_TRADE: number
   private readonly MAX_TRADE: number
-  private readonly BONUS_PERCENTAGE: number
+  private readonly BPS_MULTIPLIER: number
 
   constructor(
     private readonly configService: ConfigService,
@@ -38,7 +38,7 @@ export class QuoteService {
     this.ONLY_SOLANA = this.configService.get<string>('ONLY_SOLANA') === 'true'
     this.MIN_TRADE = Number(this.configService.getOrThrow<string>('MIN_TRADE'))
     this.MAX_TRADE = Number(this.configService.getOrThrow<string>('MAX_TRADE'))
-    this.BONUS_PERCENTAGE = Number(this.configService.getOrThrow<string>('BONUS_PERCENTAGE', '10300'))
+    this.BPS_MULTIPLIER = Number(this.configService.getOrThrow<string>('BPS_MULTIPLIER', '9000'))
   }
 
   private getPmmAddressByNetworkType(token: Token): string {
@@ -73,14 +73,12 @@ export class QuoteService {
     const toPrice = ethers.getBigInt(Math.round(toTokenPrice.currentPrice * 1e6))
     const rawQuote = (amount * fromPrice * 10n ** toDecimals) / (toPrice * 10n ** fromDecimals)
 
-    const basePercentage = 10000n
-    const extraCommitmentBonus = 100n // 1% extra for commitment
-    const bonusMultiplier = isCommitment
-      ? basePercentage + BigInt(this.BONUS_PERCENTAGE) + extraCommitmentBonus
-      : basePercentage + BigInt(this.BONUS_PERCENTAGE)
+    const baseBps = 10000n
+    const commitmentBonusBps = 100n // 1% extra for commitment
+    const bpsMultiplier = isCommitment ? BigInt(this.BPS_MULTIPLIER) + commitmentBonusBps : BigInt(this.BPS_MULTIPLIER)
 
-    const quoteWithBonus = (rawQuote * bonusMultiplier) / basePercentage
-    return quoteWithBonus.toString()
+    const finalQuote = (rawQuote * bpsMultiplier) / baseBps
+    return finalQuote.toString()
   }
 
   private validateSolanaRequirement(fromToken: Token, toToken: Token) {
