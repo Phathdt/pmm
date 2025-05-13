@@ -35,6 +35,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
   private readonly btcAddress: string
   private readonly ECPair = ECPairFactory(ecc)
   private maxFeeRate: number
+  private readonly TIMEOUT = 15000 // 15 seconds
 
   private readonly networkMap = new Map<string, bitcoin.Network>([
     [BTC_TESTNET, bitcoin.networks.testnet],
@@ -216,17 +217,35 @@ export class BTCTransferStrategy implements ITransferStrategy {
     }
   }
 
+  private async withTimeout<T>(promise: Promise<T>, errorMessage: string): Promise<T> {
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Timeout: ${errorMessage}`))
+      }, this.TIMEOUT)
+    })
+
+    return Promise.race([promise, timeoutPromise])
+  }
+
   private async getUTXOs(address: string, networkId: string): Promise<UTXO[]> {
     const network = this.getNetwork(networkId)
     const { blockstream, mempool } = this.getApiUrls(network)
 
     const getUTXOsFromBlockstream = async (): Promise<UTXO[]> => {
-      const response = await axios.get<UTXO[]>(`${blockstream}/address/${address}/utxo`)
+      const response = await this.withTimeout(
+        axios.get<UTXO[]>(`${blockstream}/address/${address}/utxo`),
+        'Blockstream UTXO fetch timeout'
+      )
+      this.logger.log('Successfully fetched UTXOs from Blockstream')
       return response.data
     }
 
     const getUTXOsFromMempool = async (): Promise<UTXO[]> => {
-      const response = await axios.get<UTXO[]>(`${mempool}/address/${address}/utxo`)
+      const response = await this.withTimeout(
+        axios.get<UTXO[]>(`${mempool}/address/${address}/utxo`),
+        'Mempool UTXO fetch timeout'
+      )
+      this.logger.log('Successfully fetched UTXOs from Mempool')
       return response.data
     }
 
@@ -237,33 +256,16 @@ export class BTCTransferStrategy implements ITransferStrategy {
       try {
         this.logger.log(`Attempting to fetch UTXOs (Attempt ${retryCount}/${maxRetries})`)
 
-        const [blockstreamUtxos, mempoolUtxos] = await Promise.allSettled([
-          getUTXOsFromBlockstream(),
-          getUTXOsFromMempool(),
-        ])
-
-        if (blockstreamUtxos.status === 'fulfilled') {
-          this.logger.log('Successfully fetched UTXOs from Blockstream')
-          return blockstreamUtxos.value
-        }
-
-        if (mempoolUtxos.status === 'fulfilled') {
-          this.logger.log('Successfully fetched UTXOs from Mempool')
-          return mempoolUtxos.value
-        }
-
-        if (retryCount < maxRetries) {
-          this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
-          await new Promise((resolve) => setTimeout(resolve, sleepTime))
-        } else {
-          throw new Error('Failed to fetch UTXOs from both Blockstream and Mempool')
-        }
+        return await Promise.any([getUTXOsFromMempool(), getUTXOsFromBlockstream()])
       } catch (error) {
         this.logger.error(error, `Error fetching UTXOs (Attempt ${retryCount}/${maxRetries}):`)
 
         if (retryCount === maxRetries) {
-          throw error
+          throw new Error('Failed to fetch UTXOs from both services')
         }
+
+        this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
+        await new Promise((resolve) => setTimeout(resolve, sleepTime))
       }
     }
 
@@ -289,12 +291,20 @@ export class BTCTransferStrategy implements ITransferStrategy {
     }
 
     const getFeeFromMempool = async (): Promise<number> => {
-      const response = await axios.get<{ [key: string]: number }>(`${mempool}/fee-estimates`)
+      const response = await this.withTimeout(
+        axios.get<{ [key: string]: number }>(`${mempool}/fee-estimates`),
+        'Mempool fee rate fetch timeout'
+      )
+      this.logger.log('Successfully fetched fee rate from Mempool')
       return getLowestFeeRate(response.data)
     }
 
     const getFeeFromBlockstream = async (): Promise<number> => {
-      const response = await axios.get<{ [key: string]: number }>(`${blockstream}/fee-estimates`)
+      const response = await this.withTimeout(
+        axios.get<{ [key: string]: number }>(`${blockstream}/fee-estimates`),
+        'Blockstream fee rate fetch timeout'
+      )
+      this.logger.log('Successfully fetched fee rate from Blockstream')
       return getLowestFeeRate(response.data)
     }
 
@@ -305,25 +315,9 @@ export class BTCTransferStrategy implements ITransferStrategy {
       try {
         this.logger.log(`Attempting to fetch fee rate (Attempt ${retryCount}/${maxRetries})`)
 
-        const [mempoolFee, blockstreamFee] = await Promise.allSettled([getFeeFromMempool(), getFeeFromBlockstream()])
+        const feeRate = await Promise.any([getFeeFromMempool(), getFeeFromBlockstream()])
 
-        if (mempoolFee.status === 'fulfilled') {
-          this.logger.log('Successfully fetched fee rate from Mempool')
-          return Math.min(mempoolFee.value, this.maxFeeRate)
-        }
-
-        if (blockstreamFee.status === 'fulfilled') {
-          this.logger.log('Successfully fetched fee rate from Blockstream')
-          return Math.min(blockstreamFee.value, this.maxFeeRate)
-        }
-
-        if (retryCount < maxRetries) {
-          this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
-          await new Promise((resolve) => setTimeout(resolve, sleepTime))
-        } else {
-          this.logger.warn('Failed to fetch fee rate from both services, using maxFeeRate')
-          return this.maxFeeRate
-        }
+        return Math.min(feeRate, this.maxFeeRate)
       } catch (error) {
         this.logger.error(error, `Error fetching fee rate (Attempt ${retryCount}/${maxRetries}):`)
 
@@ -331,6 +325,9 @@ export class BTCTransferStrategy implements ITransferStrategy {
           this.logger.warn('Max retries reached, using maxFeeRate as fallback')
           return this.maxFeeRate
         }
+
+        this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
+        await new Promise((resolve) => setTimeout(resolve, sleepTime))
       }
     }
 
@@ -350,39 +347,36 @@ export class BTCTransferStrategy implements ITransferStrategy {
     const { blockstream, mempool } = this.getApiUrls(network)
 
     const broadcastToMempool = async (): Promise<string> => {
-      const response = await axios.post(`${mempool}/tx`, rawTx, {
-        headers: {
-          'Content-Type': 'text/plain',
-        },
-      })
+      const response = await this.withTimeout(
+        axios.post(`${mempool}/tx`, rawTx, {
+          headers: {
+            'Content-Type': 'text/plain',
+          },
+        }),
+        'Mempool transaction broadcast timeout'
+      )
+      this.logger.log('Successfully broadcasted transaction through Mempool')
       return response.data
     }
 
     const broadcastToBlockstream = async (): Promise<string> => {
-      const response = await axios.post(`${blockstream}/tx`, rawTx, {
-        headers: {
-          'Content-Type': 'text/plain',
-        },
-      })
+      const response = await this.withTimeout(
+        axios.post(`${blockstream}/tx`, rawTx, {
+          headers: {
+            'Content-Type': 'text/plain',
+          },
+        }),
+        'Blockstream transaction broadcast timeout'
+      )
+      this.logger.log('Successfully broadcasted transaction through Blockstream')
       return response.data
     }
 
-    const [mempoolResult, blockstreamResult] = await Promise.allSettled([
-      broadcastToMempool(),
-      broadcastToBlockstream(),
-    ])
-
-    if (mempoolResult.status === 'fulfilled') {
-      this.logger.log('Successfully broadcasted transaction through Mempool')
-      return mempoolResult.value
+    try {
+      return await Promise.any([broadcastToMempool(), broadcastToBlockstream()])
+    } catch (error) {
+      throw new Error('Failed to broadcast transaction through both services')
     }
-
-    if (blockstreamResult.status === 'fulfilled') {
-      this.logger.log('Successfully broadcasted transaction through Blockstream')
-      return blockstreamResult.value
-    }
-
-    throw new Error('Failed to broadcast transaction through both services')
   }
 
   private async checkBalance(amount: bigint, networkId: string): Promise<boolean> {
@@ -393,7 +387,11 @@ export class BTCTransferStrategy implements ITransferStrategy {
     const { blockstream, mempool } = this.getApiUrls(network)
 
     const getBalanceFromBlockstream = async (): Promise<bigint> => {
-      const response = await axios.get(`${blockstream}/address/${this.btcAddress}/utxo`)
+      const response = await this.withTimeout(
+        axios.get(`${blockstream}/address/${this.btcAddress}/utxo`),
+        'Blockstream balance fetch timeout'
+      )
+      this.logger.log('Successfully fetched balance from Blockstream')
       if (response?.data) {
         return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
       }
@@ -401,7 +399,11 @@ export class BTCTransferStrategy implements ITransferStrategy {
     }
 
     const getBalanceFromMempool = async (): Promise<bigint> => {
-      const response = await axios.get(`${mempool}/address/${this.btcAddress}/utxo`)
+      const response = await this.withTimeout(
+        axios.get(`${mempool}/address/${this.btcAddress}/utxo`),
+        'Mempool balance fetch timeout'
+      )
+      this.logger.log('Successfully fetched balance from Mempool')
       if (response?.data) {
         return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
       }
@@ -412,23 +414,10 @@ export class BTCTransferStrategy implements ITransferStrategy {
       try {
         this.logger.log(`Attempting to check BTC balance (Attempt ${retryCount}/${maxRetries})`)
 
-        const [blockstreamBalance, mempoolBalance] = await Promise.allSettled([
-          getBalanceFromBlockstream(),
-          getBalanceFromMempool(),
-        ])
+        const balance = await Promise.any([getBalanceFromMempool(), getBalanceFromBlockstream()])
 
-        let totalBalance = 0n
-
-        if (blockstreamBalance.status === 'fulfilled') {
-          this.logger.log('Successfully fetched balance from Blockstream')
-          totalBalance = blockstreamBalance.value
-        } else if (mempoolBalance.status === 'fulfilled') {
-          this.logger.log('Successfully fetched balance from Mempool')
-          totalBalance = mempoolBalance.value
-        }
-
-        if (totalBalance < amount) {
-          const message = `⚠️ Insufficient BTC Balance Alert\n\nRequired: ${amount.toString()} satoshis\nAvailable: ${totalBalance.toString()} satoshis\nAddress: ${this.btcAddress}`
+        if (balance < amount) {
+          const message = `⚠️ Insufficient BTC Balance Alert\n\nRequired: ${amount.toString()} satoshis\nAvailable: ${balance.toString()} satoshis\nAddress: ${this.btcAddress}`
           await this.telegramHelper.sendMessage(message)
           return false
         }
@@ -436,13 +425,13 @@ export class BTCTransferStrategy implements ITransferStrategy {
       } catch (error) {
         this.logger.error(error, `Error checking balance (Attempt ${retryCount}/${maxRetries}):`)
 
-        if (retryCount < maxRetries) {
-          this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
-          await new Promise((resolve) => setTimeout(resolve, sleepTime))
-        } else {
+        if (retryCount === maxRetries) {
           this.logger.error('Max retries reached for BTC balance check')
           return false
         }
+
+        this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
+        await new Promise((resolve) => setTimeout(resolve, sleepTime))
       }
     }
     return false
