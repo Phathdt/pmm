@@ -11,6 +11,11 @@ import * as ecc from 'tiny-secp256k1'
 import { ITransferStrategy, TransferParams } from '../../interfaces'
 import { TelegramHelper } from '../../utils'
 
+const BLOCKSTREAM_MAINNET_API = 'https://blockstream.info/api'
+const BLOCKSTREAM_TESTNET_API = 'https://blockstream.info/testnet/api'
+const MEMPOOL_MAINNET_API = 'https://mempool.space/api'
+const MEMPOOL_TESTNET_API = 'https://mempool.space/testnet/api'
+
 interface UTXO {
   txid: string
   vout: number
@@ -36,9 +41,14 @@ export class BTCTransferStrategy implements ITransferStrategy {
     [BTC, bitcoin.networks.bitcoin],
   ])
 
-  private readonly rpcMap = new Map<string, string>([
-    [BTC_TESTNET, 'https://blockstream.info/testnet'],
-    [BTC, 'https://blockstream.info'],
+  private readonly blockstreamApiMap = new Map<bitcoin.Network, string>([
+    [bitcoin.networks.bitcoin, BLOCKSTREAM_MAINNET_API],
+    [bitcoin.networks.testnet, BLOCKSTREAM_TESTNET_API],
+  ])
+
+  private readonly mempoolApiMap = new Map<bitcoin.Network, string>([
+    [bitcoin.networks.bitcoin, MEMPOOL_MAINNET_API],
+    [bitcoin.networks.testnet, MEMPOOL_TESTNET_API],
   ])
 
   constructor(
@@ -51,79 +61,10 @@ export class BTCTransferStrategy implements ITransferStrategy {
     bitcoin.initEccLib(ecc)
   }
 
-  private async checkBalance(amount: bigint, networkId: string): Promise<boolean> {
-    const maxRetries = 3
-    const sleepTime = 5000
-
-    const getBalanceFromBlockstream = async (): Promise<bigint> => {
-      const network = this.getNetwork(networkId)
-      const baseUrl =
-        network === bitcoin.networks.bitcoin ? 'https://blockstream.info/api' : 'https://blockstream.info/testnet/api'
-      const response = await axios.get(`${baseUrl}/address/${this.btcAddress}/utxo`)
-      if (response?.data) {
-        return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
-      }
-      return 0n
-    }
-
-    const getBalanceFromMempool = async (): Promise<bigint> => {
-      const network = this.getNetwork(networkId)
-      const baseUrl =
-        network === bitcoin.networks.bitcoin ? 'https://mempool.space/api' : 'https://mempool.space/testnet/api'
-      const response = await axios.get(`${baseUrl}/address/${this.btcAddress}/utxo`)
-      if (response?.data) {
-        return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
-      }
-      return 0n
-    }
-
-    for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
-      try {
-        this.logger.log(`Attempting to check BTC balance (Attempt ${retryCount}/${maxRetries})`)
-
-        const [blockstreamBalance, mempoolBalance] = await Promise.allSettled([
-          getBalanceFromBlockstream(),
-          getBalanceFromMempool(),
-        ])
-
-        let totalBalance = 0n
-
-        if (blockstreamBalance.status === 'fulfilled') {
-          this.logger.log('Successfully fetched balance from Blockstream')
-          totalBalance = blockstreamBalance.value
-        } else if (mempoolBalance.status === 'fulfilled') {
-          this.logger.log('Successfully fetched balance from Mempool')
-          totalBalance = mempoolBalance.value
-        }
-
-        if (totalBalance < amount) {
-          const message = `⚠️ Insufficient BTC Balance Alert\n\nRequired: ${amount.toString()} satoshis\nAvailable: ${totalBalance.toString()} satoshis\nAddress: ${this.btcAddress}`
-          await this.telegramHelper.sendMessage(message)
-          return false
-        }
-        return true
-      } catch (error) {
-        this.logger.error(error, `Error checking balance (Attempt ${retryCount}/${maxRetries}):`)
-
-        if (retryCount < maxRetries) {
-          this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
-          await new Promise((resolve) => setTimeout(resolve, sleepTime))
-        } else {
-          this.logger.error('Max retries reached for BTC balance check')
-          return false
-        }
-      }
-    }
-    return false
-  }
-
   async transfer(params: TransferParams): Promise<string> {
     const { toAddress, amount, token, tradeId } = params
 
     try {
-      const network = this.getNetwork(token.networkId)
-      const rpcUrl = this.getRpcUrl(token.networkId)
-
       this.logger.log(`Starting transfer of ${amount} satoshis to ${toAddress} on ${token.networkName}`)
 
       // Check balance before proceeding
@@ -132,7 +73,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
         throw new Error('Insufficient balance for transfer')
       }
 
-      const txId = await this.sendBTC(this.privateKey, toAddress, amount, network, rpcUrl, token, [tradeId])
+      const txId = await this.sendBTC(this.privateKey, toAddress, amount, token.networkId, token, [tradeId])
 
       this.logger.log(`Transfer successful with txId: ${txId}`)
 
@@ -168,11 +109,12 @@ export class BTCTransferStrategy implements ITransferStrategy {
     privateKey: string,
     toAddress: string,
     amountInSatoshis: bigint,
-    network: bitcoin.Network,
-    rpcUrl: string,
+    networkId: string,
     token: Token,
     tradeIds: string[]
   ): Promise<string> {
+    const network = this.getNetwork(networkId)
+
     const keyPair = this.ECPair.fromWIF(privateKey, network)
     const { payment, keypair } = this.createPayment(keyPair.publicKey, network)
 
@@ -182,7 +124,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
     this.logger.log(`Sender address: ${this.btcAddress} (${token.networkSymbol})`)
 
-    const utxos = await this.getUTXOs(this.btcAddress, rpcUrl)
+    const utxos = await this.getUTXOs(this.btcAddress, networkId)
     if (utxos.length === 0) {
       throw new Error(`No UTXOs found in ${token.networkSymbol} wallet`)
     }
@@ -219,7 +161,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
       )
     }
 
-    const feeRate = await this.getFeeRate(rpcUrl)
+    const feeRate = await this.getFeeRate(networkId)
     this.logger.log(`Fee rate: ${feeRate}`)
 
     const txSize = this.calculateTxSize(utxos.length, amountInSatoshis > 546n ? 2 : 1)
@@ -264,30 +206,135 @@ export class BTCTransferStrategy implements ITransferStrategy {
     const tx = psbt.extractTransaction()
     const rawTx = tx.toHex()
 
-    const response = await axios.post(`${rpcUrl}/api/tx`, rawTx, {
-      headers: {
-        'Content-Type': 'text/plain',
-      },
-    })
-
-    return response.data
+    return this.broadcastTransaction(networkId, rawTx)
   }
 
-  private async getUTXOs(address: string, rpcUrl: string): Promise<UTXO[]> {
-    const response = await axios.get<UTXO[]>(`${rpcUrl}/api/address/${address}/utxo`)
-    return response.data
-  }
-
-  private async getFeeRate(rpcUrl: string): Promise<number> {
-    try {
-      const response = await axios.get<{ [key: string]: number }>(`${rpcUrl}/api/fee-estimates`)
-      const fee = response.data[1] * 1.125
-      return Math.min(fee, this.maxFeeRate)
-    } catch (error) {
-      console.error(`Error fetching fee rate from ${rpcUrl}:`, error)
-
-      return this.maxFeeRate
+  private getApiUrls(network: bitcoin.Network): { blockstream: string; mempool: string } {
+    return {
+      blockstream: this.blockstreamApiMap.get(network) || BLOCKSTREAM_MAINNET_API,
+      mempool: this.mempoolApiMap.get(network) || MEMPOOL_MAINNET_API,
     }
+  }
+
+  private async getUTXOs(address: string, networkId: string): Promise<UTXO[]> {
+    const network = this.getNetwork(networkId)
+    const { blockstream, mempool } = this.getApiUrls(network)
+
+    const getUTXOsFromBlockstream = async (): Promise<UTXO[]> => {
+      const response = await axios.get<UTXO[]>(`${blockstream}/address/${address}/utxo`)
+      return response.data
+    }
+
+    const getUTXOsFromMempool = async (): Promise<UTXO[]> => {
+      const response = await axios.get<UTXO[]>(`${mempool}/address/${address}/utxo`)
+      return response.data
+    }
+
+    const maxRetries = 3
+    const sleepTime = 5000
+
+    for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
+      try {
+        this.logger.log(`Attempting to fetch UTXOs (Attempt ${retryCount}/${maxRetries})`)
+
+        const [blockstreamUtxos, mempoolUtxos] = await Promise.allSettled([
+          getUTXOsFromBlockstream(),
+          getUTXOsFromMempool(),
+        ])
+
+        if (blockstreamUtxos.status === 'fulfilled') {
+          this.logger.log('Successfully fetched UTXOs from Blockstream')
+          return blockstreamUtxos.value
+        }
+
+        if (mempoolUtxos.status === 'fulfilled') {
+          this.logger.log('Successfully fetched UTXOs from Mempool')
+          return mempoolUtxos.value
+        }
+
+        if (retryCount < maxRetries) {
+          this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
+          await new Promise((resolve) => setTimeout(resolve, sleepTime))
+        } else {
+          throw new Error('Failed to fetch UTXOs from both Blockstream and Mempool')
+        }
+      } catch (error) {
+        this.logger.error(error, `Error fetching UTXOs (Attempt ${retryCount}/${maxRetries}):`)
+
+        if (retryCount === maxRetries) {
+          throw error
+        }
+      }
+    }
+
+    throw new Error('Failed to fetch UTXOs after max retries')
+  }
+
+  private async getFeeRate(networkId: string): Promise<number> {
+    const network = this.getNetwork(networkId)
+    const { blockstream, mempool } = this.getApiUrls(network)
+
+    const getLowestFeeRate = (feeEstimates: { [key: string]: number }): number => {
+      const blockTargets = Object.keys(feeEstimates)
+        .map(Number)
+        .filter((target) => !isNaN(target))
+        .sort((a, b) => a - b)
+
+      if (blockTargets.length === 0) {
+        return this.maxFeeRate
+      }
+
+      const lowestTarget = blockTargets[0]
+      return feeEstimates[lowestTarget] * 1.125
+    }
+
+    const getFeeFromMempool = async (): Promise<number> => {
+      const response = await axios.get<{ [key: string]: number }>(`${mempool}/fee-estimates`)
+      return getLowestFeeRate(response.data)
+    }
+
+    const getFeeFromBlockstream = async (): Promise<number> => {
+      const response = await axios.get<{ [key: string]: number }>(`${blockstream}/fee-estimates`)
+      return getLowestFeeRate(response.data)
+    }
+
+    const maxRetries = 3
+    const sleepTime = 5000
+
+    for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
+      try {
+        this.logger.log(`Attempting to fetch fee rate (Attempt ${retryCount}/${maxRetries})`)
+
+        const [mempoolFee, blockstreamFee] = await Promise.allSettled([getFeeFromMempool(), getFeeFromBlockstream()])
+
+        if (mempoolFee.status === 'fulfilled') {
+          this.logger.log('Successfully fetched fee rate from Mempool')
+          return Math.min(mempoolFee.value, this.maxFeeRate)
+        }
+
+        if (blockstreamFee.status === 'fulfilled') {
+          this.logger.log('Successfully fetched fee rate from Blockstream')
+          return Math.min(blockstreamFee.value, this.maxFeeRate)
+        }
+
+        if (retryCount < maxRetries) {
+          this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
+          await new Promise((resolve) => setTimeout(resolve, sleepTime))
+        } else {
+          this.logger.warn('Failed to fetch fee rate from both services, using maxFeeRate')
+          return this.maxFeeRate
+        }
+      } catch (error) {
+        this.logger.error(error, `Error fetching fee rate (Attempt ${retryCount}/${maxRetries}):`)
+
+        if (retryCount === maxRetries) {
+          this.logger.warn('Max retries reached, using maxFeeRate as fallback')
+          return this.maxFeeRate
+        }
+      }
+    }
+
+    return this.maxFeeRate
   }
 
   private getNetwork(networkId: string): bitcoin.Network {
@@ -298,11 +345,106 @@ export class BTCTransferStrategy implements ITransferStrategy {
     return network
   }
 
-  private getRpcUrl(networkId: string): string {
-    const rpcUrl = this.rpcMap.get(networkId)
-    if (!rpcUrl) {
-      throw new Error(`Unsupported network: ${networkId}`)
+  private async broadcastTransaction(networkId: string, rawTx: string): Promise<string> {
+    const network = this.getNetwork(networkId)
+    const { blockstream, mempool } = this.getApiUrls(network)
+
+    const broadcastToMempool = async (): Promise<string> => {
+      const response = await axios.post(`${mempool}/tx`, rawTx, {
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+      })
+      return response.data
     }
-    return rpcUrl
+
+    const broadcastToBlockstream = async (): Promise<string> => {
+      const response = await axios.post(`${blockstream}/tx`, rawTx, {
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+      })
+      return response.data
+    }
+
+    const [mempoolResult, blockstreamResult] = await Promise.allSettled([
+      broadcastToMempool(),
+      broadcastToBlockstream(),
+    ])
+
+    if (mempoolResult.status === 'fulfilled') {
+      this.logger.log('Successfully broadcasted transaction through Mempool')
+      return mempoolResult.value
+    }
+
+    if (blockstreamResult.status === 'fulfilled') {
+      this.logger.log('Successfully broadcasted transaction through Blockstream')
+      return blockstreamResult.value
+    }
+
+    throw new Error('Failed to broadcast transaction through both services')
+  }
+
+  private async checkBalance(amount: bigint, networkId: string): Promise<boolean> {
+    const maxRetries = 3
+    const sleepTime = 5000
+
+    const network = this.getNetwork(networkId)
+    const { blockstream, mempool } = this.getApiUrls(network)
+
+    const getBalanceFromBlockstream = async (): Promise<bigint> => {
+      const response = await axios.get(`${blockstream}/address/${this.btcAddress}/utxo`)
+      if (response?.data) {
+        return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
+      }
+      return 0n
+    }
+
+    const getBalanceFromMempool = async (): Promise<bigint> => {
+      const response = await axios.get(`${mempool}/address/${this.btcAddress}/utxo`)
+      if (response?.data) {
+        return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
+      }
+      return 0n
+    }
+
+    for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
+      try {
+        this.logger.log(`Attempting to check BTC balance (Attempt ${retryCount}/${maxRetries})`)
+
+        const [blockstreamBalance, mempoolBalance] = await Promise.allSettled([
+          getBalanceFromBlockstream(),
+          getBalanceFromMempool(),
+        ])
+
+        let totalBalance = 0n
+
+        if (blockstreamBalance.status === 'fulfilled') {
+          this.logger.log('Successfully fetched balance from Blockstream')
+          totalBalance = blockstreamBalance.value
+        } else if (mempoolBalance.status === 'fulfilled') {
+          this.logger.log('Successfully fetched balance from Mempool')
+          totalBalance = mempoolBalance.value
+        }
+
+        if (totalBalance < amount) {
+          const message = `⚠️ Insufficient BTC Balance Alert\n\nRequired: ${amount.toString()} satoshis\nAvailable: ${totalBalance.toString()} satoshis\nAddress: ${this.btcAddress}`
+          await this.telegramHelper.sendMessage(message)
+          return false
+        }
+        return true
+      } catch (error) {
+        this.logger.error(error, `Error checking balance (Attempt ${retryCount}/${maxRetries}):`)
+
+        if (retryCount < maxRetries) {
+          this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
+          await new Promise((resolve) => setTimeout(resolve, sleepTime))
+        } else {
+          this.logger.error('Max retries reached for BTC balance check')
+          return false
+        }
+      }
+    }
+    return false
   }
 }
