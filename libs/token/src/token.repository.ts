@@ -24,16 +24,12 @@ export class TokenRepository {
   async getTokenPrice(symbol: string): Promise<TokenPrice> {
     const targetSymbol = normalizeSymbol(symbol)
     const tokens = await this.getTokens()
-    console.log('🚀 ~ TokenRepository ~ getTokenPrice ~ tokens:', tokens)
 
     const token = tokens.find((t) => t.symbol.toLowerCase() === targetSymbol.toLowerCase())
-    console.log('🚀 ~ TokenRepository ~ getTokenPrice ~ token:', token)
 
     if (!token) {
       throw new NotFoundException(`cannot find token info for symbol ${symbol}`)
     }
-
-    console.log('🚀 ~ TokenRepository ~ getTokenPrice ~ token:', token)
 
     return {
       id: token.id,
