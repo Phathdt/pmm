@@ -2227,10 +2227,10 @@
     tslib "^2.3.0"
     yargs-parser "21.1.1"
 
-"@optimex-xyz/market-maker-sdk@^0.6.2":
-  version "0.6.2"
-  resolved "https://registry.yarnpkg.com/@optimex-xyz/market-maker-sdk/-/market-maker-sdk-0.6.2.tgz#83a9765157cbd453e0bacc9daf06a0bc38516871"
-  integrity sha512-UC6Kg6ZPEOTACakhCZrGn+hlIB3jrPm7kdtQvYGazE+Cn44iMlZB5rXjKHPUs2v0JucahlG1bDg/QFAb+Z3eKg==
+"@optimex-xyz/market-maker-sdk@^0.7.0-staging-742ccfb":
+  version "0.7.0-staging-742ccfb"
+  resolved "https://registry.yarnpkg.com/@optimex-xyz/market-maker-sdk/-/market-maker-sdk-0.7.0-staging-742ccfb.tgz#6ab04228ff38e60d7dcbbadc3d71dc2c4b408191"
+  integrity sha512-q2nh2HU1Kh8Rs1opNEYFnfo+b4pVeye2kRhDRrKAgv2XTurnVavQ5w+493LWJwxBZgGpuosOzDcyc+Kv4uOddg==
   dependencies:
     axios "^1.9.0"
     bip174 "^3.0.0-rc.1"
