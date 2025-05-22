@@ -35,7 +35,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
   private readonly btcAddress: string
   private readonly ECPair = ECPairFactory(ecc)
   private maxFeeRate: number
-  private readonly TIMEOUT = 15000 // 15 seconds
+  private readonly TIMEOUT = 5000 // 5 seconds
 
   private readonly networkMap = new Map<string, bitcoin.Network>([
     [BTC_TESTNET, bitcoin.networks.testnet],
@@ -217,34 +217,24 @@ export class BTCTransferStrategy implements ITransferStrategy {
     }
   }
 
-  private async withTimeout<T>(promise: Promise<T>, errorMessage: string): Promise<T> {
-    const timeoutPromise = new Promise<T>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error(`Timeout: ${errorMessage}`))
-      }, this.TIMEOUT)
-    })
-
-    return Promise.race([promise, timeoutPromise])
-  }
-
   private async getUTXOs(address: string, networkId: string): Promise<UTXO[]> {
     const network = this.getNetwork(networkId)
     const { blockstream, mempool } = this.getApiUrls(network)
 
     const getUTXOsFromBlockstream = async (): Promise<UTXO[]> => {
-      const response = await this.withTimeout(
-        axios.get<UTXO[]>(`${blockstream}/address/${address}/utxo`),
-        'Blockstream UTXO fetch timeout'
-      )
+      const response = await axios.get<UTXO[]>(`${blockstream}/address/${address}/utxo`, {
+        timeout: this.TIMEOUT,
+        timeoutErrorMessage: 'Blockstream UTXO fetch timeout',
+      })
       this.logger.log('Successfully fetched UTXOs from Blockstream')
       return response.data
     }
 
     const getUTXOsFromMempool = async (): Promise<UTXO[]> => {
-      const response = await this.withTimeout(
-        axios.get<UTXO[]>(`${mempool}/address/${address}/utxo`),
-        'Mempool UTXO fetch timeout'
-      )
+      const response = await axios.get<UTXO[]>(`${mempool}/address/${address}/utxo`, {
+        timeout: this.TIMEOUT,
+        timeoutErrorMessage: 'Mempool UTXO fetch timeout',
+      })
       this.logger.log('Successfully fetched UTXOs from Mempool')
       return response.data
     }
@@ -291,19 +281,19 @@ export class BTCTransferStrategy implements ITransferStrategy {
     }
 
     const getFeeFromMempool = async (): Promise<number> => {
-      const response = await this.withTimeout(
-        axios.get<{ [key: string]: number }>(`${mempool}/fee-estimates`),
-        'Mempool fee rate fetch timeout'
-      )
+      const response = await axios.get<{ [key: string]: number }>(`${mempool}/fee-estimates`, {
+        timeout: this.TIMEOUT,
+        timeoutErrorMessage: 'Mempool fee rate fetch timeout',
+      })
       this.logger.log('Successfully fetched fee rate from Mempool')
       return getLowestFeeRate(response.data)
     }
 
     const getFeeFromBlockstream = async (): Promise<number> => {
-      const response = await this.withTimeout(
-        axios.get<{ [key: string]: number }>(`${blockstream}/fee-estimates`),
-        'Blockstream fee rate fetch timeout'
-      )
+      const response = await axios.get<{ [key: string]: number }>(`${blockstream}/fee-estimates`, {
+        timeout: this.TIMEOUT,
+        timeoutErrorMessage: 'Blockstream fee rate fetch timeout',
+      })
       this.logger.log('Successfully fetched fee rate from Blockstream')
       return getLowestFeeRate(response.data)
     }
@@ -347,27 +337,25 @@ export class BTCTransferStrategy implements ITransferStrategy {
     const { blockstream, mempool } = this.getApiUrls(network)
 
     const broadcastToMempool = async (): Promise<string> => {
-      const response = await this.withTimeout(
-        axios.post(`${mempool}/tx`, rawTx, {
-          headers: {
-            'Content-Type': 'text/plain',
-          },
-        }),
-        'Mempool transaction broadcast timeout'
-      )
+      const response = await axios.post(`${mempool}/tx`, rawTx, {
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+        timeout: this.TIMEOUT,
+        timeoutErrorMessage: 'Mempool transaction broadcast timeout',
+      })
       this.logger.log('Successfully broadcasted transaction through Mempool')
       return response.data
     }
 
     const broadcastToBlockstream = async (): Promise<string> => {
-      const response = await this.withTimeout(
-        axios.post(`${blockstream}/tx`, rawTx, {
-          headers: {
-            'Content-Type': 'text/plain',
-          },
-        }),
-        'Blockstream transaction broadcast timeout'
-      )
+      const response = await axios.post(`${blockstream}/tx`, rawTx, {
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+        timeout: this.TIMEOUT,
+        timeoutErrorMessage: 'Blockstream transaction broadcast timeout',
+      })
       this.logger.log('Successfully broadcasted transaction through Blockstream')
       return response.data
     }
@@ -387,10 +375,10 @@ export class BTCTransferStrategy implements ITransferStrategy {
     const { blockstream, mempool } = this.getApiUrls(network)
 
     const getBalanceFromBlockstream = async (): Promise<bigint> => {
-      const response = await this.withTimeout(
-        axios.get(`${blockstream}/address/${this.btcAddress}/utxo`),
-        'Blockstream balance fetch timeout'
-      )
+      const response = await axios.get(`${blockstream}/address/${this.btcAddress}/utxo`, {
+        timeout: this.TIMEOUT,
+        timeoutErrorMessage: 'Blockstream balance fetch timeout',
+      })
       this.logger.log('Successfully fetched balance from Blockstream')
       if (response?.data) {
         return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
@@ -399,10 +387,10 @@ export class BTCTransferStrategy implements ITransferStrategy {
     }
 
     const getBalanceFromMempool = async (): Promise<bigint> => {
-      const response = await this.withTimeout(
-        axios.get(`${mempool}/address/${this.btcAddress}/utxo`),
-        'Mempool balance fetch timeout'
-      )
+      const response = await axios.get(`${mempool}/address/${this.btcAddress}/utxo`, {
+        timeout: this.TIMEOUT,
+        timeoutErrorMessage: 'Mempool balance fetch timeout',
+      })
       this.logger.log('Successfully fetched balance from Mempool')
       if (response?.data) {
         return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
