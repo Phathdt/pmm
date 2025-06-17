@@ -9,7 +9,6 @@ import { ECPairFactory } from 'ecpair'
 import * as ecc from 'tiny-secp256k1'
 
 import { ITransferStrategy, TransferParams } from '../../interfaces'
-import { TelegramHelper } from '../../utils'
 
 const BLOCKSTREAM_MAINNET_API = 'https://blockstream.info/api'
 const BLOCKSTREAM_TESTNET_API = 'https://blockstream.info/testnet/api'
@@ -52,10 +51,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
     [bitcoin.networks.testnet, MEMPOOL_TESTNET_API],
   ])
 
-  constructor(
-    private configService: ConfigService,
-    private readonly telegramHelper: TelegramHelper
-  ) {
+  constructor(private configService: ConfigService) {
     this.maxFeeRate = this.configService.getOrThrow<number>('PMM_BTC_MAX_FEE_RATE', 5)
     this.privateKey = this.configService.getOrThrow<string>('PMM_BTC_PRIVATE_KEY')
     this.btcAddress = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS')
@@ -405,8 +401,6 @@ export class BTCTransferStrategy implements ITransferStrategy {
         const balance = await Promise.any([getBalanceFromMempool(), getBalanceFromBlockstream()])
 
         if (balance < amount) {
-          const message = `⚠️ Insufficient BTC Balance Alert\n\nRequired: ${amount.toString()} satoshis\nAvailable: ${balance.toString()} satoshis\nAddress: ${this.btcAddress}`
-          await this.telegramHelper.sendMessage(message)
           return false
         }
         return true

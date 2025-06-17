@@ -18,7 +18,6 @@ import {
   sendTransactionWithRetry,
   WSOL_MINT,
 } from '../../utils'
-import { TelegramHelper } from '../../utils/telegram.helper'
 
 @Injectable()
 export class SolanaTransferStrategy implements ITransferStrategy {
@@ -27,10 +26,7 @@ export class SolanaTransferStrategy implements ITransferStrategy {
 
   private readonly logger = new Logger(SolanaTransferStrategy.name)
 
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly telegramHelper: TelegramHelper
-  ) {
+  constructor(private readonly configService: ConfigService) {
     const endpoint = configService.getOrThrow('SOLANA_RPC_URL')
     this.connection = new Connection(endpoint, 'confirmed')
 
@@ -57,8 +53,6 @@ export class SolanaTransferStrategy implements ITransferStrategy {
       }
 
       if (balance < amount) {
-        const message = `⚠️ Insufficient Balance Alert\n\nToken: ${token ? token.toBase58() : 'SOL'}\nRequired: ${amount.toString()}\nAvailable: ${balance.toString()}\nAddress: ${this.pmmKeypair.publicKey.toBase58()}`
-        await this.telegramHelper.sendMessage(message)
         return false
       }
       return true
