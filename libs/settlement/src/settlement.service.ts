@@ -1,7 +1,7 @@
 import { InjectQueue } from '@nestjs/bull'
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { stringToHex, toString } from '@optimex-pmm/shared'
+import { isSameAddress, stringToHex, toString } from '@optimex-pmm/shared'
 import { TradeService } from '@optimex-pmm/trade'
 import {
   getCommitInfoHash,
@@ -9,6 +9,8 @@ import {
   routerService,
   SignatureType,
   signerService,
+  Token,
+  TokenService,
 } from '@optimex-xyz/market-maker-sdk'
 import { Trade, TradeStatus } from '@prisma/client'
 
@@ -25,23 +27,32 @@ import {
   SignalPaymentResponseDto,
 } from './settlement.dto'
 import { TransferSettlementEvent } from './types'
+import { l2Decode } from './utils/convert'
 
 @Injectable()
 export class SettlementService {
   private readonly pmmWallet: ethers.Wallet
   private provider: ethers.JsonRpcProvider
   private pmmId: string
+  private readonly EVM_ADDRESS: string
+  private readonly BTC_ADDRESS: string
+  private readonly PMM_SOLANA_ADDRESS: string
 
   private routerService = routerService
 
   constructor(
     private readonly configService: ConfigService,
     private readonly tradeService: TradeService,
+    private readonly tokenService: TokenService,
     @InjectQueue(SETTLEMENT_QUEUE.TRANSFER.NAME)
     private transferSettlementQueue: Queue
   ) {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL')
     const pmmPrivateKey = this.configService.getOrThrow<string>('PMM_PRIVATE_KEY')
+
+    this.EVM_ADDRESS = this.configService.getOrThrow<string>('PMM_EVM_ADDRESS')
+    this.BTC_ADDRESS = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS')
+    this.PMM_SOLANA_ADDRESS = this.configService.getOrThrow<string>('PMM_SOLANA_ADDRESS')
 
     this.pmmId = stringToHex(this.configService.getOrThrow<string>('PMM_ID'))
 
@@ -58,7 +69,10 @@ export class SettlementService {
         this.routerService.getTradeData(tradeId),
       ])
 
-      const { toChain } = tradeData.tradeInfo
+      const { toChain, fromChain } = tradeData.tradeInfo
+      const fromToken = await this.tokenService.getToken(l2Decode(fromChain[1]), l2Decode(fromChain[2]))
+      const pmmAddress = this.getPmmAddressByNetworkType(fromToken)
+
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800)
 
       const pmmPresign = presigns.find((t) => t.pmmId === this.pmmId)
@@ -66,16 +80,13 @@ export class SettlementService {
         throw new BadRequestException('pmmPresign not found')
       }
 
+      if (!isSameAddress(pmmPresign.pmmRecvAddress, pmmAddress)) {
+        throw new BadRequestException('pmmRecvAddress not match')
+      }
+
       const amountOut = BigInt(dto.committedQuote)
 
-      const commitInfoHash = getCommitInfoHash(
-        pmmPresign.pmmId,
-        pmmPresign.pmmRecvAddress,
-        toChain[1],
-        toChain[2],
-        amountOut,
-        deadline
-      )
+      const commitInfoHash = getCommitInfoHash(this.pmmId, pmmAddress, toChain[1], toChain[2], amountOut, deadline)
 
       const signerAddress = await this.routerService.getSigner()
 
@@ -163,6 +174,20 @@ export class SettlementService {
         throw error
       }
       throw new BadRequestException(error.message)
+    }
+  }
+
+  private getPmmAddressByNetworkType(token: Token): string {
+    switch (token.networkType.toUpperCase()) {
+      case 'EVM':
+        return this.EVM_ADDRESS
+      case 'BTC':
+      case 'TBTC':
+        return this.BTC_ADDRESS
+      case 'SOLANA':
+        return this.PMM_SOLANA_ADDRESS
+      default:
+        throw new BadRequestException(`Unsupported network type: ${token.networkType}`)
     }
   }
 }
