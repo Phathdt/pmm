@@ -10,7 +10,7 @@ import {
   SignatureType,
   signerService,
   Token,
-  TokenService,
+  tokenService,
 } from '@optimex-xyz/market-maker-sdk'
 import { Trade, TradeStatus } from '@prisma/client'
 
@@ -43,7 +43,6 @@ export class SettlementService {
   constructor(
     private readonly configService: ConfigService,
     private readonly tradeService: TradeService,
-    private readonly tokenService: TokenService,
     @InjectQueue(SETTLEMENT_QUEUE.TRANSFER.NAME)
     private transferSettlementQueue: Queue
   ) {
@@ -70,7 +69,7 @@ export class SettlementService {
       ])
 
       const { toChain, fromChain } = tradeData.tradeInfo
-      const fromToken = await this.tokenService.getToken(l2Decode(fromChain[1]), l2Decode(fromChain[2]))
+      const fromToken = await tokenService.getToken(l2Decode(fromChain[1]), l2Decode(fromChain[2]))
       const pmmAddress = this.getPmmAddressByNetworkType(fromToken)
 
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800)
