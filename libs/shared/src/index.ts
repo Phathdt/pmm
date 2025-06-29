@@ -1,3 +1,4 @@
+export * from './address'
 export * from './casing'
 export * from './constants'
 export * from './decorators'

@@ -56,6 +56,7 @@ export class QuoteService {
         throw new BadRequestException(`Unsupported network type: ${token.networkType}`)
     }
   }
+
   private generateSessionId(): string {
     return crypto.randomBytes(16).toString('hex')
   }
