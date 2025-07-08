@@ -27,7 +27,7 @@ import {
   SignalPaymentResponseDto,
 } from './settlement.dto'
 import { TransferSettlementEvent } from './types'
-import { l2Decode } from './utils/convert'
+import { l2Decode } from './utils'
 
 @Injectable()
 export class SettlementService {
@@ -79,7 +79,7 @@ export class SettlementService {
         throw new BadRequestException('pmmPresign not found')
       }
 
-      if (!isSameAddress(pmmPresign.pmmRecvAddress, pmmAddress)) {
+      if (!isSameAddress(l2Decode(pmmPresign.pmmRecvAddress), pmmAddress)) {
         throw new BadRequestException('pmmRecvAddress not match')
       }
 
