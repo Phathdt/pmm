@@ -1,0 +1,20 @@
+name: Build Prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Image tag version'
+        required: true
+        default: 'latest'
+
+jobs:
+  build-prod:
+    if: github.event_name == 'workflow_dispatch'
+    name: Production ${{ inputs.version }}
+    uses: optimex-xyz/ci-central-hub/.github/workflows/build-template.yml@main
+    with:
+      version: ${{ inputs.version }}
+      apps: ""
+      app_name: "pmm"
+    secrets: inherit

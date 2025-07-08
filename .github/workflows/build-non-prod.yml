@@ -1,0 +1,19 @@
+name: Build non Prod
+
+on:
+  push:
+    branches:
+      - pre-production
+      - staging
+      - develop
+
+jobs:
+  build-non-prod:
+    if: github.event_name == 'push'
+    name: ${{ github.ref_name }}
+    uses: optimex-xyz/ci-central-hub/.github/workflows/build-template.yml@main
+    with:
+      version: ""
+      apps: ""
+      app_name: "pmm"
+    secrets: inherit
