@@ -27,7 +27,7 @@ import {
   SignalPaymentResponseDto,
 } from './settlement.dto'
 import { TransferSettlementEvent } from './types'
-import { l2Decode } from './utils'
+import { l2Decode, l2Encode } from './utils'
 
 @Injectable()
 export class SettlementService {
@@ -85,7 +85,14 @@ export class SettlementService {
 
       const amountOut = BigInt(dto.committedQuote)
 
-      const commitInfoHash = getCommitInfoHash(this.pmmId, pmmAddress, toChain[1], toChain[2], amountOut, deadline)
+      const commitInfoHash = getCommitInfoHash(
+        this.pmmId,
+        l2Encode(pmmAddress),
+        toChain[1],
+        toChain[2],
+        amountOut,
+        deadline
+      )
 
       const signerAddress = await this.routerService.getSigner()
 
