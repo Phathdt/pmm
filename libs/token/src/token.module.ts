@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { ReqModule } from '@optimex-pmm/req'
 
 import { TokenRepository } from './token.repository'
+import { TokenService } from './token.service'
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { TokenRepository } from './token.repository'
     }),
   ],
   controllers: [],
-  providers: [TokenRepository],
-  exports: [TokenRepository],
+  providers: [TokenRepository, TokenService],
+  exports: [TokenRepository, TokenService],
 })
 export class TokenModule {}

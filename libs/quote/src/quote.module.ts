@@ -2,7 +2,7 @@ import KeyvRedis from '@keyv/redis'
 import { CacheModule } from '@nestjs/cache-manager'
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
-import { TokenModule } from '@optimex-pmm/token'
+import { TokenModule, TokenService } from '@optimex-pmm/token'
 import { TradeModule } from '@optimex-pmm/trade'
 
 import { QuoteSessionRepository } from './quote-session.repository'
@@ -25,7 +25,7 @@ import { QuoteService } from './quote.service'
     TradeModule,
   ],
   controllers: [QuoteController],
-  providers: [QuoteService, QuoteSessionRepository],
+  providers: [QuoteService, QuoteSessionRepository, TokenService],
   exports: [QuoteService],
 })
 export class QuoteModule {}

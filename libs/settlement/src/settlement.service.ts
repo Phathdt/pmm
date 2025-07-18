@@ -39,6 +39,7 @@ export class SettlementService {
   private readonly PMM_SOLANA_ADDRESS: string
 
   private routerService = routerService
+  private tokenService = tokenService
 
   constructor(
     private readonly configService: ConfigService,
@@ -69,7 +70,7 @@ export class SettlementService {
       ])
 
       const { toChain, fromChain } = tradeData.tradeInfo
-      const fromToken = await tokenService.getToken(l2Decode(fromChain[1]), l2Decode(fromChain[2]))
+      const fromToken = await this.tokenService.getToken(l2Decode(fromChain[1]), l2Decode(fromChain[2]))
       const pmmAddress = this.getPmmAddressByNetworkType(fromToken)
 
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800)
