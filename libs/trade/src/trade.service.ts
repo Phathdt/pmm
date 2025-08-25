@@ -23,6 +23,10 @@ export class TradeService {
       userDepositVault: data.userDepositVault,
       tradeDeadline: data.tradeDeadline,
       scriptDeadline: data.scriptDeadline,
+      isLiquid: data.isLiquid || false,
+      positionId: data.positionId,
+      liquidationId: data.liquidationId,
+      apm: data.apm,
     }
 
     return this.db.trade.create({

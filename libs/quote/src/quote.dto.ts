@@ -48,3 +48,30 @@ export const CommitmentQuoteResponseSchema = z.object({
 })
 
 export type CommitmentQuoteResponse = z.infer<typeof CommitmentQuoteResponseSchema>
+
+export const GetLiquidationQuoteSchema = z.object({
+  sessionId: z.string(),
+  tradeId: z.string(),
+  fromTokenId: z.string(),
+  toTokenId: z.string(),
+  amount: z.string(),
+  positionId: z.string(),
+  liquidationId: z.string(),
+  apm: z.string(),
+  fromUserAddress: z.string(),
+  toUserAddress: z.string(),
+  userDepositTx: z.string(),
+  userDepositVault: z.string(),
+  tradeDeadline: z.string(),
+  scriptDeadline: z.string(),
+})
+
+export class GetLiquidationQuoteDto extends createZodDto(GetLiquidationQuoteSchema) {}
+
+export const LiquidationQuoteResponseSchema = z.object({
+  tradeId: z.string(),
+  liquidationQuote: z.string(),
+  error: z.string().optional(),
+})
+
+export type LiquidationQuoteResponse = z.infer<typeof LiquidationQuoteResponseSchema>

@@ -1,4 +1,5 @@
 export * from './address'
+export * from './aff'
 export * from './casing'
 export * from './constants'
 export * from './decorators'

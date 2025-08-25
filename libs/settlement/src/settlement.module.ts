@@ -16,7 +16,12 @@ import { SubmitSettlementProcessor } from './processors/submit-settlement.proces
 import { TransferSettlementProcessor } from './processors/transfer-settlement.processor'
 import { SettlementController } from './settlement.controller'
 import { SettlementService } from './settlement.service'
-import { BTCTransferStrategy, EVMTransferStrategy, SolanaTransferStrategy } from './strategies'
+import {
+  BTCTransferStrategy,
+  EVMLiquidationTransferStrategy,
+  EVMTransferStrategy,
+  SolanaTransferStrategy,
+} from './strategies'
 import { TelegramHelper } from './utils/telegram.helper'
 
 const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
@@ -54,6 +59,7 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
     BTCTransferStrategy,
     EVMTransferStrategy,
     SolanaTransferStrategy,
+    EVMLiquidationTransferStrategy,
   ],
 })
 export class SettlementModule {}

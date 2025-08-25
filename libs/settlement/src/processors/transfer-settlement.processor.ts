@@ -2,7 +2,9 @@ import { InjectQueue, Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { stringToHex, toObject, toString } from '@optimex-pmm/shared'
+import { TradeService } from '@optimex-pmm/trade'
 import { ITypes, routerService, tokenService } from '@optimex-xyz/market-maker-sdk'
+import { Trade } from '@prisma/client'
 
 import { Job, Queue } from 'bull'
 
@@ -26,7 +28,8 @@ export class TransferSettlementProcessor {
     private configService: ConfigService,
     private transferFactory: TransferFactory,
     @InjectQueue(SETTLEMENT_QUEUE.SUBMIT.NAME) private submitSettlementQueue: Queue,
-    @InjectQueue(SETTLEMENT_QUEUE.TRANSFER.NAME) private transferSettlementQueue: Queue
+    @InjectQueue(SETTLEMENT_QUEUE.TRANSFER.NAME) private transferSettlementQueue: Queue,
+    private tradeService: TradeService
   ) {
     this.pmmId = stringToHex(this.configService.getOrThrow<string>('PMM_ID'))
   }
@@ -49,7 +52,14 @@ export class TransferSettlementProcessor {
 
       const trade: ITypes.TradeDataStructOutput = await this.routerService.getTradeData(tradeId)
 
-      const paymentTxId = await this.transferToken(pmmInfo, trade, tradeId)
+      const tradeDb = await this.tradeService.findTradeById(tradeId)
+
+      if (!tradeDb) {
+        this.logger.error(`Trade not found: ${tradeId}`)
+        return
+      }
+
+      const paymentTxId = await this.transferToken(pmmInfo, trade, tradeDb, tradeId)
 
       const eventData = {
         tradeId: tradeId,
@@ -94,6 +104,7 @@ export class TransferSettlementProcessor {
   private async transferToken(
     pmmInfo: { amountOut: bigint },
     trade: ITypes.TradeDataStructOutput,
+    tradeDb: Trade,
     tradeId: string
   ): Promise<string> {
     const amount = pmmInfo.amountOut
@@ -113,12 +124,13 @@ export class TransferSettlementProcessor {
     const toToken = await this.tokenRepo.getToken(networkId, toTokenAddress)
 
     try {
-      const strategy = this.transferFactory.getStrategy(toToken.networkType.toUpperCase())
+      const strategy = this.transferFactory.getStrategy(toToken.networkType.toUpperCase(), tradeDb.isLiquid)
       const tx = await strategy.transfer({
         toAddress: toUserAddress,
         amount,
         token: toToken,
         tradeId,
+        isLiquid: tradeDb.isLiquid,
       })
 
       return tx

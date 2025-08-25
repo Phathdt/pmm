@@ -1,9 +1,9 @@
 import { ErrorDecoder } from 'ethers-decode-error'
 
-import { paymentErrorABI } from './errorABIs'
+import { liquidationErrorABI, paymentErrorABI } from './errorABIs'
 
 export const errorDecoder = (): ErrorDecoder => {
-  return ErrorDecoder.create([paymentErrorABI])
+  return ErrorDecoder.create([paymentErrorABI, liquidationErrorABI])
 }
 
 export default errorDecoder

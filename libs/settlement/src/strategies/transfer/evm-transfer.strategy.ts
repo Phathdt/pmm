@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { errorDecoder, getProvider } from '@optimex-pmm/shared'
-import { config, ERC20__factory, Payment__factory, routerService } from '@optimex-xyz/market-maker-sdk'
+import { config, ERC20__factory, Payment__factory, routerService, Token } from '@optimex-xyz/market-maker-sdk'
 
 import { ethers, TransactionRequest, ZeroAddress } from 'ethers'
 import { DecodedError } from 'ethers-decode-error'
@@ -20,64 +20,20 @@ export class EVMTransferStrategy implements ITransferStrategy {
   }
 
   async transfer(params: TransferParams): Promise<string> {
-    const { toAddress, amount, token, tradeId } = params
+    const { token, toAddress, amount, tradeId } = params
     const { tokenAddress, networkId } = token
 
     const assetProvider = getProvider(token.networkId)
     const wallet = new ethers.Wallet(this.pmmPrivateKey, assetProvider)
-
     const paymentAddress = this.getPaymentAddress(networkId)
 
     if (tokenAddress !== 'native') {
-      const erc20Contract = ERC20__factory.connect(tokenAddress, assetProvider)
-
-      const currentAllowance = await erc20Contract.allowance(wallet.address, paymentAddress)
-
-      const requiredAmount = ethers.parseUnits(amount.toString(), token.tokenDecimals)
-
-      if (currentAllowance < requiredAmount) {
-        if (currentAllowance !== 0n) {
-          const erc20Interface = ERC20__factory.createInterface()
-          const approveData = erc20Interface.encodeFunctionData('approve', [paymentAddress, 0n])
-
-          const tx: TransactionRequest = {
-            to: token.tokenAddress,
-            data: approveData,
-            value: 0n,
-          }
-
-          await wallet.sendTransaction(tx)
-        }
-
-        const erc20Interface = ERC20__factory.createInterface()
-        const approveData = erc20Interface.encodeFunctionData('approve', [paymentAddress, ethers.MaxUint256])
-
-        const tx: TransactionRequest = {
-          to: token.tokenAddress,
-          data: approveData,
-          value: 0n,
-        }
-
-        await wallet.sendTransaction(tx)
-      }
-
-      const updatedAllowance = await erc20Contract.allowance(wallet.address, paymentAddress)
-
-      if (updatedAllowance < requiredAmount) {
-        throw new Error(
-          `Insufficient token spending allowance. Please increase your approve limit. ` +
-            `Current allowance: ${ethers.formatUnits(updatedAllowance, token.tokenDecimals)} ${token.tokenSymbol}\n` +
-            `Required allowance: ${amount} ${token.tokenSymbol}`
-        )
-      }
+      await this.handleTokenApproval(tokenAddress, paymentAddress, amount, token, wallet, assetProvider)
     }
 
     const paymentContract = Payment__factory.connect(paymentAddress, wallet)
-
     const feeDetails = await this.routerService.getFeeDetails(tradeId)
-
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 30 * 60)
-
     const decoder = errorDecoder()
 
     try {
@@ -93,15 +49,66 @@ export class EVMTransferStrategy implements ITransferStrategy {
         }
       )
 
-      this.logger.log(`Transfer transaction sent: ${tx.hash}`)
+      this.logger.log(`Normal transfer transaction sent: ${tx.hash}`)
 
       return tx.hash
     } catch (error) {
       const decodedError: DecodedError = await decoder.decode(error)
 
-      this.logger.error(`Processing transfer tradeId ${tradeId} Execution reverted!\nReason: ${decodedError.reason}`)
+      this.logger.error(
+        `Processing normal transfer tradeId ${tradeId} Execution reverted!\nReason: ${decodedError.reason}`
+      )
 
       throw error
+    }
+  }
+
+  private async handleTokenApproval(
+    tokenAddress: string,
+    spenderAddress: string,
+    amount: bigint,
+    token: Token,
+    wallet: ethers.Wallet,
+    assetProvider: ethers.JsonRpcProvider
+  ): Promise<void> {
+    const erc20Contract = ERC20__factory.connect(tokenAddress, assetProvider)
+    const currentAllowance = await erc20Contract.allowance(wallet.address, spenderAddress)
+    const requiredAmount = ethers.parseUnits(amount.toString(), token.tokenDecimals)
+
+    if (currentAllowance < requiredAmount) {
+      if (currentAllowance !== 0n) {
+        const erc20Interface = ERC20__factory.createInterface()
+        const approveData = erc20Interface.encodeFunctionData('approve', [spenderAddress, 0n])
+
+        const tx: TransactionRequest = {
+          to: tokenAddress,
+          data: approveData,
+          value: 0n,
+        }
+
+        await wallet.sendTransaction(tx)
+      }
+
+      const erc20Interface = ERC20__factory.createInterface()
+      const approveData = erc20Interface.encodeFunctionData('approve', [spenderAddress, ethers.MaxUint256])
+
+      const tx: TransactionRequest = {
+        to: tokenAddress,
+        data: approveData,
+        value: 0n,
+      }
+
+      await wallet.sendTransaction(tx)
+
+      const updatedAllowance = await erc20Contract.allowance(wallet.address, spenderAddress)
+
+      if (updatedAllowance < requiredAmount) {
+        throw new Error(
+          `Insufficient token spending allowance. Please increase your approve limit. ` +
+            `Current allowance: ${ethers.formatUnits(updatedAllowance, token.tokenDecimals)} ${token.tokenSymbol}\n` +
+            `Required allowance: ${amount} ${token.tokenSymbol}`
+        )
+      }
     }
   }
 

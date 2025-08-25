@@ -39,6 +39,10 @@ model Trade {
   settlementTx     String?     @map("settlement_tx")
   status           TradeStatus @default(PENDING) @map("status")
   error            String?     @map("error")
+  isLiquid         Boolean     @default(false) @map("is_liquid")
+  positionId       String?     @map("position_id")
+  liquidationId    String?     @map("liquidation_id")
+  apm              String?     @map("apm")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

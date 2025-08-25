@@ -1,5 +1,5 @@
 export * from './helper'
 export * from './token.module'
 export * from './token.repository'
-export * from './type'
 export * from './token.service'
+export * from './type'

@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common'
 
 import { ITransferStrategy } from '../interfaces/transfer-strategy.interface'
-import { BTCTransferStrategy, EVMTransferStrategy, SolanaTransferStrategy } from '../strategies'
+import {
+  BTCTransferStrategy,
+  EVMLiquidationTransferStrategy,
+  EVMTransferStrategy,
+  SolanaTransferStrategy,
+} from '../strategies'
 
 @Injectable()
 export class TransferFactory {
@@ -10,16 +15,18 @@ export class TransferFactory {
   constructor(
     private evmTransferStrategy: EVMTransferStrategy,
     private btcTransferStrategy: BTCTransferStrategy,
-    private solanaTransferStrategy: SolanaTransferStrategy
+    private solanaTransferStrategy: SolanaTransferStrategy,
+    private evmLiquidationTransferStrategy: EVMLiquidationTransferStrategy
   ) {
-    this.strategies.set('EVM', evmTransferStrategy)
-    this.strategies.set('TBTC', btcTransferStrategy)
-    this.strategies.set('BTC', btcTransferStrategy)
-    this.strategies.set('SOLANA', solanaTransferStrategy)
+    this.strategies.set('EVM-false', evmTransferStrategy)
+    this.strategies.set('TBTC-false', btcTransferStrategy)
+    this.strategies.set('BTC-false', btcTransferStrategy)
+    this.strategies.set('SOLANA-false', solanaTransferStrategy)
+    this.strategies.set('EVM-true', evmLiquidationTransferStrategy)
   }
 
-  getStrategy(networkType: string): ITransferStrategy {
-    const strategy = this.strategies.get(networkType)
+  getStrategy(networkType: string, isLiquid: boolean): ITransferStrategy {
+    const strategy = this.strategies.get(`${networkType}-${isLiquid}`)
     if (!strategy) {
       throw new Error(`Unsupported network type: ${networkType}`)
     }

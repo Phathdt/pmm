@@ -16,6 +16,10 @@ export const CreateTradeSchema = z.object({
   userDepositVault: z.string(),
   tradeDeadline: z.string(),
   scriptDeadline: z.string(),
+  isLiquid: z.boolean().optional(),
+  positionId: z.string().optional(),
+  liquidationId: z.string().optional(),
+  apm: z.string().optional(),
 })
 
 export class CreateTradeDto extends createZodDto(CreateTradeSchema) {}

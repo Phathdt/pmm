@@ -10,7 +10,9 @@ import {
   CommitmentQuoteResponse,
   GetCommitmentQuoteDto,
   GetIndicativeQuoteDto,
+  GetLiquidationQuoteDto,
   IndicativeQuoteResponse,
+  LiquidationQuoteResponse,
 } from './quote.dto'
 
 @Injectable()
@@ -148,6 +150,71 @@ export class QuoteService {
       return {
         tradeId: dto.tradeId,
         commitmentQuote: quote,
+        error: '',
+      }
+    } catch (error: any) {
+      if (error instanceof HttpException) {
+        throw error
+      }
+      throw new BadRequestException(error.message)
+    }
+  }
+
+  async getLiquidationQuote(dto: GetLiquidationQuoteDto): Promise<LiquidationQuoteResponse> {
+    try {
+      const session = await this.sessionRepo.findById(dto.sessionId)
+      if (!session) {
+        throw new BadRequestException('Session expired during processing')
+      }
+
+      const [fromToken, toToken] = await Promise.all([
+        this.tokenService.getTokenByTokenId(dto.fromTokenId),
+        this.tokenService.getTokenByTokenId(dto.toTokenId),
+      ]).catch((error) => {
+        throw new BadRequestException(`Failed to fetch tokens: ${error.message}`)
+      })
+      this.validateSolanaRequirement(fromToken, toToken)
+
+      await this.tokenService.validateCommitmentAmount(dto.amount, fromToken)
+
+      await this.tradeService.deleteTrade(dto.tradeId)
+
+      const quote = await this.tokenService.calculateBestQuote(dto.amount, fromToken, toToken, true)
+
+      const trade = await this.tradeService
+        .createTrade({
+          tradeId: dto.tradeId,
+          fromTokenId: dto.fromTokenId,
+          toTokenId: dto.toTokenId,
+          fromUser: dto.fromUserAddress,
+          toUser: dto.toUserAddress,
+          amount: dto.amount,
+          fromNetworkId: fromToken.networkId,
+          toNetworkId: toToken.networkId,
+          userDepositTx: dto.userDepositTx,
+          userDepositVault: dto.userDepositVault,
+          tradeDeadline: dto.tradeDeadline,
+          scriptDeadline: dto.scriptDeadline,
+          isLiquid: true,
+          positionId: dto.positionId,
+          liquidationId: dto.liquidationId,
+          apm: dto.apm,
+        })
+        .catch((error) => {
+          throw new BadRequestException(`Failed to create liquidation trade: ${error.message}`)
+        })
+
+      await this.tradeService
+        .updateTradeQuote(trade.tradeId, {
+          commitmentQuote: quote,
+        })
+        .catch((error) => {
+          throw new BadRequestException(`Failed to update liquidation trade quote: ${error.message}`)
+        })
+
+      return {
+        tradeId: dto.tradeId,
+        liquidationQuote: quote,
         error: '',
       }
     } catch (error: any) {
