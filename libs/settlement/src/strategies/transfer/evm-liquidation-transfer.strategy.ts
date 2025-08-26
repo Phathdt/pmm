@@ -43,16 +43,14 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     const liquidContract = MorphoLiquidator__factory.connect(liquidAddress, wallet)
     const decoder = errorDecoder()
 
-    if (!trade.apm || !trade.validatorSignature || !trade.positionId) {
-      throw new Error(
-        `Missing required liquidation data: apm=${trade.apm}, validatorSignature=${trade.validatorSignature}, positionId=${trade.positionId}`
-      )
+    if (!trade.apm || !trade.positionId) {
+      throw new Error(`Missing required liquidation data: apm=${trade.apm}, positionId=${trade.positionId}`)
     }
 
     const positionManager = trade.apm
-    const signature = trade.validatorSignature
-    const isLiquid = trade.isLiquid
+    const signature = trade.validatorSignature || '0x'
     const positionId = trade.positionId
+    const isLiquid = trade.isLiquid
 
     try {
       const tx = await liquidContract.payment(tradeId, positionManager, amount, positionId, isLiquid, signature)
