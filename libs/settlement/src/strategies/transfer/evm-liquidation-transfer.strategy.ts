@@ -48,7 +48,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     }
 
     const positionManager = trade.apm
-    const signature = trade.validatorSignature || ''
+    const signature = trade.validatorSignature || '0x'
     const positionId = trade.positionId
     const isLiquid = trade.isLiquid
 
