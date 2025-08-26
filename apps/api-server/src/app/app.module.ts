@@ -16,7 +16,7 @@ import pretty from 'pino-pretty'
 /* prettier-ignore-end */
 import { AppController } from './app.controller'
 
-import { IpWhitelistMiddleware } from '../middlewares/ip-whitelist.middleware'
+import { IpWhitelistMiddleware } from '../middlewares'
 
 @Module({
   imports: [

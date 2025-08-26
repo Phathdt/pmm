@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 
-import { ITransferStrategy } from '../interfaces/transfer-strategy.interface'
+import { ITransferStrategy } from '../interfaces'
 import {
   BTCTransferStrategy,
   EVMLiquidationTransferStrategy,

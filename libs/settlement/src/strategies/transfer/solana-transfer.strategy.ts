@@ -16,9 +16,9 @@ import {
   getProtocolPda,
   getWhitelistPda,
   sendTransactionWithRetry,
+  TelegramHelper,
   WSOL_MINT,
 } from '../../utils'
-import { TelegramHelper } from '../../utils/telegram.helper'
 
 @Injectable()
 export class SolanaTransferStrategy implements ITransferStrategy {

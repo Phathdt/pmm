@@ -73,33 +73,38 @@ function processModule(dirPath) {
   }
 }
 
-function generateLibsIndexes() {
+function processDirectory(dirName) {
   const currentDir = process.cwd()
-  const libsDir = path.join(currentDir, 'libs')
+  const targetDir = path.join(currentDir, dirName)
 
-  if (!fs.existsSync(libsDir)) {
-    console.error(`Directory ${libsDir} does not exist!`)
-    process.exit(1)
+  if (!fs.existsSync(targetDir)) {
+    console.error(`Directory ${targetDir} does not exist!`)
+    return
   }
 
-  const libModules = fs
-    .readdirSync(libsDir, { withFileTypes: true })
+  const modules = fs
+    .readdirSync(targetDir, { withFileTypes: true })
     .filter((dirent) => dirent.isDirectory() && !shouldIgnoreDirectory(dirent.name))
     .map((dirent) => dirent.name)
 
-  libModules.forEach((moduleName) => {
-    const srcPath = path.join(libsDir, moduleName, 'src')
+  modules.forEach((moduleName) => {
+    const srcPath = path.join(targetDir, moduleName, 'src')
     if (fs.existsSync(srcPath)) {
-      console.log(`\nProcessing module: ${moduleName}`)
+      console.log(`\nProcessing ${dirName}/${moduleName}`)
       console.log('Cleaning up old index files...')
       deleteIndexFiles(srcPath)
       console.log('Generating new index files...')
       processModule(srcPath)
     } else {
-      console.warn(`Warning: src directory not found in ${moduleName}`)
+      console.warn(`Warning: src directory not found in ${dirName}/${moduleName}`)
     }
   })
 }
+
+function generateLibsIndexes() {
+  processDirectory('libs')
+}
+
 
 try {
   generateLibsIndexes()
