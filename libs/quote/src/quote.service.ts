@@ -195,7 +195,7 @@ export class QuoteService {
           userDepositVault: dto.userDepositVault,
           tradeDeadline: dto.tradeDeadline,
           scriptDeadline: dto.scriptDeadline,
-          isLiquid: true,
+          isLiquid: dto.isLiquidate,
           positionId: dto.positionId,
           liquidationId: dto.liquidationId,
           apm: dto.apm,
