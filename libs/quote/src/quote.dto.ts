@@ -58,7 +58,7 @@ export const GetLiquidationQuoteSchema = z.object({
   positionId: z.string(),
   liquidationId: z.string(),
   apm: z.string(),
-  isLiquidate: z.boolean(),
+  isLiquidate: z.string().transform((val) => val === 'true'),
   fromUserAddress: z.string(),
   toUserAddress: z.string(),
   userDepositTx: z.string(),
