@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { decodeAffiliateInfo, errorDecoder, getProvider, isLiquidateAffiliate } from '@optimex-pmm/shared'
+import { errorDecoder, getProvider } from '@optimex-pmm/shared'
 import { TradeService } from '@optimex-pmm/trade'
-import { config, ERC20__factory, MorphoLiquidator__factory, routerService, Token } from '@optimex-xyz/market-maker-sdk'
+import { config, ERC20__factory, MorphoLiquidator__factory, Token } from '@optimex-xyz/market-maker-sdk'
 
 import { ethers, TransactionRequest } from 'ethers'
 import { DecodedError } from 'ethers-decode-error'
@@ -13,16 +13,6 @@ import { ITransferStrategy, TransferParams } from '../../interfaces'
 export class EVMLiquidationTransferStrategy implements ITransferStrategy {
   private pmmPrivateKey: string
   private readonly logger = new Logger(EVMLiquidationTransferStrategy.name)
-  private readonly retrySelectors = [
-    '0xadb068de', // NotAuthorizedValidator(address) - When performing forceClose, the signature comes from invalid validator
-    '0x5ebb051b', // NotEnoughPaymentAmount() - When performing liquidate, the amount PMM pay is not enough to cover the borrowedAmount and userRefund
-    '0xf645eedf', // ECDSAInvalidSignature() - When the validator’s signature is incorrect
-    '0xfce698f7', // ECDSAInvalidSignatureLength(uint256) - When the validator’s signature has invalid length
-    '0xd78bce0c', // ECDSAInvalidSignatureS(bytes32) - When the validator’s signature s has wrong value
-    '0x08c379a0', // Error(string) - When perform liquidate, the position becomes healthy that we can’t liquidate this position
-  ]
-
-  private routerService = routerService
 
   constructor(
     private configService: ConfigService,
@@ -53,30 +43,19 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     const liquidContract = MorphoLiquidator__factory.connect(liquidAddress, wallet)
     const decoder = errorDecoder()
 
-    let positionManager = '0x'
-    let signature = '0x'
-    let isLiquid = false
-
-    const affiliateInfo = await this.routerService.getAffiliateInfo(tradeId)
-    const affiliate = decodeAffiliateInfo(affiliateInfo)
-
-    if (!isLiquidateAffiliate(affiliate)) {
-      throw new Error(`Cannot get affiliate info`)
-    } else {
-      positionManager = affiliate.apm
-      signature = affiliate.validatorSignature
-      isLiquid = affiliate.isLiquidate
+    if (!trade.apm || !trade.validatorSignature || !trade.positionId) {
+      throw new Error(
+        `Missing required liquidation data: apm=${trade.apm}, validatorSignature=${trade.validatorSignature}, positionId=${trade.positionId}`
+      )
     }
 
+    const positionManager = trade.apm
+    const signature = trade.validatorSignature
+    const isLiquid = trade.isLiquid
+    const positionId = trade.positionId
+
     try {
-      const tx = await liquidContract.payment(
-        tradeId,
-        positionManager,
-        amount,
-        trade.positionId as string,
-        isLiquid,
-        signature
-      )
+      const tx = await liquidContract.payment(tradeId, positionManager, amount, positionId, isLiquid, signature)
 
       this.logger.log(`Liquid transfer transaction sent: ${tx.hash}`)
 
@@ -86,39 +65,14 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
       const decodedError: DecodedError = await decoder.decode(error)
       console.log('🚀 ~ EVMLiquidationTransferStrategy ~ transfer ~ decodedError:', decodedError)
 
-      if (this.shouldRetryWithoutDryRun(error, decodedError)) {
-        this.logger.warn(
-          `Gas estimation failed for tradeId ${tradeId}, reason: ${decodedError.reason}, retrying without dry run`
-        )
+      const errorCode = this.extractErrorCode(error, decodedError)
+      const paddedTxHash = this.padErrorCodeToTxHash(errorCode)
 
-        try {
-          const tx = await liquidContract.payment(
-            tradeId,
-            positionManager,
-            amount,
-            trade.positionId as string,
-            isLiquid,
-            signature,
-            {
-              gasLimit: 500000n,
-              gasPrice: ethers.parseUnits('1', 'gwei'),
-            }
-          )
-
-          this.logger.log(`Liquid transfer transaction sent (no dry run): ${tx.hash}`)
-          return tx.hash
-        } catch (retryError) {
-          const retryDecodedError: DecodedError = await decoder.decode(retryError)
-          this.logger.error(`Retry failed for liquid transfer tradeId ${tradeId}!\nReason: ${retryDecodedError.reason}`)
-          throw retryError
-        }
-      }
-
-      this.logger.error(
-        `Processing liquid transfer tradeId ${tradeId} Execution reverted!\nReason: ${decodedError.reason}`
+      this.logger.warn(
+        `Payment failed for tradeId ${tradeId}, reason: ${decodedError.reason}, submitting padded error code as txHash`
       )
 
-      throw error
+      return paddedTxHash
     }
   }
 
@@ -171,12 +125,20 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     }
   }
 
-  private shouldRetryWithoutDryRun(error: any, decodedError: DecodedError): boolean {
+  private extractErrorCode(error: any, decodedError: DecodedError): string {
     const errorData = error?.data || error?.transaction?.data || decodedError?.data
-    if (!errorData) return false
+    if (!errorData) {
+      throw new Error('No error data available to extract error code')
+    }
 
     const selector = errorData.slice(0, 10)
-    return this.retrySelectors.includes(selector)
+    return selector
+  }
+
+  private padErrorCodeToTxHash(errorCode: string): string {
+    const cleanErrorCode = errorCode.startsWith('0x') ? errorCode.slice(2) : errorCode
+    const paddedHash = '0x' + cleanErrorCode.padEnd(64, '0')
+    return paddedHash
   }
 
   private getLiquidationPaymentAddress(networkId: string) {

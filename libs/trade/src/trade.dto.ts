@@ -20,6 +20,7 @@ export const CreateTradeSchema = z.object({
   positionId: z.string().optional(),
   liquidationId: z.string().optional(),
   apm: z.string().optional(),
+  validatorSignature: z.string().optional(),
 })
 
 export class CreateTradeDto extends createZodDto(CreateTradeSchema) {}

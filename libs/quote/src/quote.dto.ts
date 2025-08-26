@@ -64,6 +64,7 @@ export const GetLiquidationQuoteSchema = z.object({
   userDepositVault: z.string(),
   tradeDeadline: z.string(),
   scriptDeadline: z.string(),
+  validatorSignature: z.string(),
 })
 
 export class GetLiquidationQuoteDto extends createZodDto(GetLiquidationQuoteSchema) {}

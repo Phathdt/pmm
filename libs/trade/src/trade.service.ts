@@ -27,6 +27,7 @@ export class TradeService {
       positionId: data.positionId,
       liquidationId: data.liquidationId,
       apm: data.apm,
+      validatorSignature: data.validatorSignature,
     }
 
     return this.db.trade.create({

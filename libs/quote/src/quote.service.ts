@@ -199,6 +199,7 @@ export class QuoteService {
           positionId: dto.positionId,
           liquidationId: dto.liquidationId,
           apm: dto.apm,
+          validatorSignature: dto.validatorSignature,
         })
         .catch((error) => {
           throw new BadRequestException(`Failed to create liquidation trade: ${error.message}`)
