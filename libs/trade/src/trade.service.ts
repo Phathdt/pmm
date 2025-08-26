@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { DatabaseService } from '@optimex-pmm/database'
 import { Trade, TradeStatus } from '@prisma/client'
 
-import { CreateTradeDto, UpdateSettlementDto, UpdateTradeQuoteDto } from './trade.dto'
+import { CreateTradeDto, TradeTypeEnum, UpdateSettlementDto, UpdateTradeQuoteDto } from './trade.dto'
 
 @Injectable()
 export class TradeService {
@@ -28,6 +28,7 @@ export class TradeService {
       liquidationId: data.liquidationId,
       apm: data.apm,
       validatorSignature: data.validatorSignature,
+      tradeType: data.tradeType || TradeTypeEnum.SWAP,
     }
 
     return this.db.trade.create({

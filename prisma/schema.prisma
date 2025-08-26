@@ -40,6 +40,7 @@ model Trade {
   status             TradeStatus @default(PENDING) @map("status")
   error              String?     @map("error")
   isLiquid           Boolean     @default(false) @map("is_liquid")
+  tradeType          String      @default("swap") @map("trade_type")
   positionId         String?     @map("position_id")
   liquidationId      String?     @map("liquidation_id")
   apm                String?     @map("apm")

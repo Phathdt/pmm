@@ -3,6 +3,11 @@ import { TradeStatus } from '@prisma/client'
 import { createZodDto } from 'nestjs-zod'
 import { z } from 'zod'
 
+export enum TradeTypeEnum {
+  SWAP = 'swap',
+  LIQUID = 'liquid',
+}
+
 export const CreateTradeSchema = z.object({
   tradeId: z.string(),
   fromTokenId: z.string(),
@@ -21,6 +26,7 @@ export const CreateTradeSchema = z.object({
   liquidationId: z.string().optional(),
   apm: z.string().optional(),
   validatorSignature: z.string().optional(),
+  tradeType: z.nativeEnum(TradeTypeEnum).optional(),
 })
 
 export class CreateTradeDto extends createZodDto(CreateTradeSchema) {}

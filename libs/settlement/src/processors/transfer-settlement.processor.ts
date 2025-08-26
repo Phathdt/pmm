@@ -124,7 +124,7 @@ export class TransferSettlementProcessor {
     const toToken = await this.tokenRepo.getToken(networkId, toTokenAddress)
 
     try {
-      const strategy = this.transferFactory.getStrategy(toToken.networkType.toUpperCase(), tradeDb.isLiquid)
+      const strategy = this.transferFactory.getStrategy(toToken.networkType.toUpperCase(), tradeDb.tradeType)
       const tx = await strategy.transfer({
         toAddress: toUserAddress,
         amount,

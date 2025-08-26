@@ -18,17 +18,17 @@ export class TransferFactory {
     private solanaTransferStrategy: SolanaTransferStrategy,
     private evmLiquidationTransferStrategy: EVMLiquidationTransferStrategy
   ) {
-    this.strategies.set('EVM-false', evmTransferStrategy)
-    this.strategies.set('TBTC-false', btcTransferStrategy)
-    this.strategies.set('BTC-false', btcTransferStrategy)
-    this.strategies.set('SOLANA-false', solanaTransferStrategy)
-    this.strategies.set('EVM-true', evmLiquidationTransferStrategy)
+    this.strategies.set('EVM-swap', evmTransferStrategy)
+    this.strategies.set('TBTC-swap', btcTransferStrategy)
+    this.strategies.set('BTC-swap', btcTransferStrategy)
+    this.strategies.set('SOLANA-swap', solanaTransferStrategy)
+    this.strategies.set('EVM-liquid', evmLiquidationTransferStrategy)
   }
 
-  getStrategy(networkType: string, isLiquid: boolean): ITransferStrategy {
-    const strategy = this.strategies.get(`${networkType}-${isLiquid}`)
+  getStrategy(networkType: string, tradeType: string): ITransferStrategy {
+    const strategy = this.strategies.get(`${networkType}-${tradeType}`)
     if (!strategy) {
-      throw new Error(`Unsupported network type: ${networkType}`)
+      throw new Error(`Unsupported network type: ${networkType} with trade type: ${tradeType}`)
     }
 
     return strategy

@@ -2,7 +2,7 @@ import * as crypto from 'crypto'
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { TokenService } from '@optimex-pmm/token'
-import { TradeService } from '@optimex-pmm/trade'
+import { TradeService, TradeTypeEnum } from '@optimex-pmm/trade'
 import { Token } from '@optimex-xyz/market-maker-sdk'
 
 import { QuoteSessionRepository } from './quote-session.repository'
@@ -136,6 +136,7 @@ export class QuoteService {
           userDepositVault: dto.userDepositVault,
           tradeDeadline: dto.tradeDeadline,
           scriptDeadline: dto.scriptDeadline,
+          tradeType: TradeTypeEnum.SWAP,
         })
         .catch((error) => {
           throw new BadRequestException(`Failed to create trade: ${error.message}`)
@@ -200,6 +201,7 @@ export class QuoteService {
           liquidationId: dto.liquidationId,
           apm: dto.apm,
           validatorSignature: dto.validatorSignature,
+          tradeType: TradeTypeEnum.LIQUID,
         })
         .catch((error) => {
           throw new BadRequestException(`Failed to create liquidation trade: ${error.message}`)
