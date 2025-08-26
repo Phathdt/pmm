@@ -133,7 +133,7 @@ export class SettlementService {
       await this.tradeService.updateTradeStatus(
         dto.tradeId,
         newStatus,
-        dto.chosen ? 'PMM not chosen for settlement' : undefined
+        dto.chosen ? undefined : 'PMM not chosen for settlement'
       )
 
       return {
