@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import { errorDecoder, getProvider } from '@optimex-pmm/shared'
+import { NonceManagerService } from '@optimex-pmm/blockchain'
+import { errorDecoder } from '@optimex-pmm/shared'
 import { TradeService } from '@optimex-pmm/trade'
 import { config, ERC20__factory, MorphoLiquidator__factory, Token } from '@optimex-xyz/market-maker-sdk'
 
@@ -11,22 +11,18 @@ import { ITransferStrategy, TransferParams } from '../../interfaces'
 
 @Injectable()
 export class EVMLiquidationTransferStrategy implements ITransferStrategy {
-  private pmmPrivateKey: string
   private readonly logger = new Logger(EVMLiquidationTransferStrategy.name)
 
   constructor(
-    private configService: ConfigService,
-    private tradeService: TradeService
-  ) {
-    this.pmmPrivateKey = this.configService.getOrThrow<string>('PMM_EVM_PRIVATE_KEY')
-  }
+    private tradeService: TradeService,
+    private nonceManagerService: NonceManagerService
+  ) {}
 
   async transfer(params: TransferParams): Promise<string> {
     const { amount, token, tradeId } = params
     const { tokenAddress, networkId } = token
 
-    const assetProvider = getProvider(token.networkId)
-    const wallet = new ethers.Wallet(this.pmmPrivateKey, assetProvider)
+    const wallet = this.nonceManagerService.getNonceManager(token.networkId)
 
     const trade = await this.tradeService.findTradeById(tradeId)
 
@@ -37,7 +33,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     const liquidAddress = this.getLiquidationPaymentAddress(networkId)
 
     if (tokenAddress !== 'native') {
-      await this.handleTokenApproval(tokenAddress, liquidAddress, amount, token, wallet, assetProvider)
+      await this.handleTokenApproval(tokenAddress, liquidAddress, amount, token, wallet)
     }
 
     const liquidContract = MorphoLiquidator__factory.connect(liquidAddress, wallet)
@@ -79,11 +75,11 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     spenderAddress: string,
     amount: bigint,
     token: Token,
-    wallet: ethers.Wallet,
-    assetProvider: ethers.JsonRpcProvider
+    wallet: ethers.NonceManager
   ): Promise<void> {
-    const erc20Contract = ERC20__factory.connect(tokenAddress, assetProvider)
-    const currentAllowance = await erc20Contract.allowance(wallet.address, spenderAddress)
+    const erc20Contract = ERC20__factory.connect(tokenAddress, wallet.provider)
+    const walletAddress = await wallet.signer.getAddress()
+    const currentAllowance = await erc20Contract.allowance(walletAddress, spenderAddress)
     const requiredAmount = ethers.parseUnits(amount.toString(), token.tokenDecimals)
 
     if (currentAllowance < requiredAmount) {
@@ -111,7 +107,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
 
       await wallet.sendTransaction(tx)
 
-      const updatedAllowance = await erc20Contract.allowance(wallet.address, spenderAddress)
+      const updatedAllowance = await erc20Contract.allowance(walletAddress, spenderAddress)
 
       if (updatedAllowance < requiredAmount) {
         throw new Error(

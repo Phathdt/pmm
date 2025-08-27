@@ -6,6 +6,7 @@ import { CacheModule } from '@nestjs/cache-manager'
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { ScheduleModule } from '@nestjs/schedule'
+import { BlockchainModule } from '@optimex-pmm/blockchain'
 import { TokenModule } from '@optimex-pmm/token'
 import { TradeModule } from '@optimex-pmm/trade'
 
@@ -44,6 +45,7 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
     }),
     BullModule.registerQueue(...SETTLEMENT_QUEUE_NAMES.map((name) => ({ name }))),
     BullBoardModule.forFeature(...QUEUE_BOARDS),
+    BlockchainModule,
     TradeModule,
     TokenModule,
   ],
