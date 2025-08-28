@@ -59,7 +59,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
       const decodedError: DecodedError = await decoder.decode(error)
       console.log('🚀 ~ EVMLiquidationTransferStrategy ~ transfer ~ decodedError:', decodedError)
 
-      const errorCode = this.extractErrorCode(error, decodedError)
+      const errorCode = this.extractErrorCode(tradeId, error, decodedError)
       const paddedTxHash = this.padErrorCodeToTxHash(errorCode)
 
       this.logger.warn(
@@ -119,7 +119,10 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     }
   }
 
-  private extractErrorCode(error: any, decodedError: DecodedError): string {
+  private extractErrorCode(tradeId: string,error: any, decodedError: DecodedError): string {
+    console.log(`🚀 ~ tradeId ${tradeId} EVMLiquidationTransferStrategy ~ extractErrorCode ~ decodedError:`, decodedError)
+    console.log(`🚀 ~ tradeId ${tradeId} EVMLiquidationTransferStrategy ~ extractErrorCode ~ error:`, error)
+
     const errorData = error?.data || error?.transaction?.data || decodedError?.data
     if (!errorData) {
       throw new Error('No error data available to extract error code')
