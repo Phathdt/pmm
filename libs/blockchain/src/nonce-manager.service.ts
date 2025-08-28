@@ -31,7 +31,7 @@ export class NonceManagerService {
       const nonceManager = new ethers.NonceManager(wallet)
 
       this.nonceManagers.set(cacheKey, nonceManager)
-      this.logger.debug(`Created NonceManager for network ${networkId}`)
+      this.logger.log(`Created NonceManager for network ${networkId}`)
     }
 
     const nonceManager = this.nonceManagers.get(cacheKey)
@@ -47,7 +47,7 @@ export class NonceManagerService {
   async getCurrentNonce(networkId: string): Promise<number> {
     const nonceManager = this.getNonceManager(networkId)
     const nonce = await nonceManager.getNonce()
-    this.logger.debug(`Current nonce for network ${networkId}: ${nonce}`)
+    this.logger.log(`Current nonce for network ${networkId}: ${nonce}`)
     return nonce
   }
 
@@ -58,7 +58,7 @@ export class NonceManagerService {
   resetNonceManager(networkId: string): void {
     const cacheKey = `${networkId}-pmm`
     this.nonceManagers.delete(cacheKey)
-    this.logger.debug(`Reset NonceManager for network ${networkId}`)
+    this.logger.log(`Reset NonceManager for network ${networkId}`)
   }
 
   /**
@@ -66,7 +66,7 @@ export class NonceManagerService {
    */
   clearAllNonceManagers(): void {
     this.nonceManagers.clear()
-    this.logger.debug('Cleared all NonceManagers')
+    this.logger.log('Cleared all NonceManagers')
   }
 
   /**
@@ -80,8 +80,8 @@ export class NonceManagerService {
       refreshPromises.push(
         (async () => {
           try {
-            await nonceManager.getNonce()
-            this.logger.debug(`Refreshed nonce for cache key: ${cacheKey}`)
+            const newNonce = await nonceManager.getNonce()
+            this.logger.log(`Refreshed nonce for cache key: ${cacheKey}, new nonce: ${newNonce}`)
           } catch (error) {
             this.logger.warn(`Failed to refresh nonce for cache key ${cacheKey}:`, error)
           }
