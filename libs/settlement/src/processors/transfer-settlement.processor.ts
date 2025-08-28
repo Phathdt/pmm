@@ -16,8 +16,8 @@ import { l2Decode } from '../utils'
 @Processor(SETTLEMENT_QUEUE.TRANSFER.NAME)
 export class TransferSettlementProcessor {
   private pmmId: string
-  private readonly MAX_RETRIES = 3
-  private readonly RETRY_DELAY = 30000
+  private readonly MAX_RETRIES = 60
+  private readonly RETRY_DELAY = 60000
 
   private routerService = routerService
   private tokenRepo = tokenService
@@ -56,6 +56,13 @@ export class TransferSettlementProcessor {
 
       if (!tradeDb) {
         this.logger.error(`Trade not found: ${tradeId}`)
+        return
+      }
+
+      // Check if trade deadline has passed
+      const now = Math.floor(Date.now() / 1000)
+      if (tradeDb.tradeDeadline && parseInt(tradeDb.tradeDeadline) < now) {
+        this.logger.error(`Trade ${tradeId} has expired. Deadline: ${tradeDb.tradeDeadline}, Current time: ${now}`)
         return
       }
 
