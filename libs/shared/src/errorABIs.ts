@@ -93,7 +93,23 @@ export const liquidationErrorABI = [
   },
   {
     inputs: [],
-    name: 'InvalidMorpho',
+    name: 'InvalidAmount',
+    type: 'error',
+  },
+  {
+    inputs: [],
+    name: 'InvalidBorrowShares',
+    type: 'error',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'bytes32',
+        name: 'positionId',
+        type: 'bytes32',
+      },
+    ],
+    name: 'InvalidPositionId',
     type: 'error',
   },
   {
@@ -109,12 +125,44 @@ export const liquidationErrorABI = [
         type: 'address',
       },
     ],
-    name: 'NotAuthorizedValidator',
+    name: 'InvalidValidator',
     type: 'error',
   },
   {
     inputs: [],
-    name: 'NotEnoughPaymentAmount',
+    name: 'ReentrancyGuardReentrantCall',
+    type: 'error',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'spender',
+        type: 'address',
+      },
+      {
+        internalType: 'uint256',
+        name: 'currentAllowance',
+        type: 'uint256',
+      },
+      {
+        internalType: 'uint256',
+        name: 'requestedDecrease',
+        type: 'uint256',
+      },
+    ],
+    name: 'SafeERC20FailedDecreaseAllowance',
+    type: 'error',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'token',
+        type: 'address',
+      },
+    ],
+    name: 'SafeERC20FailedOperation',
     type: 'error',
   },
   {
@@ -126,6 +174,43 @@ export const liquidationErrorABI = [
       },
     ],
     name: 'StringTooLong',
+    type: 'error',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'expected',
+        type: 'address',
+      },
+      {
+        internalType: 'address',
+        name: 'actual',
+        type: 'address',
+      },
+    ],
+    name: 'TokenMismatch',
+    type: 'error',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'sender',
+        type: 'address',
+      },
+    ],
+    name: 'Unauthorized',
+    type: 'error',
+  },
+  {
+    inputs: [],
+    name: 'ZeroAddress',
+    type: 'error',
+  },
+  {
+    inputs: [],
+    name: 'ZeroAmount',
     type: 'error',
   },
 ]

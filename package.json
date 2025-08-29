@@ -36,7 +36,7 @@
     "@nestjs/platform-express": "^11.1.0",
     "@nestjs/schedule": "^6.0.0",
     "@nestjs/swagger": "^11.2.0",
-    "@optimex-xyz/market-maker-sdk": "^0.9.0-dev-c1dabf3",
+    "@optimex-xyz/market-maker-sdk": "^0.9.0-dev-5372aed",
     "@prisma/client": "^6.7.0",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "1.98.0",

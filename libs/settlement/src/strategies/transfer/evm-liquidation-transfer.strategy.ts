@@ -49,7 +49,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     const isLiquid = trade.isLiquid
 
     try {
-      const tx = await liquidContract.payment(tradeId, positionManager, amount, positionId, isLiquid, signature)
+      const tx = await liquidContract.payment(positionManager, positionId, tradeId, amount, isLiquid, signature)
 
       this.logger.log(`Liquid transfer transaction sent: ${tx.hash}`)
 
