@@ -1,10 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { NonceManagerService } from '@optimex-pmm/blockchain'
+import { TransactionService } from '@optimex-pmm/blockchain'
 import { errorDecoder } from '@optimex-pmm/shared'
 import { TradeService } from '@optimex-pmm/trade'
-import { config, ERC20__factory, MorphoLiquidator__factory, Token } from '@optimex-xyz/market-maker-sdk'
+import { config, MorphoLiquidator__factory } from '@optimex-xyz/market-maker-sdk'
 
-import { ethers, TransactionRequest } from 'ethers'
 import { DecodedError } from 'ethers-decode-error'
 
 import { ITransferStrategy, TransferParams } from '../../interfaces'
@@ -15,14 +14,12 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
 
   constructor(
     private tradeService: TradeService,
-    private nonceManagerService: NonceManagerService
+    private transactionService: TransactionService
   ) {}
 
   async transfer(params: TransferParams): Promise<string> {
     const { amount, token, tradeId } = params
     const { tokenAddress, networkId } = token
-
-    const wallet = this.nonceManagerService.getNonceManager(token.networkId)
 
     const trade = await this.tradeService.findTradeById(tradeId)
 
@@ -32,12 +29,10 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
 
     const liquidAddress = this.getLiquidationPaymentAddress(networkId)
 
+    // Handle token approval if not native token
     if (tokenAddress !== 'native') {
-      await this.handleTokenApproval(tokenAddress, liquidAddress, amount, token, wallet)
+      await this.transactionService.handleTokenApproval(networkId, tokenAddress, liquidAddress, amount)
     }
-
-    const liquidContract = MorphoLiquidator__factory.connect(liquidAddress, wallet)
-    const decoder = errorDecoder()
 
     if (!trade.apm || !trade.positionId) {
       throw new Error(`Missing required liquidation data: apm=${trade.apm}, positionId=${trade.positionId}`)
@@ -48,12 +43,25 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     const positionId = trade.positionId
     const isLiquid = trade.isLiquid
 
+    const decoder = errorDecoder()
+
     try {
-      const tx = await liquidContract.payment(positionManager, positionId, tradeId, amount, isLiquid, signature)
+      // Execute contract method with single call - TypeChain provides type safety
+      const result = await this.transactionService.executeContractMethod(
+        MorphoLiquidator__factory,
+        liquidAddress,
+        'payment',
+        [positionManager, positionId, tradeId, amount, isLiquid, signature],
+        networkId,
+        {
+          description: `Liquidation payment for trade ${tradeId}`,
+          gasBufferPercentage: 40, // Slightly higher buffer for liquidation transactions
+        }
+      )
 
-      this.logger.log(`Liquid transfer transaction sent: ${tx.hash}`)
+      this.logger.log(`Liquid transfer transaction sent: ${result.hash}`)
 
-      return tx.hash
+      return result.hash
     } catch (error) {
       console.log('🚀 ~ EVMLiquidationTransferStrategy ~ transfer ~ error:', error)
       const decodedError: DecodedError = await decoder.decode(error)
@@ -70,57 +78,11 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     }
   }
 
-  private async handleTokenApproval(
-    tokenAddress: string,
-    spenderAddress: string,
-    amount: bigint,
-    token: Token,
-    wallet: ethers.NonceManager
-  ): Promise<void> {
-    const erc20Contract = ERC20__factory.connect(tokenAddress, wallet.provider)
-    const walletAddress = await wallet.signer.getAddress()
-    const currentAllowance = await erc20Contract.allowance(walletAddress, spenderAddress)
-    const requiredAmount = ethers.parseUnits(amount.toString(), token.tokenDecimals)
-
-    if (currentAllowance < requiredAmount) {
-      if (currentAllowance !== 0n) {
-        const erc20Interface = ERC20__factory.createInterface()
-        const approveData = erc20Interface.encodeFunctionData('approve', [spenderAddress, 0n])
-
-        const tx: TransactionRequest = {
-          to: tokenAddress,
-          data: approveData,
-          value: 0n,
-        }
-
-        await wallet.sendTransaction(tx)
-      }
-
-      const erc20Interface = ERC20__factory.createInterface()
-      const approveData = erc20Interface.encodeFunctionData('approve', [spenderAddress, ethers.MaxUint256])
-
-      const tx: TransactionRequest = {
-        to: tokenAddress,
-        data: approveData,
-        value: 0n,
-      }
-
-      await wallet.sendTransaction(tx)
-
-      const updatedAllowance = await erc20Contract.allowance(walletAddress, spenderAddress)
-
-      if (updatedAllowance < requiredAmount) {
-        throw new Error(
-          `Insufficient token spending allowance. Please increase your approve limit. ` +
-            `Current allowance: ${ethers.formatUnits(updatedAllowance, token.tokenDecimals)} ${token.tokenSymbol}\n` +
-            `Required allowance: ${amount} ${token.tokenSymbol}`
-        )
-      }
-    }
-  }
-
-  private extractErrorCode(tradeId: string,error: any, decodedError: DecodedError): string {
-    console.log(`🚀 ~ tradeId ${tradeId} EVMLiquidationTransferStrategy ~ extractErrorCode ~ decodedError:`, decodedError)
+  private extractErrorCode(tradeId: string, error: any, decodedError: DecodedError): string {
+    console.log(
+      `🚀 ~ tradeId ${tradeId} EVMLiquidationTransferStrategy ~ extractErrorCode ~ decodedError:`,
+      decodedError
+    )
     console.log(`🚀 ~ tradeId ${tradeId} EVMLiquidationTransferStrategy ~ extractErrorCode ~ error:`, error)
 
     const errorData = error?.data || error?.transaction?.data || decodedError?.data
