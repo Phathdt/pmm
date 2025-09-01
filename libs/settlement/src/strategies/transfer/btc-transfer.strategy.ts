@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { NotificationService } from '@optimex-pmm/notification'
 import { BTC, BTC_TESTNET } from '@optimex-pmm/shared'
 import { getTradeIdsHash, Token } from '@optimex-xyz/market-maker-sdk'
 
@@ -9,7 +10,6 @@ import { ECPairFactory } from 'ecpair'
 import * as ecc from 'tiny-secp256k1'
 
 import { ITransferStrategy, TransferParams } from '../../interfaces'
-import { TelegramHelper } from '../../utils'
 
 const BLOCKSTREAM_MAINNET_API = 'https://blockstream.info/api'
 const BLOCKSTREAM_TESTNET_API = 'https://blockstream.info/testnet/api'
@@ -54,7 +54,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
   constructor(
     private configService: ConfigService,
-    private readonly telegramHelper: TelegramHelper
+    private readonly notificationService: NotificationService
   ) {
     this.maxFeeRate = this.configService.getOrThrow<number>('PMM_BTC_MAX_FEE_RATE', 5)
     this.privateKey = this.configService.getOrThrow<string>('PMM_BTC_PRIVATE_KEY')
@@ -406,7 +406,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
         if (balance < amount) {
           const message = `⚠️ Insufficient BTC Balance Alert\n\nRequired: ${amount.toString()} satoshis\nAvailable: ${balance.toString()} satoshis\nAddress: ${this.btcAddress}`
-          await this.telegramHelper.sendMessage(message)
+          await this.notificationService.sendTelegramMessage(message)
           return false
         }
         return true

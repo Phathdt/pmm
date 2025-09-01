@@ -1,6 +1,7 @@
 import { BN } from '@coral-xyz/anchor'
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { NotificationService } from '@optimex-pmm/notification'
 import { routerService } from '@optimex-xyz/market-maker-sdk'
 import { getAssociatedTokenAddress, TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import { AccountMeta, Connection, Keypair, PublicKey, Transaction } from '@solana/web3.js'
@@ -16,7 +17,6 @@ import {
   getProtocolPda,
   getWhitelistPda,
   sendTransactionWithRetry,
-  TelegramHelper,
   WSOL_MINT,
 } from '../../utils'
 
@@ -29,7 +29,7 @@ export class SolanaTransferStrategy implements ITransferStrategy {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly telegramHelper: TelegramHelper
+    private readonly notificationService: NotificationService
   ) {
     const endpoint = configService.getOrThrow('SOLANA_RPC_URL')
     this.connection = new Connection(endpoint, 'confirmed')
@@ -58,7 +58,7 @@ export class SolanaTransferStrategy implements ITransferStrategy {
 
       if (balance < amount) {
         const message = `⚠️ Insufficient Balance Alert\n\nToken: ${token ? token.toBase58() : 'SOL'}\nRequired: ${amount.toString()}\nAvailable: ${balance.toString()}\nAddress: ${this.pmmKeypair.publicKey.toBase58()}`
-        await this.telegramHelper.sendMessage(message)
+        await this.notificationService.sendTelegramMessage(message)
         return false
       }
       return true

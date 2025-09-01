@@ -1,5 +1,3 @@
-import { BullAdapter } from '@bull-board/api/bullAdapter'
-import { BullBoardModule } from '@bull-board/nestjs'
 import KeyvRedis from '@keyv/redis'
 import { BullModule } from '@nestjs/bull'
 import { CacheModule } from '@nestjs/cache-manager'
@@ -7,10 +5,11 @@ import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { ScheduleModule } from '@nestjs/schedule'
 import { BlockchainModule } from '@optimex-pmm/blockchain'
+import { NotificationModule } from '@optimex-pmm/notification'
 import { TokenModule } from '@optimex-pmm/token'
 import { TradeModule } from '@optimex-pmm/trade'
 
-import { SETTLEMENT_QUEUE, SETTLEMENT_QUEUE_NAMES } from './const'
+import { SETTLEMENT_QUEUE_NAMES } from './const'
 import { TransferFactory } from './factories'
 import { SettlementService } from './settlement.service'
 import {
@@ -19,12 +18,6 @@ import {
   EVMTransferStrategy,
   SolanaTransferStrategy,
 } from './strategies'
-import { TelegramHelper } from './utils/telegram.helper'
-
-const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
-  name: queue.NAME,
-  adapter: BullAdapter,
-}))
 
 @Module({
   imports: [
@@ -40,14 +33,13 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
       inject: [ConfigService],
     }),
     BullModule.registerQueue(...SETTLEMENT_QUEUE_NAMES.map((name) => ({ name }))),
-    BullBoardModule.forFeature(...QUEUE_BOARDS),
     BlockchainModule,
     TradeModule,
     TokenModule,
+    NotificationModule,
   ],
   providers: [
     SettlementService,
-    TelegramHelper,
 
     TransferFactory,
     BTCTransferStrategy,
@@ -55,6 +47,6 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
     SolanaTransferStrategy,
     EVMLiquidationTransferStrategy,
   ],
-  exports: [TransferFactory, SettlementService, TelegramHelper],
+  exports: [TransferFactory, SettlementService],
 })
 export class SettlementModule {}

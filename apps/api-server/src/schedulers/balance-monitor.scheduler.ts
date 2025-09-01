@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Cron } from '@nestjs/schedule'
-import { TelegramHelper } from '@optimex-pmm/settlement'
+import { NotificationService } from '@optimex-pmm/notification'
 import { TokenRepository } from '@optimex-pmm/token'
 import { Connection, PublicKey } from '@solana/web3.js'
 
@@ -41,7 +41,7 @@ export class BalanceMonitorScheduler {
   constructor(
     private readonly tokenRepo: TokenRepository,
     private readonly configService: ConfigService,
-    private readonly telegramHelper: TelegramHelper
+    private readonly notificationService: NotificationService
   ) {
     this.solanaConnection = new Connection(this.configService.getOrThrow<string>('SOLANA_RPC_URL'))
     this.btcNetwork = this.configService.getOrThrow<string>('BTC_NETWORK')
@@ -138,7 +138,7 @@ export class BalanceMonitorScheduler {
         this.logger.warn(
           `BTC balance is below minimum threshold: $${btcValue.toFixed(2)} (${btcBalance} BTC) - Address: ${this.btcAddress}`
         )
-        await this.telegramHelper.sendMessage(message)
+        await this.notificationService.sendTelegramMessage(message)
       }
 
       this.logger.log(
@@ -161,7 +161,7 @@ export class BalanceMonitorScheduler {
         this.logger.warn(
           `SOL balance is below minimum threshold: $${solValue.toFixed(2)} (${solBalance} SOL) - Address: ${this.solAddress}`
         )
-        await this.telegramHelper.sendMessage(message)
+        await this.notificationService.sendTelegramMessage(message)
       }
 
       this.logger.log(
