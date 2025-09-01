@@ -10,12 +10,8 @@ import { BlockchainModule } from '@optimex-pmm/blockchain'
 import { TokenModule } from '@optimex-pmm/token'
 import { TradeModule } from '@optimex-pmm/trade'
 
-import { BalanceMonitorScheduler } from './balance-monitor.scheduler'
 import { SETTLEMENT_QUEUE, SETTLEMENT_QUEUE_NAMES } from './const'
 import { TransferFactory } from './factories'
-import { SubmitSettlementProcessor } from './processors/submit-settlement.processor'
-import { TransferSettlementProcessor } from './processors/transfer-settlement.processor'
-import { SettlementController } from './settlement.controller'
 import { SettlementService } from './settlement.service'
 import {
   BTCTransferStrategy,
@@ -49,12 +45,8 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
     TradeModule,
     TokenModule,
   ],
-  controllers: [SettlementController],
   providers: [
     SettlementService,
-    TransferSettlementProcessor,
-    SubmitSettlementProcessor,
-    BalanceMonitorScheduler,
     TelegramHelper,
 
     TransferFactory,
@@ -63,5 +55,6 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
     SolanaTransferStrategy,
     EVMLiquidationTransferStrategy,
   ],
+  exports: [TransferFactory, SettlementService, TelegramHelper],
 })
 export class SettlementModule {}

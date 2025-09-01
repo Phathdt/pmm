@@ -73,7 +73,17 @@ function processModule(dirPath) {
   }
 }
 
-function processDirectory(dirName) {
+function processModuleSubdirectoriesOnly(dirPath) {
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true })
+  const subdirectories = entries.filter((entry) => entry.isDirectory())
+
+  subdirectories.forEach((dir) => {
+    const subdirPath = path.join(dirPath, dir.name)
+    processModule(subdirPath)
+  })
+}
+
+function processDirectory(dirName, processSubdirectories = true) {
   const currentDir = process.cwd()
   const targetDir = path.join(currentDir, dirName)
 
@@ -93,8 +103,14 @@ function processDirectory(dirName) {
       console.log(`\nProcessing ${dirName}/${moduleName}`)
       console.log('Cleaning up old index files...')
       deleteIndexFiles(srcPath)
-      console.log('Generating new index files...')
-      processModule(srcPath)
+      
+      if (processSubdirectories) {
+        console.log('Generating new index files...')
+        processModule(srcPath)
+      } else {
+        console.log('Generating index files for subdirectories only...')
+        processModuleSubdirectoriesOnly(srcPath)
+      }
     } else {
       console.warn(`Warning: src directory not found in ${dirName}/${moduleName}`)
     }
@@ -105,9 +121,17 @@ function generateLibsIndexes() {
   processDirectory('libs')
 }
 
+function generateAppsIndexes() {
+  processDirectory('apps', false)
+}
+
+function generateAllIndexes() {
+  generateLibsIndexes()
+  generateAppsIndexes()
+}
 
 try {
-  generateLibsIndexes()
+  generateAllIndexes()
   console.log('\nSuccessfully regenerated all index.ts files!')
 } catch (error) {
   console.error('Error generating index files:', error)

@@ -1,6 +1,7 @@
 import { Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { l2Encode, SETTLEMENT_QUEUE, SubmitSettlementEvent } from '@optimex-pmm/settlement'
 import { toObject } from '@optimex-pmm/shared'
 import {
   getMakePaymentHash,
@@ -14,10 +15,6 @@ import {
 import { AxiosError } from 'axios'
 import { Job } from 'bull'
 import { BytesLike, ethers } from 'ethers'
-
-import { SETTLEMENT_QUEUE } from '../const'
-import { SubmitSettlementEvent } from '../types'
-import { l2Encode } from '../utils'
 
 @Processor(SETTLEMENT_QUEUE.SUBMIT.NAME)
 export class SubmitSettlementProcessor {

@@ -1,14 +1,13 @@
 import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common'
-import { TransformedBody, TransformedQuery } from '@optimex-pmm/shared'
-import { TradeExistsGuard } from '@optimex-pmm/trade'
-
 import {
   AckSettlementDto,
   GetSettlementSignatureDto,
+  SettlementService,
   SignalPaymentDto,
   SignalPaymentResponseDto,
-} from './settlement.dto'
-import { SettlementService } from './settlement.service'
+} from '@optimex-pmm/settlement'
+import { TransformedBody, TransformedQuery } from '@optimex-pmm/shared'
+import { TradeExistsGuard } from '@optimex-pmm/trade'
 
 @Controller()
 export class SettlementController {

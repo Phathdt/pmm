@@ -1,11 +1,13 @@
+import { BullAdapter } from '@bull-board/api/bullAdapter'
 import { ExpressAdapter } from '@bull-board/express'
 import { BullBoardModule } from '@bull-board/nestjs'
 import { BullModule } from '@nestjs/bull'
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
-import { QuoteController, QuoteModule } from '@optimex-pmm/quote'
-import { SettlementController, SettlementModule } from '@optimex-pmm/settlement'
+import { QuoteModule } from '@optimex-pmm/quote'
+import { SETTLEMENT_QUEUE, SETTLEMENT_QUEUE_NAMES, SettlementModule } from '@optimex-pmm/settlement'
 import { TokenModule } from '@optimex-pmm/token'
+import { TradeModule } from '@optimex-pmm/trade'
 
 import { LoggerModule } from 'nestjs-pino'
 import { PrismaModule, PrismaServiceOptions } from 'nestjs-prisma'
@@ -16,8 +18,20 @@ import pretty from 'pino-pretty'
 /* prettier-ignore-end */
 import { AppController } from './app.controller'
 
+import { QuoteController, SettlementController } from '../controllers'
 import { IpWhitelistMiddleware } from '../middlewares'
+import { SubmitSettlementProcessor, TransferSettlementProcessor } from '../processors'
+import { BalanceMonitorScheduler } from '../schedulers'
 
+const controllers = [QuoteController, SettlementController]
+const processors = [TransferSettlementProcessor, SubmitSettlementProcessor]
+
+const schedulers = [BalanceMonitorScheduler]
+
+const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
+  name: queue.NAME,
+  adapter: BullAdapter,
+}))
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -60,12 +74,15 @@ import { IpWhitelistMiddleware } from '../middlewares'
       route: '/queues',
       adapter: ExpressAdapter,
     }),
+    BullModule.registerQueue(...SETTLEMENT_QUEUE_NAMES.map((name) => ({ name }))),
+    BullBoardModule.forFeature(...QUEUE_BOARDS),
     TokenModule,
     QuoteModule,
+    TradeModule,
     SettlementModule,
   ],
-  controllers: [AppController],
-  providers: [],
+  controllers: [AppController, ...controllers],
+  providers: [...processors, ...schedulers],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

@@ -1,8 +1,6 @@
 import { Controller, Get } from '@nestjs/common'
+import { GetCommitmentQuoteDto, GetIndicativeQuoteDto, GetLiquidationQuoteDto, QuoteService } from '@optimex-pmm/quote'
 import { TransformedQuery } from '@optimex-pmm/shared'
-
-import { GetCommitmentQuoteDto, GetIndicativeQuoteDto, GetLiquidationQuoteDto } from './quote.dto'
-import { QuoteService } from './quote.service'
 
 @Controller()
 export class QuoteController {

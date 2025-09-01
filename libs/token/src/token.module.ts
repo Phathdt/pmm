@@ -27,7 +27,6 @@ import { TokenService } from './token.service'
       inject: [ConfigService],
     }),
   ],
-  controllers: [],
   providers: [TokenRepository, TokenService],
   exports: [TokenRepository, TokenService],
 })

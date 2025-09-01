@@ -1,17 +1,19 @@
 import { InjectQueue, Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import {
+  l2Decode,
+  SETTLEMENT_QUEUE,
+  SubmitSettlementEvent,
+  TransferFactory,
+  TransferSettlementEvent,
+} from '@optimex-pmm/settlement'
 import { stringToHex, toObject, toString } from '@optimex-pmm/shared'
 import { TradeService } from '@optimex-pmm/trade'
 import { ITypes, routerService, tokenService } from '@optimex-xyz/market-maker-sdk'
 import { Trade } from '@prisma/client'
 
 import { Job, Queue } from 'bull'
-
-import { SETTLEMENT_QUEUE } from '../const'
-import { TransferFactory } from '../factories'
-import { SubmitSettlementEvent, TransferSettlementEvent } from '../types'
-import { l2Decode } from '../utils'
 
 @Processor(SETTLEMENT_QUEUE.TRANSFER.NAME)
 export class TransferSettlementProcessor {

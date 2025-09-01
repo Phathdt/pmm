@@ -6,7 +6,6 @@ import { TokenModule, TokenService } from '@optimex-pmm/token'
 import { TradeModule } from '@optimex-pmm/trade'
 
 import { QuoteSessionRepository } from './quote-session.repository'
-import { QuoteController } from './quote.controller'
 import { QuoteService } from './quote.service'
 
 @Module({
@@ -24,7 +23,6 @@ import { QuoteService } from './quote.service'
     TokenModule,
     TradeModule,
   ],
-  controllers: [QuoteController],
   providers: [QuoteService, QuoteSessionRepository, TokenService],
   exports: [QuoteService],
 })

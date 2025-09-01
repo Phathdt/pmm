@@ -1,12 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Cron } from '@nestjs/schedule'
+import { TelegramHelper } from '@optimex-pmm/settlement'
 import { TokenRepository } from '@optimex-pmm/token'
 import { Connection, PublicKey } from '@solana/web3.js'
 
 import axios from 'axios'
-
-import { TelegramHelper } from './utils/telegram.helper'
 
 interface ExplorerBalanceResponse {
   chain_stats: {
