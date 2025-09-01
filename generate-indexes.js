@@ -2,7 +2,10 @@ const fs = require('fs')
 const path = require('path')
 
 function shouldIgnoreFile(filename) {
-  return filename === 'index.ts' || filename.startsWith('.')
+  return filename === 'index.ts' || 
+         filename.startsWith('.') || 
+         filename.endsWith('.spec.ts') || 
+         filename.endsWith('.test.ts')
 }
 
 function shouldIgnoreDirectory(dirName) {
