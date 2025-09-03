@@ -42,8 +42,13 @@ export class SubmitSettlementProcessor {
   async submit(job: Job<string>) {
     const { tradeId, paymentTxId: paymentId } = toObject(job.data) as SubmitSettlementEvent
 
-    this.logger.log(`Starting settlement submission for Trade ID: ${tradeId}`)
-    this.logger.log(`Payment Transaction ID: ${paymentId}`)
+    this.logger.log({
+      message: 'Starting settlement submission',
+      tradeId,
+      paymentId,
+      operation: 'settlement_submission_start',
+      timestamp: new Date().toISOString(),
+    })
 
     try {
       const paymentTxId = l2Encode(paymentId)
@@ -67,7 +72,13 @@ export class SubmitSettlementProcessor {
         SignatureType.MakePayment,
         domain
       )
-      this.logger.log(`Generated signature: ${signature}`)
+      this.logger.log({
+        message: 'Generated signature for settlement',
+        tradeId,
+        signature,
+        operation: 'signature_generation',
+        timestamp: new Date().toISOString(),
+      })
 
       const requestPayload = {
         tradeIds: [tradeId],
@@ -78,35 +89,55 @@ export class SubmitSettlementProcessor {
         signedAt: signedAt,
       }
 
-      this.logger.log(`Sending request to solver with payload: ${JSON.stringify(requestPayload)}`)
+      this.logger.log({
+        message: 'Sending request to solver',
+        tradeId,
+        requestPayload,
+        operation: 'solver_request',
+        timestamp: new Date().toISOString(),
+      })
 
       try {
         const response = await this.solverSerivce.submitSettlementTx(requestPayload)
 
-        this.logger.log(`Solver response for trade ${tradeId}:`)
-        this.logger.log(`Response data: ${JSON.stringify(response)}`)
-        this.logger.log(`Submit settlement for trade ${tradeId} completed successfully`)
+        this.logger.log({
+          message: 'Settlement submission completed successfully',
+          tradeId,
+          response,
+          operation: 'settlement_submission_success',
+          timestamp: new Date().toISOString(),
+        })
 
         return response
       } catch (axiosError) {
         if (axiosError instanceof AxiosError) {
-          this.logger.error(`API Request failed for trade ${tradeId}:`)
-          this.logger.error(`Status: ${axiosError.response?.status}`)
-          this.logger.error(`Error message: ${axiosError.message}`)
-          this.logger.error(`Response data: ${JSON.stringify(axiosError.response?.data)}`)
-          this.logger.error(
-            `Request config: ${JSON.stringify({
+          this.logger.error({
+            message: 'API request failed for settlement submission',
+            tradeId,
+            error: axiosError.message,
+            status: axiosError.response?.status,
+            responseData: axiosError.response?.data,
+            requestConfig: {
               method: axiosError.config?.method,
               url: axiosError.config?.url,
               headers: axiosError.config?.headers,
               data: axiosError.config?.data,
-            })}`
-          )
+            },
+            operation: 'settlement_submission_api_error',
+            timestamp: new Date().toISOString(),
+          })
         }
         throw axiosError // Re-throw to be caught by outer catch block
       }
     } catch (error: any) {
-      this.logger.error('submit settlement error', error.stack)
+      this.logger.error({
+        message: 'Submit settlement error',
+        tradeId,
+        error: error.message,
+        stack: error.stack,
+        operation: 'settlement_submission_error',
+        timestamp: new Date().toISOString(),
+      })
 
       throw error // Re-throw the error for the queue to handle
     }

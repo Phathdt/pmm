@@ -59,31 +59,73 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
         }
       )
 
-      this.logger.log(`Liquid transfer transaction sent: ${result.hash}`)
+      this.logger.log({
+        message: 'Liquidation transfer transaction sent',
+        txHash: result.hash,
+        tradeId,
+        networkId,
+        tokenAddress,
+        amount: amount.toString(),
+        positionManager,
+        positionId,
+        operation: 'evm_liquidation_transfer',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+      })
 
       return result.hash
     } catch (error) {
-      console.log('🚀 ~ EVMLiquidationTransferStrategy ~ transfer ~ error:', error)
+      this.logger.error({
+        message: 'Liquidation transfer error details',
+        tradeId,
+        error: error.message || error.toString(),
+        operation: 'evm_liquidation_transfer',
+        timestamp: new Date().toISOString(),
+      })
       const decodedError: DecodedError = await decoder.decode(error)
-      console.log('🚀 ~ EVMLiquidationTransferStrategy ~ transfer ~ decodedError:', decodedError)
+      this.logger.error({
+        message: 'Decoded liquidation transfer error',
+        tradeId,
+        decodedError: decodedError.reason || decodedError.toString(),
+        operation: 'evm_liquidation_transfer',
+        timestamp: new Date().toISOString(),
+      })
 
       const errorCode = this.extractErrorCode(tradeId, error, decodedError)
       const paddedTxHash = this.padErrorCodeToTxHash(errorCode)
 
-      this.logger.warn(
-        `Payment failed for tradeId ${tradeId}, reason: ${decodedError.reason}, submitting padded error code as txHash`
-      )
+      this.logger.warn({
+        message: 'Liquidation payment failed, using error code as txHash',
+        tradeId,
+        networkId,
+        decodedReason: decodedError.reason,
+        errorCode,
+        paddedTxHash,
+        operation: 'evm_liquidation_transfer',
+        status: 'failed_with_fallback',
+        timestamp: new Date().toISOString(),
+      })
 
       return paddedTxHash
     }
   }
 
   private extractErrorCode(tradeId: string, error: any, decodedError: DecodedError): string {
-    console.log(
-      `🚀 ~ tradeId ${tradeId} EVMLiquidationTransferStrategy ~ extractErrorCode ~ decodedError:`,
-      decodedError
-    )
-    console.log(`🚀 ~ tradeId ${tradeId} EVMLiquidationTransferStrategy ~ extractErrorCode ~ error:`, error)
+    this.logger.debug({
+      message: 'Extracting error code from decoded error',
+      tradeId,
+      decodedError: decodedError.toString(),
+      operation: 'extract_error_code',
+      timestamp: new Date().toISOString(),
+    })
+    this.logger.debug({
+      message: 'Extracting error code from raw error',
+      tradeId,
+      error: error.message || error.toString(),
+      errorData: error?.data || error?.transaction?.data,
+      operation: 'extract_error_code',
+      timestamp: new Date().toISOString(),
+    })
 
     const errorData = error?.data || error?.transaction?.data || decodedError?.data
     if (!errorData) {

@@ -52,14 +52,34 @@ export class EVMTransferStrategy implements ITransferStrategy {
         }
       )
 
-      this.logger.log(`Normal transfer transaction sent: ${result.hash}`)
+      this.logger.log({
+        message: 'Normal EVM transfer transaction sent',
+        txHash: result.hash,
+        tradeId,
+        networkId,
+        tokenAddress,
+        toAddress,
+        amount: amount.toString(),
+        operation: 'evm_transfer',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+      })
       return result.hash
     } catch (error) {
       const decodedError: DecodedError = await decoder.decode(error)
 
-      this.logger.error(
-        `Processing normal transfer tradeId ${tradeId} Execution reverted!\nReason: ${decodedError.reason}`
-      )
+      this.logger.error({
+        message: 'Normal EVM transfer transaction failed',
+        tradeId,
+        networkId,
+        tokenAddress,
+        toAddress,
+        amount: amount.toString(),
+        error: decodedError.reason || error.message || error.toString(),
+        operation: 'evm_transfer',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
 
       throw error
     }

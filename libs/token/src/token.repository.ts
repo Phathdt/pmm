@@ -71,7 +71,13 @@ export class TokenRepository {
 
       return response
     } catch (error) {
-      this.logger.error('Error fetching tokens:', error)
+      this.logger.error({
+        message: 'Error fetching tokens from CoinGecko API',
+        error: error.message || error.toString(),
+        operation: 'token_fetch',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
       return []
     }
   }

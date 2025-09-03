@@ -30,7 +30,16 @@ export class IpWhitelistMiddleware implements NestMiddleware {
       return next()
     }
 
-    this.logger.warn(`Access denied for IP: ${clientIp}`)
+    this.logger.warn({
+      message: 'Access denied for IP address not in whitelist',
+      clientIp,
+      whitelistedIps: this.whitelistedIps,
+      enabled: this.enabled,
+      userAgent: req.headers['user-agent'],
+      operation: 'ip_whitelist_check',
+      status: 'denied',
+      timestamp: new Date().toISOString(),
+    })
     return res.status(403).json({
       statusCode: 403,
       message: 'Forbidden: IP address not whitelisted',

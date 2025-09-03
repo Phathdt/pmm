@@ -40,7 +40,14 @@ export class TransferSettlementProcessor {
   async transfer(job: Job<string>) {
     const { tradeId, retryCount = 0 } = toObject(job.data) as TransferSettlementEvent & { retryCount?: number }
 
-    this.logger.log(`Processing retry ${retryCount}/${this.MAX_RETRIES} for tradeId ${tradeId}`)
+    this.logger.log({
+      message: 'Processing transfer settlement retry',
+      tradeId,
+      retryCount,
+      maxRetries: this.MAX_RETRIES,
+      operation: 'transfer_settlement',
+      timestamp: new Date().toISOString(),
+    })
 
     try {
       const pMMSelection = await this.routerService.getPMMSelection(tradeId)
@@ -48,7 +55,14 @@ export class TransferSettlementProcessor {
       const { pmmInfo } = pMMSelection
 
       if (pmmInfo.selectedPMMId !== this.pmmId) {
-        this.logger.error(`Tradeid ${tradeId} is not belong this pmm`)
+        this.logger.error({
+          message: 'Trade does not belong to this PMM',
+          tradeId,
+          pmmId: this.pmmId,
+          operation: 'transfer_settlement',
+          error: 'trade_pmm_mismatch',
+          timestamp: new Date().toISOString(),
+        })
         return
       }
 
@@ -57,14 +71,28 @@ export class TransferSettlementProcessor {
       const tradeDb = await this.tradeService.findTradeById(tradeId)
 
       if (!tradeDb) {
-        this.logger.error(`Trade not found: ${tradeId}`)
+        this.logger.error({
+          message: 'Trade not found in database',
+          tradeId,
+          operation: 'transfer_settlement',
+          error: 'trade_not_found',
+          timestamp: new Date().toISOString(),
+        })
         return
       }
 
       // Check if trade deadline has passed
       const now = Math.floor(Date.now() / 1000)
       if (tradeDb.tradeDeadline && parseInt(tradeDb.tradeDeadline) < now) {
-        this.logger.error(`Trade ${tradeId} has expired. Deadline: ${tradeDb.tradeDeadline}, Current time: ${now}`)
+        this.logger.error({
+          message: 'Trade has expired',
+          tradeId,
+          tradeDeadline: tradeDb.tradeDeadline,
+          currentTime: now,
+          operation: 'transfer_settlement',
+          error: 'trade_expired',
+          timestamp: new Date().toISOString(),
+        })
         return
       }
 
@@ -84,10 +112,26 @@ export class TransferSettlementProcessor {
         },
       })
 
-      this.logger.log(`Processing transfer tradeId ${tradeId} success with paymentId ${paymentTxId}`)
+      this.logger.log({
+        message: 'Transfer settlement completed successfully',
+        tradeId,
+        paymentTxId,
+        operation: 'transfer_settlement',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+      })
     } catch (error) {
       if (retryCount < this.MAX_RETRIES - 1) {
-        this.logger.warn(`Retry ${retryCount + 1}/${this.MAX_RETRIES} for tradeId ${tradeId}: ${error}`)
+        this.logger.warn({
+          message: 'Transfer settlement retry scheduled',
+          tradeId,
+          retryCount: retryCount + 1,
+          maxRetries: this.MAX_RETRIES,
+          error: error.message || error.toString(),
+          operation: 'transfer_settlement',
+          nextRetryDelayMs: this.RETRY_DELAY,
+          timestamp: new Date().toISOString(),
+        })
 
         await this.transferSettlementQueue.add(
           SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS,
@@ -104,7 +148,15 @@ export class TransferSettlementProcessor {
         )
         return
       }
-      this.logger.error(`Processing transfer tradeId ${tradeId} failed after ${this.MAX_RETRIES} attempts: ${error}`)
+      this.logger.error({
+        message: 'Transfer settlement failed after maximum retries',
+        tradeId,
+        maxRetries: this.MAX_RETRIES,
+        error: error.message || error.toString(),
+        operation: 'transfer_settlement',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
 
       throw error
     }
@@ -123,12 +175,15 @@ export class TransferSettlementProcessor {
       tokenAddress: toTokenAddress,
     } = await this.decodeChainInfo(trade.tradeInfo.toChain)
 
-    this.logger.log(`
-      Decoded chain info:
-      - To Address: ${toUserAddress}
-      - Chain: ${networkId}
-      - Token: ${toTokenAddress}
-    `)
+    this.logger.log({
+      message: 'Chain information decoded successfully',
+      tradeId,
+      toUserAddress,
+      networkId,
+      tokenAddress: toTokenAddress,
+      operation: 'chain_info_decode',
+      timestamp: new Date().toISOString(),
+    })
 
     const toToken = await this.tokenRepo.getToken(networkId, toTokenAddress)
 
@@ -144,7 +199,14 @@ export class TransferSettlementProcessor {
 
       return tx
     } catch (error) {
-      this.logger.error('Transfer token error:', error)
+      this.logger.error({
+        message: 'Token transfer failed',
+        tradeId,
+        error: error.message || error.toString(),
+        operation: 'token_transfer',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
       throw error
     }
   }

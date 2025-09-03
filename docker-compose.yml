@@ -18,5 +18,7 @@ services:
   #     dockerfile: ./apps/api-server/Dockerfile
   #   environment:
   #     APP_PORT: ${APP_PORT}
+  #     ENABLE_JSON_LOG: 'true'  # Use JSON in containerized environments
+  #     LOG_LEVEL: 'info'
   #   ports:
   #     - '3000:3000'

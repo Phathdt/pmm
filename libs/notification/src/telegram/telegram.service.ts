@@ -27,13 +27,25 @@ export class TelegramService implements TelegramProvider {
     this.baseUrl = this.configService.get<string>('TELEGRAM_BASE_URL') || 'https://api.telegram.org'
     this.timeout = this.configService.get<number>('TELEGRAM_TIMEOUT') || 10000
 
-    this.logger.debug(`Telegram service initialized with chat ID: ${this.chatId}`)
+    this.logger.debug({
+      message: 'Telegram service initialized',
+      chatId: this.chatId,
+      baseUrl: this.baseUrl,
+      timeout: this.timeout,
+      operation: 'telegram_service_init',
+      timestamp: new Date().toISOString(),
+    })
   }
 
   async sendMessage(message: string, options?: TelegramMessageOptions): Promise<void> {
     try {
       if (!this.validateConfiguration()) {
-        this.logger.warn('Telegram service not properly configured, skipping message')
+        this.logger.warn({
+          message: 'Telegram service not properly configured, skipping message',
+          operation: 'telegram_send_message',
+          status: 'skipped',
+          timestamp: new Date().toISOString(),
+        })
         return
       }
 
@@ -59,14 +71,36 @@ export class TelegramService implements TelegramProvider {
       )
 
       if (response.data?.ok) {
-        this.logger.debug(`Message sent successfully to chat ${payload.chat_id}`)
+        this.logger.debug({
+          message: 'Telegram message sent successfully',
+          chatId: payload.chat_id,
+          messageLength: message.length,
+          parseMode: payload.parse_mode,
+          operation: 'telegram_send_message',
+          status: 'success',
+          timestamp: new Date().toISOString(),
+        })
       } else {
-        this.logger.error(`Telegram API returned error: ${JSON.stringify(response.data)}`)
+        this.logger.error({
+          message: 'Telegram API returned error',
+          responseData: JSON.stringify(response.data),
+          chatId: payload.chat_id,
+          operation: 'telegram_send_message',
+          status: 'api_error',
+          timestamp: new Date().toISOString(),
+        })
         throw new Error(`Telegram API error: ${response.data?.description || 'Unknown error'}`)
       }
     } catch (error: any) {
       const errorMessage = error?.response?.data?.description || error.message || 'Unknown error'
-      this.logger.error(`Failed to send telegram message: ${errorMessage}`, error.stack)
+      this.logger.error({
+        message: 'Failed to send telegram message',
+        error: errorMessage,
+        stack: error.stack,
+        operation: 'telegram_send_message',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
 
       // Don't throw in production to avoid breaking the main flow
       if (this.configService.get<string>('NODE_ENV') === 'development') {
@@ -97,7 +131,14 @@ export class TelegramService implements TelegramProvider {
     const isValid = !!(this.botToken && this.chatId)
 
     if (!isValid) {
-      this.logger.warn('Telegram configuration invalid: missing botToken or chatId')
+      this.logger.warn({
+        message: 'Telegram configuration invalid',
+        hasToken: !!this.botToken,
+        hasChatId: !!this.chatId,
+        operation: 'telegram_config_validation',
+        status: 'invalid',
+        timestamp: new Date().toISOString(),
+      })
     }
 
     return isValid

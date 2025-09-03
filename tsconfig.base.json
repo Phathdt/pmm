@@ -18,6 +18,7 @@
     "baseUrl": ".",
     "paths": {
       "@optimex-pmm/blockchain": ["libs/blockchain/src/index.ts"],
+      "@optimex-pmm/custom-logger": ["libs/custom-logger/src/index.ts"],
       "@optimex-pmm/database": ["libs/database/src/index.ts"],
       "@optimex-pmm/notification": ["libs/notification/src/index.ts"],
       "@optimex-pmm/quote": ["libs/quote/src/index.ts"],

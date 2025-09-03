@@ -31,7 +31,13 @@ export class NonceManagerService {
       const nonceManager = new ethers.NonceManager(wallet)
 
       this.nonceManagers.set(cacheKey, nonceManager)
-      this.logger.log(`Created NonceManager for network ${networkId}`)
+      this.logger.log({
+        message: 'NonceManager created for network',
+        networkId,
+        cacheKey,
+        operation: 'nonce_manager_creation',
+        timestamp: new Date().toISOString(),
+      })
     }
 
     const nonceManager = this.nonceManagers.get(cacheKey)
@@ -47,7 +53,13 @@ export class NonceManagerService {
   async getCurrentNonce(networkId: string): Promise<number> {
     const nonceManager = this.getNonceManager(networkId)
     const nonce = await nonceManager.getNonce()
-    this.logger.log(`Current nonce for network ${networkId}: ${nonce}`)
+    this.logger.log({
+      message: 'Current nonce retrieved for network',
+      networkId,
+      nonce,
+      operation: 'nonce_retrieval',
+      timestamp: new Date().toISOString(),
+    })
     return nonce
   }
 
@@ -58,7 +70,13 @@ export class NonceManagerService {
   resetNonceManager(networkId: string): void {
     const cacheKey = `${networkId}-pmm`
     this.nonceManagers.delete(cacheKey)
-    this.logger.log(`Reset NonceManager for network ${networkId}`)
+    this.logger.log({
+      message: 'NonceManager reset for network',
+      networkId,
+      cacheKey,
+      operation: 'nonce_manager_reset',
+      timestamp: new Date().toISOString(),
+    })
   }
 
   /**
@@ -66,7 +84,11 @@ export class NonceManagerService {
    */
   clearAllNonceManagers(): void {
     this.nonceManagers.clear()
-    this.logger.log('Cleared all NonceManagers')
+    this.logger.log({
+      message: 'All NonceManagers cleared',
+      operation: 'nonce_manager_clear_all',
+      timestamp: new Date().toISOString(),
+    })
   }
 
   /**
@@ -81,15 +103,35 @@ export class NonceManagerService {
         (async () => {
           try {
             const newNonce = await nonceManager.getNonce()
-            this.logger.log(`Refreshed nonce for cache key: ${cacheKey}, new nonce: ${newNonce}`)
+            this.logger.log({
+              message: 'Nonce refreshed for cache key',
+              cacheKey,
+              newNonce,
+              operation: 'nonce_refresh',
+              status: 'success',
+              timestamp: new Date().toISOString(),
+            })
           } catch (error) {
-            this.logger.warn(`Failed to refresh nonce for cache key ${cacheKey}:`, error)
+            this.logger.warn({
+              message: 'Failed to refresh nonce for cache key',
+              cacheKey,
+              error: error.message || error.toString(),
+              operation: 'nonce_refresh',
+              status: 'failed',
+              timestamp: new Date().toISOString(),
+            })
           }
         })()
       )
     }
 
     await Promise.all(refreshPromises)
-    this.logger.log(`Refreshed nonces for ${this.nonceManagers.size} cached networks`)
+    this.logger.log({
+      message: 'Nonces refreshed for all cached networks',
+      cachedNetworksCount: this.nonceManagers.size,
+      operation: 'nonce_refresh_all',
+      status: 'completed',
+      timestamp: new Date().toISOString(),
+    })
   }
 }

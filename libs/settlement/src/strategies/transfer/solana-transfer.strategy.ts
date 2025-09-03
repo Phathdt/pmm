@@ -45,15 +45,27 @@ export class SolanaTransferStrategy implements ITransferStrategy {
       if (token === null) {
         // Check SOL balance
         balance = BigInt(await this.connection.getBalance(this.pmmKeypair.publicKey))
-        this.logger.log(`Checking SOL balance - Address: ${this.pmmKeypair.publicKey.toBase58()}`)
+        this.logger.log({
+          message: 'Checking SOL balance',
+          walletAddress: this.pmmKeypair.publicKey.toBase58(),
+          tokenType: 'native',
+          operation: 'solana_check_balance',
+          timestamp: new Date().toISOString(),
+        })
       } else {
         // Check SPL token balance
         const ata = await getAssociatedTokenAddress(token, this.pmmKeypair.publicKey, true)
         const tokenBalance = await this.connection.getTokenAccountBalance(ata)
         balance = BigInt(tokenBalance.value.amount)
-        this.logger.log(
-          `Checking SPL token balance - Token: ${token.toBase58()}, ATA: ${ata.toBase58()}, Decimals: ${tokenBalance.value.decimals}`
-        )
+        this.logger.log({
+          message: 'Checking SPL token balance',
+          tokenAddress: token.toBase58(),
+          associatedTokenAccount: ata.toBase58(),
+          decimals: tokenBalance.value.decimals,
+          tokenType: 'spl',
+          operation: 'solana_check_balance',
+          timestamp: new Date().toISOString(),
+        })
       }
 
       if (balance < amount) {
@@ -63,7 +75,13 @@ export class SolanaTransferStrategy implements ITransferStrategy {
       }
       return true
     } catch (error) {
-      this.logger.error(error, `Error checking balance for token ${token ? token.toBase58() : 'SOL'}:`)
+      this.logger.error({
+        message: 'Error checking balance',
+        error: error instanceof Error ? error.message : String(error),
+        tokenAddress: token ? token.toBase58() : 'SOL',
+        operation: 'solana_check_balance',
+        timestamp: new Date().toISOString(),
+      })
       return false
     }
   }
@@ -71,15 +89,42 @@ export class SolanaTransferStrategy implements ITransferStrategy {
   async transfer(params: TransferParams): Promise<string> {
     const { toAddress, amount, tradeId, token } = params
     const deadline = Math.floor(Date.now() / 1000) + 3600
-    this.logger.log(`Transfer SOL tradeId ${tradeId}`, { toAddress, amount, token })
-    this.logger.log(`Pmm pubkey tradeId ${tradeId}: ${this.pmmKeypair.publicKey.toBase58()}`)
+    this.logger.log({
+      message: 'Starting Solana transfer',
+      tradeId,
+      toAddress,
+      amount: amount.toString(),
+      tokenAddress: token.tokenAddress,
+      networkName: token.networkName,
+      operation: 'solana_transfer',
+      status: 'starting',
+      timestamp: new Date().toISOString(),
+    })
+    this.logger.log({
+      message: 'PMM keypair configured',
+      tradeId,
+      pmmPublicKey: this.pmmKeypair.publicKey.toBase58(),
+      operation: 'solana_transfer_setup',
+      timestamp: new Date().toISOString(),
+    })
     const fromUser = new PublicKey(this.pmmKeypair.publicKey)
     const toUser = new PublicKey(toAddress)
     const toToken = token.tokenAddress === 'native' ? null : new PublicKey(token.tokenAddress)
-    this.logger.log(`Sender wallet address: ${fromUser.toBase58()}`)
-    this.logger.log(
-      `To token tradeId ${tradeId}: ${toToken?.toBase58() || 'native'}, fromuser: ${fromUser.toBase58()} toUser: ${toUser.toBase58()}`
-    )
+    this.logger.log({
+      message: 'Sender wallet configured',
+      senderAddress: fromUser.toBase58(),
+      operation: 'solana_transfer_setup',
+      timestamp: new Date().toISOString(),
+    })
+    this.logger.log({
+      message: 'Transfer addresses configured',
+      tradeId,
+      toTokenAddress: toToken?.toBase58() || 'native',
+      fromUserAddress: fromUser.toBase58(),
+      toUserAddress: toUser.toBase58(),
+      operation: 'solana_transfer_setup',
+      timestamp: new Date().toISOString(),
+    })
 
     // Check balance before proceeding
     const hasSufficientBalance = await this.checkBalance(toToken, amount)
@@ -88,9 +133,21 @@ export class SolanaTransferStrategy implements ITransferStrategy {
     }
 
     const feeDetails = await routerService.getFeeDetails(tradeId)
-    this.logger.log(`TradeId ${tradeId} ${optimexSolProgram.programId}`)
+    this.logger.log({
+      message: 'Optimex program configured',
+      tradeId,
+      programId: optimexSolProgram.programId.toBase58(),
+      operation: 'solana_transfer_setup',
+      timestamp: new Date().toISOString(),
+    })
     const protocolPda = getProtocolPda()
-    this.logger.log(`Protocol PDA tradeId ${tradeId}: ${protocolPda.toBase58()}`)
+    this.logger.log({
+      message: 'Protocol PDA configured',
+      tradeId,
+      protocolPda: protocolPda.toBase58(),
+      operation: 'solana_transfer_setup',
+      timestamp: new Date().toISOString(),
+    })
 
     const remainingAccounts: AccountMeta[] = []
     let whitelistToken: PublicKey
@@ -139,7 +196,16 @@ export class SolanaTransferStrategy implements ITransferStrategy {
       token: toToken,
     })
 
-    this.logger.log(`Payment SOL tradeId ${tradeId}`, { whitelistToken, paymentReceiptPda, protocolPda, toToken })
+    this.logger.log({
+      message: 'Payment accounts prepared',
+      tradeId,
+      whitelistToken: whitelistToken.toBase58(),
+      paymentReceiptPda: paymentReceiptPda.toBase58(),
+      protocolPda: protocolPda.toBase58(),
+      toTokenAddress: toToken?.toBase58() || 'native',
+      operation: 'solana_transfer_payment',
+      timestamp: new Date().toISOString(),
+    })
     const paymentIns = await optimexSolProgram.methods
       .payment({
         tradeId: bigintToBytes32(BigInt(tradeId)),
@@ -164,24 +230,40 @@ export class SolanaTransferStrategy implements ITransferStrategy {
       toUser
     )
 
-    this.logger.log(`Payment prepare ${tradeId}`, {
-      fromUser,
-      toUser,
-      toToken,
-      amount,
-      feeAmount: feeDetails.totalAmount,
+    this.logger.log({
+      message: 'Payment transaction prepared',
+      tradeId,
+      fromUserAddress: fromUser.toBase58(),
+      toUserAddress: toUser.toBase58(),
+      toTokenAddress: toToken?.toBase58() || 'native',
+      amount: amount.toString(),
+      feeAmount: feeDetails.totalAmount.toString(),
+      operation: 'solana_transfer_payment',
+      timestamp: new Date().toISOString(),
     })
 
     const transaction = new Transaction().add(...createDestinationAtaIns, paymentIns)
     try {
       const txHash = await sendTransactionWithRetry(this.connection, transaction, [this.pmmKeypair])
-      this.logger.log('Payment successful! ', tradeId)
-      this.logger.log('Transaction signature:', txHash)
+      this.logger.log({
+        message: 'Solana payment completed successfully',
+        tradeId,
+        transactionSignature: txHash,
+        operation: 'solana_transfer',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+      })
 
       return txHash
     } catch (error) {
-      this.logger.error('Payment failed', tradeId)
-      this.logger.error(error)
+      this.logger.error({
+        message: 'Solana payment failed',
+        tradeId,
+        error: error instanceof Error ? error.message : String(error),
+        operation: 'solana_transfer',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
       throw error
     }
   }

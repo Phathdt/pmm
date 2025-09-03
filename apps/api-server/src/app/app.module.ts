@@ -4,18 +4,13 @@ import { BullBoardModule } from '@bull-board/nestjs'
 import { BullModule } from '@nestjs/bull'
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
+import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
 import { QuoteModule } from '@optimex-pmm/quote'
 import { SETTLEMENT_QUEUE, SETTLEMENT_QUEUE_NAMES, SettlementModule } from '@optimex-pmm/settlement'
 import { TokenModule } from '@optimex-pmm/token'
 import { TradeModule } from '@optimex-pmm/trade'
 
-import { LoggerModule } from 'nestjs-pino'
 import { PrismaModule, PrismaServiceOptions } from 'nestjs-prisma'
-/* prettier-ignore-start */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import pretty from 'pino-pretty'
-
-/* prettier-ignore-end */
 import { AppController } from './app.controller'
 
 import { QuoteController, SettlementController } from '../controllers'
@@ -39,17 +34,7 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
       load: [],
       envFilePath: ['.env'],
     }),
-    LoggerModule.forRoot({
-      pinoHttp: {
-        transport: {
-          target: 'pino-pretty',
-          options: {
-            singleLine: true,
-            colorize: true,
-          },
-        },
-      },
-    }),
+    CustomLoggerModule, // Add this early in the imports array
     PrismaModule.forRootAsync({
       isGlobal: true,
       imports: [ConfigModule],

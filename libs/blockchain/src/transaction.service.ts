@@ -89,7 +89,13 @@ export class TransactionService {
   ): Promise<TransactionResult> {
     const wallet = this.nonceManagerService.getNonceManager(networkId)
 
-    this.logger.log(`Executing transaction on network ${networkId}: ${options.description || 'Unknown'}`)
+    this.logger.log({
+      message: 'Executing blockchain transaction',
+      networkId,
+      description: options.description || 'Unknown',
+      operation: 'execute_transaction',
+      timestamp: new Date().toISOString(),
+    })
 
     try {
       // Gas limit handling (existing logic)
@@ -116,19 +122,49 @@ export class TransactionService {
       // Enhanced logging with gas price information
       const gasType = gasConfig.maxFeePerGas ? 'EIP-1559' : 'Legacy'
       const gasValue = gasConfig.maxFeePerGas || gasConfig.gasPrice
-      this.logger.log(`Transaction executed: ${tx.hash} (Gas Limit: ${gasLimit}, ${gasType} Price: ${gasValue})`)
+      this.logger.log({
+        message: 'Transaction executed successfully',
+        txHash: tx.hash,
+        gasLimit: gasLimit.toString(),
+        gasType,
+        gasValue: gasValue?.toString(),
+        networkId,
+        operation: 'execute_transaction',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+      })
 
       return { hash: tx.hash }
     } catch (error) {
-      this.logger.error(`Transaction execution failed: ${error}`)
+      this.logger.error({
+        message: 'Transaction execution failed',
+        error: error.message || error.toString(),
+        networkId,
+        operation: 'execute_transaction',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
 
       // Enhanced error handling for gas-related issues
       if (this.isGasRelatedError(error)) {
-        this.logger.error('Gas limit related error detected')
+        this.logger.error({
+          message: 'Gas limit related error detected',
+          networkId,
+          operation: 'execute_transaction',
+          errorType: 'gas_limit',
+          timestamp: new Date().toISOString(),
+        })
       }
 
       if (this.isGasPriceRelatedError(error)) {
-        this.logger.error('Gas price related error detected - consider increasing gas price or buffer')
+        this.logger.error({
+          message: 'Gas price related error detected',
+          networkId,
+          operation: 'execute_transaction',
+          errorType: 'gas_price',
+          recommendation: 'consider increasing gas price or buffer',
+          timestamp: new Date().toISOString(),
+        })
       }
 
       throw error
@@ -168,7 +204,14 @@ export class TransactionService {
       throw new Error(`Method ${String(methodName)} not found on contract or not callable`)
     }
 
-    this.logger.log(`Executing contract method: ${String(methodName)} on network ${networkId}`)
+    this.logger.log({
+      message: 'Executing contract method',
+      contractAddress,
+      methodName: String(methodName),
+      networkId,
+      operation: 'execute_contract_method',
+      timestamp: new Date().toISOString(),
+    })
 
     // Step 2: Try contract-specific gas estimation if not provided
     let gasLimit = options?.gasLimit
@@ -200,7 +243,14 @@ export class TransactionService {
   ): Promise<void> {
     const wallet = this.nonceManagerService.getNonceManager(networkId)
 
-    this.logger.log(`Checking token approval for ${tokenAddress} on network ${networkId}`)
+    this.logger.log({
+      message: 'Checking token approval',
+      tokenAddress,
+      spenderAddress,
+      networkId,
+      operation: 'token_approval_check',
+      timestamp: new Date().toISOString(),
+    })
 
     try {
       // Create ERC20 contract interface
@@ -210,18 +260,40 @@ export class TransactionService {
       // Check current allowance
       const currentAllowance = await erc20Contract.allowance(walletAddress, spenderAddress)
 
-      this.logger.log(`Current allowance: ${currentAllowance}, Required: ${requiredAmount}`)
+      this.logger.log({
+        message: 'Token allowance checked',
+        tokenAddress,
+        currentAllowance: currentAllowance.toString(),
+        requiredAmount: requiredAmount.toString(),
+        operation: 'token_approval_check',
+        timestamp: new Date().toISOString(),
+      })
 
       // If current allowance is sufficient, no action needed
       if (currentAllowance >= requiredAmount) {
-        this.logger.log('Current allowance is sufficient, skipping approval')
+        this.logger.log({
+          message: 'Token allowance is sufficient',
+          tokenAddress,
+          currentAllowance: currentAllowance.toString(),
+          requiredAmount: requiredAmount.toString(),
+          operation: 'token_approval_check',
+          status: 'sufficient',
+          timestamp: new Date().toISOString(),
+        })
         return
       }
 
       // If current allowance exists and is less than required, reset to 0 first
       // (Some tokens like USDT require this)
       if (currentAllowance > BigInt(0)) {
-        this.logger.log('Resetting existing allowance to 0')
+        this.logger.log({
+          message: 'Resetting existing token allowance to zero',
+          tokenAddress,
+          spenderAddress,
+          currentAllowance: currentAllowance.toString(),
+          operation: 'token_approval_reset',
+          timestamp: new Date().toISOString(),
+        })
         await this.executeContractMethod(
           ERC20__factory,
           tokenAddress,
@@ -237,7 +309,13 @@ export class TransactionService {
       }
 
       // Set new approval to maximum
-      this.logger.log('Setting token approval to maximum')
+      this.logger.log({
+        message: 'Setting token approval to maximum',
+        tokenAddress,
+        spenderAddress,
+        operation: 'token_approval_set',
+        timestamp: new Date().toISOString(),
+      })
       await this.executeContractMethod(
         ERC20__factory,
         tokenAddress,
@@ -251,9 +329,24 @@ export class TransactionService {
         }
       )
 
-      this.logger.log(`Token approval completed for ${tokenAddress}`)
+      this.logger.log({
+        message: 'Token approval completed successfully',
+        tokenAddress,
+        spenderAddress,
+        operation: 'token_approval_set',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+      })
     } catch (error) {
-      this.logger.error(`Token approval failed for ${tokenAddress}:`, error)
+      this.logger.error({
+        message: 'Token approval failed',
+        tokenAddress,
+        spenderAddress,
+        error: error.message || error.toString(),
+        operation: 'token_approval_set',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
       throw error
     }
   }
@@ -271,7 +364,14 @@ export class TransactionService {
     const maxGas = options.maxGasLimit
     const finalGas = maxGas && gasWithBuffer > maxGas ? maxGas : gasWithBuffer
 
-    this.logger.log(`Gas calculation - Estimated: ${estimatedGas}, Buffer: ${actualBuffer}, Final: ${finalGas}`)
+    this.logger.log({
+      message: 'Gas calculation completed',
+      estimatedGas: estimatedGas.toString(),
+      bufferAmount: actualBuffer.toString(),
+      finalGas: finalGas.toString(),
+      operation: 'gas_calculation',
+      timestamp: new Date().toISOString(),
+    })
 
     return finalGas
   }
@@ -292,23 +392,51 @@ export class TransactionService {
     args: ExtractPopulateTransactionParams<T[M]>,
     options: TransactionOptions
   ): Promise<bigint> {
-    this.logger.log(`Estimating gas for contract method: ${String(methodName)}`)
+    this.logger.log({
+      message: 'Estimating gas for contract method',
+      methodName: String(methodName),
+      operation: 'gas_estimation',
+      timestamp: new Date().toISOString(),
+    })
 
     try {
       // Step 1: Try contract-specific gas estimation
       const method = contract[methodName] as any
       if (method && typeof method.estimateGas === 'function') {
-        this.logger.log('Using contract.estimateGas for accurate estimation')
+        this.logger.log({
+          message: 'Using contract.estimateGas for accurate estimation',
+          methodName: String(methodName),
+          operation: 'gas_estimation',
+          estimationType: 'contract_estimate',
+          timestamp: new Date().toISOString(),
+        })
         const estimatedGas = await method.estimateGas(...(args as any[]))
         const gasWithBuffer = this.applyGasBuffer(estimatedGas, options)
-        this.logger.log(`Contract gas estimation successful: ${estimatedGas} -> ${gasWithBuffer} (with buffer)`)
+        this.logger.log({
+          message: 'Contract gas estimation successful',
+          methodName: String(methodName),
+          estimatedGas: estimatedGas.toString(),
+          gasWithBuffer: gasWithBuffer.toString(),
+          operation: 'gas_estimation',
+          estimationType: 'contract_estimate',
+          status: 'success',
+          timestamp: new Date().toISOString(),
+        })
         return gasWithBuffer
       }
 
       throw new Error('Contract method does not support gas estimation')
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      this.logger.warn(`Contract gas estimation failed: ${errorMessage}`)
+      this.logger.warn({
+        message: 'Contract gas estimation failed',
+        methodName: String(methodName),
+        error: errorMessage,
+        operation: 'gas_estimation',
+        estimationType: 'contract_estimate',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
 
       // Step 2: Fallback to provider-based estimation with contract data
       return await this.fallbackContractGasEstimation(contract, methodName, args, options)
@@ -331,7 +459,13 @@ export class TransactionService {
     options: TransactionOptions
   ): Promise<bigint> {
     try {
-      this.logger.log('Using fallback provider estimation with contract data')
+      this.logger.log({
+        message: 'Using fallback provider estimation with contract data',
+        methodName: String(methodName),
+        operation: 'gas_estimation',
+        estimationType: 'fallback_provider',
+        timestamp: new Date().toISOString(),
+      })
       const method = contract[methodName] as any
       const txData = await method.populateTransaction(...(args as any[]))
 
@@ -344,7 +478,12 @@ export class TransactionService {
         try {
           from = await (signer as any).getAddress()
         } catch {
-          this.logger.log('Could not get signer address for gas estimation')
+          this.logger.log({
+            message: 'Could not get signer address for gas estimation',
+            operation: 'gas_estimation',
+            estimationType: 'fallback_provider',
+            timestamp: new Date().toISOString(),
+          })
         }
       }
 
@@ -365,16 +504,41 @@ export class TransactionService {
 
       const estimatedGas = await provider.estimateGas(estimationRequest)
       const gasWithBuffer = this.applyGasBuffer(estimatedGas, options)
-      this.logger.log(`Fallback provider estimation successful: ${estimatedGas} -> ${gasWithBuffer} (with buffer)`)
+      this.logger.log({
+        message: 'Fallback provider estimation successful',
+        methodName: String(methodName),
+        estimatedGas: estimatedGas.toString(),
+        gasWithBuffer: gasWithBuffer.toString(),
+        operation: 'gas_estimation',
+        estimationType: 'fallback_provider',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+      })
       return gasWithBuffer
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      this.logger.warn(`Fallback provider gas estimation failed: ${errorMessage}`)
+      this.logger.warn({
+        message: 'Fallback provider gas estimation failed',
+        methodName: String(methodName),
+        error: errorMessage,
+        operation: 'gas_estimation',
+        estimationType: 'fallback_provider',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
 
       // Step 3: Use fallback gas limit as last resort
       const fallbackGas = options.fallbackGasLimit || BigInt(500000)
       const gasWithBuffer = this.applyGasBuffer(fallbackGas, options)
-      this.logger.warn(`Using fallback gas limit: ${fallbackGas} -> ${gasWithBuffer} (with buffer)`)
+      this.logger.warn({
+        message: 'Using fallback gas limit',
+        methodName: String(methodName),
+        fallbackGas: fallbackGas.toString(),
+        gasWithBuffer: gasWithBuffer.toString(),
+        operation: 'gas_estimation',
+        estimationType: 'fallback_limit',
+        timestamp: new Date().toISOString(),
+      })
       return gasWithBuffer
     }
   }
@@ -392,7 +556,13 @@ export class TransactionService {
       const estimatedGas = await provider.estimateGas(txData as EthersTransactionRequest)
       return this.applyGasBuffer(estimatedGas, options)
     } catch (error) {
-      this.logger.warn(`Gas estimation failed, using fallback: ${error}`)
+      this.logger.warn({
+        message: 'Gas estimation failed, using fallback',
+        error: error.message || error.toString(),
+        operation: 'gas_estimation',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
       const fallbackGas = options.fallbackGasLimit || BigInt(500000)
       return this.applyGasBuffer(fallbackGas, options)
     }
@@ -413,7 +583,12 @@ export class TransactionService {
       // For legacy networks, this will be the network's current gas price
       return feeData.gasPrice || undefined
     } catch (error) {
-      this.logger.warn(`Failed to get base fee: ${error}`)
+      this.logger.warn({
+        message: 'Failed to get base fee from provider',
+        error: error.message || error.toString(),
+        operation: 'gas_price_estimation',
+        timestamp: new Date().toISOString(),
+      })
       return undefined
     }
   }
@@ -428,7 +603,14 @@ export class TransactionService {
     const buffer = (gasPrice * BigInt(bufferPercentage)) / BigInt(100)
     const bufferedPrice = gasPrice + buffer
 
-    this.logger.log(`Gas price buffering - Original: ${gasPrice}, Buffer: ${buffer}, Final: ${bufferedPrice}`)
+    this.logger.log({
+      message: 'Gas price buffering applied',
+      originalPrice: gasPrice.toString(),
+      bufferAmount: buffer.toString(),
+      bufferedPrice: bufferedPrice.toString(),
+      operation: 'gas_price_buffering',
+      timestamp: new Date().toISOString(),
+    })
     return bufferedPrice
   }
 
@@ -457,7 +639,14 @@ export class TransactionService {
 
     // Step 1: Check if EIP-1559 values provided explicitly
     if (options.maxFeePerGas && options.maxPriorityFeePerGas) {
-      this.logger.log('Using provided EIP-1559 gas price values')
+      this.logger.log({
+        message: 'Using provided EIP-1559 gas price values',
+        maxFeePerGas: options.maxFeePerGas?.toString(),
+        maxPriorityFeePerGas: options.maxPriorityFeePerGas?.toString(),
+        operation: 'gas_price_estimation',
+        gasType: 'EIP-1559',
+        timestamp: new Date().toISOString(),
+      })
       const bufferedMaxFee = this.applyGasPriceBuffer(options.maxFeePerGas, options.gasPriceBufferPercentage)
 
       return {
@@ -468,7 +657,13 @@ export class TransactionService {
 
     // Step 2: Check if legacy gas price provided explicitly
     if (options.gasPrice) {
-      this.logger.log('Using provided legacy gas price')
+      this.logger.log({
+        message: 'Using provided legacy gas price',
+        gasPrice: options.gasPrice?.toString(),
+        operation: 'gas_price_estimation',
+        gasType: 'legacy',
+        timestamp: new Date().toISOString(),
+      })
       const bufferedPrice = this.applyGasPriceBuffer(options.gasPrice, options.gasPriceBufferPercentage)
 
       return {
@@ -479,12 +674,23 @@ export class TransactionService {
     // Step 3: Fetch from provider
 
     try {
-      this.logger.log('Fetching gas price from provider')
+      this.logger.log({
+        message: 'Fetching gas price from provider',
+        operation: 'gas_price_estimation',
+        timestamp: new Date().toISOString(),
+      })
       const feeData = await provider.getFeeData()
 
       // Prefer EIP-1559 if supported
       if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
-        this.logger.log('Using EIP-1559 gas price from provider')
+        this.logger.log({
+          message: 'Using EIP-1559 gas price from provider',
+          maxFeePerGas: feeData.maxFeePerGas?.toString(),
+          maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toString(),
+          operation: 'gas_price_estimation',
+          gasType: 'EIP-1559',
+          timestamp: new Date().toISOString(),
+        })
         const bufferedMaxFee = this.applyGasPriceBuffer(feeData.maxFeePerGas, options.gasPriceBufferPercentage)
 
         return {
@@ -495,7 +701,13 @@ export class TransactionService {
 
       // Fallback to legacy gas price
       if (feeData.gasPrice) {
-        this.logger.log('Using legacy gas price from provider')
+        this.logger.log({
+          message: 'Using legacy gas price from provider',
+          gasPrice: feeData.gasPrice?.toString(),
+          operation: 'gas_price_estimation',
+          gasType: 'legacy',
+          timestamp: new Date().toISOString(),
+        })
         const bufferedPrice = this.applyGasPriceBuffer(feeData.gasPrice, options.gasPriceBufferPercentage)
 
         return {
@@ -505,11 +717,23 @@ export class TransactionService {
 
       throw new Error('No gas price data available from provider')
     } catch (error) {
-      this.logger.warn(`Gas price estimation from provider failed: ${error}`)
+      this.logger.warn({
+        message: 'Gas price estimation from provider failed',
+        error: error.message || error.toString(),
+        operation: 'gas_price_estimation',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
 
       // Use fallback gas price if provided
       if (options.fallbackGasPrice) {
-        this.logger.log('Using fallback gas price')
+        this.logger.log({
+          message: 'Using fallback gas price',
+          fallbackGasPrice: options.fallbackGasPrice?.toString(),
+          operation: 'gas_price_estimation',
+          gasType: 'fallback',
+          timestamp: new Date().toISOString(),
+        })
         const bufferedPrice = this.applyGasPriceBuffer(options.fallbackGasPrice, options.gasPriceBufferPercentage)
 
         return {
@@ -570,14 +794,18 @@ export class TransactionService {
     const reduction = originalPrice - cappedPrice
     const percentageReduction = (reduction * BigInt(100)) / originalPrice
 
-    let logMessage = `Gas price reduced by ${reduction} (${percentageReduction}%) due to ${reason} limit. `
-    logMessage += `Original: ${originalPrice}, Capped: ${cappedPrice}`
-
-    if (reason === 'multiplier-max' && baseFee) {
-      logMessage += `, Base Fee: ${baseFee}, Multiplier: ${this.DEFAULT_MAX_GAS_PRICE_MULTIPLIER}x`
-    }
-
-    this.logger.warn(logMessage)
+    this.logger.warn({
+      message: 'Gas price reduced due to limit',
+      originalPrice: originalPrice.toString(),
+      cappedPrice: cappedPrice.toString(),
+      reduction: reduction.toString(),
+      percentageReduction: percentageReduction.toString(),
+      reason,
+      baseFee: baseFee?.toString(),
+      multiplier: reason === 'multiplier-max' ? this.DEFAULT_MAX_GAS_PRICE_MULTIPLIER : undefined,
+      operation: 'gas_price_capping',
+      timestamp: new Date().toISOString(),
+    })
   }
 
   private isGasRelatedError(error: any): boolean {

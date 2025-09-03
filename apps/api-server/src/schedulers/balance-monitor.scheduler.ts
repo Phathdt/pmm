@@ -55,7 +55,14 @@ export class BalanceMonitorScheduler {
       const balance = await this.solanaConnection.getBalance(publicKey)
       return balance / 1e9 // Convert lamports to SOL
     } catch (error) {
-      this.logger.error(error, 'Error fetching Solana balance:')
+      this.logger.error({
+        message: 'Error fetching Solana balance',
+        address: this.solAddress,
+        error: error.message || error.toString(),
+        operation: 'solana_balance_fetch',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
       return 0
     }
   }
@@ -93,7 +100,15 @@ export class BalanceMonitorScheduler {
 
     for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
       try {
-        this.logger.log(`Attempting to fetch BTC balance (Attempt ${retryCount}/${maxRetries})`)
+        this.logger.log({
+          message: 'Attempting to fetch BTC balance',
+          retryCount,
+          maxRetries,
+          address: this.btcAddress,
+          network: this.btcNetwork,
+          operation: 'btc_balance_fetch',
+          timestamp: new Date().toISOString(),
+        })
 
         const [blockstreamBalance, mempoolBalance] = await Promise.allSettled([
           getBalanceFromBlockstream(),
@@ -101,24 +116,64 @@ export class BalanceMonitorScheduler {
         ])
 
         if (blockstreamBalance.status === 'fulfilled' && blockstreamBalance.value > 0) {
-          this.logger.log('Successfully fetched balance from Blockstream')
+          this.logger.log({
+            message: 'Successfully fetched BTC balance from Blockstream',
+            balance: blockstreamBalance.value,
+            address: this.btcAddress,
+            source: 'blockstream',
+            operation: 'btc_balance_fetch',
+            status: 'success',
+            timestamp: new Date().toISOString(),
+          })
           return blockstreamBalance.value
         }
 
         if (mempoolBalance.status === 'fulfilled' && mempoolBalance.value > 0) {
-          this.logger.log('Successfully fetched balance from Mempool')
+          this.logger.log({
+            message: 'Successfully fetched BTC balance from Mempool',
+            balance: mempoolBalance.value,
+            address: this.btcAddress,
+            source: 'mempool',
+            operation: 'btc_balance_fetch',
+            status: 'success',
+            timestamp: new Date().toISOString(),
+          })
           return mempoolBalance.value
         }
 
         throw new Error('Both APIs failed to return valid balance')
       } catch (error) {
-        this.logger.error(`Error fetching BTC balance (Attempt ${retryCount}/${maxRetries}):`, error)
+        this.logger.error({
+          message: 'Error fetching BTC balance',
+          retryCount,
+          maxRetries,
+          address: this.btcAddress,
+          error: error.message || error.toString(),
+          operation: 'btc_balance_fetch',
+          status: 'failed',
+          timestamp: new Date().toISOString(),
+        })
 
         if (retryCount < maxRetries) {
-          this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
+          this.logger.log({
+            message: 'Retrying BTC balance fetch',
+            retryCount,
+            maxRetries,
+            sleepTimeSeconds: sleepTime / 1000,
+            operation: 'btc_balance_fetch',
+            status: 'retrying',
+            timestamp: new Date().toISOString(),
+          })
           await new Promise((resolve) => setTimeout(resolve, sleepTime))
         } else {
-          this.logger.error('Max retries reached for BTC balance check')
+          this.logger.error({
+            message: 'Max retries reached for BTC balance check',
+            maxRetries,
+            address: this.btcAddress,
+            operation: 'btc_balance_fetch',
+            status: 'max_retries_exceeded',
+            timestamp: new Date().toISOString(),
+          })
           return 0
         }
       }
@@ -135,17 +190,40 @@ export class BalanceMonitorScheduler {
 
       if (btcValue < this.MIN_BALANCE_USD) {
         const message = `⚠️ BTC Balance Alert\n\nBalance: $${btcValue.toFixed(2)} (${btcBalance} BTC)\nAddress: ${this.btcAddress}\n\nBalance is below minimum threshold of $${this.MIN_BALANCE_USD}`
-        this.logger.warn(
-          `BTC balance is below minimum threshold: $${btcValue.toFixed(2)} (${btcBalance} BTC) - Address: ${this.btcAddress}`
-        )
+        this.logger.warn({
+          message: 'BTC balance is below minimum threshold',
+          currentBalanceBTC: btcBalance,
+          currentBalanceUSD: btcValue.toFixed(2),
+          minimumThresholdUSD: this.MIN_BALANCE_USD,
+          address: this.btcAddress,
+          btcPrice: btcPrice.currentPrice,
+          operation: 'btc_balance_monitor',
+          status: 'below_threshold',
+          timestamp: new Date().toISOString(),
+        })
         await this.notificationService.sendTelegramMessage(message)
       }
 
-      this.logger.log(
-        `BTC balance check completed - $${btcValue.toFixed(2)} (${btcBalance} BTC) - Address: ${this.btcAddress}`
-      )
+      this.logger.log({
+        message: 'BTC balance check completed',
+        currentBalanceBTC: btcBalance,
+        currentBalanceUSD: btcValue.toFixed(2),
+        minimumThresholdUSD: this.MIN_BALANCE_USD,
+        address: this.btcAddress,
+        btcPrice: btcPrice.currentPrice,
+        operation: 'btc_balance_monitor',
+        status: 'completed',
+        timestamp: new Date().toISOString(),
+      })
     } catch (error) {
-      this.logger.error(error, 'Error checking BTC balance:')
+      this.logger.error({
+        message: 'Error checking BTC balance',
+        address: this.btcAddress,
+        error: error.message || error.toString(),
+        operation: 'btc_balance_monitor',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
     }
   }
 
@@ -158,17 +236,40 @@ export class BalanceMonitorScheduler {
 
       if (solValue < this.MIN_BALANCE_USD) {
         const message = `⚠️ SOL Balance Alert\n\nBalance: $${solValue.toFixed(2)} (${solBalance} SOL)\nAddress: ${this.solAddress}\n\nBalance is below minimum threshold of $${this.MIN_BALANCE_USD}`
-        this.logger.warn(
-          `SOL balance is below minimum threshold: $${solValue.toFixed(2)} (${solBalance} SOL) - Address: ${this.solAddress}`
-        )
+        this.logger.warn({
+          message: 'SOL balance is below minimum threshold',
+          currentBalanceSOL: solBalance,
+          currentBalanceUSD: solValue.toFixed(2),
+          minimumThresholdUSD: this.MIN_BALANCE_USD,
+          address: this.solAddress,
+          solPrice: solPrice.currentPrice,
+          operation: 'sol_balance_monitor',
+          status: 'below_threshold',
+          timestamp: new Date().toISOString(),
+        })
         await this.notificationService.sendTelegramMessage(message)
       }
 
-      this.logger.log(
-        `SOL balance check completed - $${solValue.toFixed(2)} (${solBalance} SOL) - Address: ${this.solAddress}`
-      )
+      this.logger.log({
+        message: 'SOL balance check completed',
+        currentBalanceSOL: solBalance,
+        currentBalanceUSD: solValue.toFixed(2),
+        minimumThresholdUSD: this.MIN_BALANCE_USD,
+        address: this.solAddress,
+        solPrice: solPrice.currentPrice,
+        operation: 'sol_balance_monitor',
+        status: 'completed',
+        timestamp: new Date().toISOString(),
+      })
     } catch (error) {
-      this.logger.error(error, 'Error checking SOL balance:')
+      this.logger.error({
+        message: 'Error checking SOL balance',
+        address: this.solAddress,
+        error: error.message || error.toString(),
+        operation: 'sol_balance_monitor',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
     }
   }
 }

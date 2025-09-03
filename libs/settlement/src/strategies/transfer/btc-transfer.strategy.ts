@@ -66,7 +66,17 @@ export class BTCTransferStrategy implements ITransferStrategy {
     const { toAddress, amount, token, tradeId } = params
 
     try {
-      this.logger.log(`Starting transfer of ${amount} satoshis to ${toAddress} on ${token.networkName}`)
+      this.logger.log({
+        message: 'Starting BTC transfer',
+        tradeId,
+        toAddress,
+        amount: amount.toString(),
+        networkName: token.networkName,
+        networkId: token.networkId,
+        operation: 'btc_transfer',
+        status: 'starting',
+        timestamp: new Date().toISOString(),
+      })
 
       // Check balance before proceeding
       const hasSufficientBalance = await this.checkBalance(amount, token.networkId)
@@ -76,11 +86,31 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
       const txId = await this.sendBTC(this.privateKey, toAddress, amount, token.networkId, token, [tradeId])
 
-      this.logger.log(`Transfer successful with txId: ${txId}`)
+      this.logger.log({
+        message: 'BTC transfer completed successfully',
+        tradeId,
+        txId,
+        toAddress,
+        amount: amount.toString(),
+        networkId: token.networkId,
+        operation: 'btc_transfer',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+      })
 
       return txId
     } catch (error) {
-      this.logger.error(error, 'BTC transfer failed:')
+      this.logger.error({
+        message: 'BTC transfer failed',
+        tradeId,
+        toAddress,
+        amount: amount.toString(),
+        networkId: token.networkId,
+        error: error.message || error.toString(),
+        operation: 'btc_transfer',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
       throw error
     }
   }
@@ -123,7 +153,13 @@ export class BTCTransferStrategy implements ITransferStrategy {
       throw new Error('Could not generate address')
     }
 
-    this.logger.log(`Sender address: ${this.btcAddress} (${token.networkSymbol})`)
+    this.logger.log({
+      message: 'BTC sender address configured',
+      senderAddress: this.btcAddress,
+      networkSymbol: token.networkSymbol,
+      operation: 'btc_send_setup',
+      timestamp: new Date().toISOString(),
+    })
 
     const utxos = await this.getUTXOs(this.btcAddress, networkId)
     if (utxos.length === 0) {
@@ -153,7 +189,13 @@ export class BTCTransferStrategy implements ITransferStrategy {
       totalInput += BigInt(utxo.value)
     }
 
-    this.logger.log(`Total input: ${totalInput.toString()} ${token.tokenSymbol}`)
+    this.logger.log({
+      message: 'BTC total input calculated',
+      totalInput: totalInput.toString(),
+      tokenSymbol: token.tokenSymbol,
+      operation: 'btc_send_setup',
+      timestamp: new Date().toISOString(),
+    })
 
     if (totalInput < amountInSatoshis) {
       throw new Error(
@@ -163,16 +205,37 @@ export class BTCTransferStrategy implements ITransferStrategy {
     }
 
     const feeRate = await this.getFeeRate(networkId)
-    this.logger.log(`Fee rate: ${feeRate}`)
+    this.logger.log({
+      message: 'BTC fee rate determined',
+      feeRate,
+      operation: 'btc_send_setup',
+      timestamp: new Date().toISOString(),
+    })
 
     const txSize = this.calculateTxSize(utxos.length, amountInSatoshis > 546n ? 2 : 1)
     const fee = BigInt(Math.ceil(txSize * feeRate))
     const changeAmount = totalInput - amountInSatoshis - fee
 
-    this.logger.log(`txSize: ${txSize.toString()} satoshis`)
-    this.logger.log(`Network fee: ${fee.toString()} satoshis`)
-    this.logger.log(`Amount to send: ${amountInSatoshis.toString()} satoshis`)
-    this.logger.log(`Change amount: ${changeAmount.toString()} satoshis`)
+    this.logger.log({
+      message: 'BTC transaction size calculated',
+      txSize: txSize.toString(),
+      operation: 'btc_send_setup',
+      timestamp: new Date().toISOString(),
+    })
+    this.logger.log({
+      message: 'BTC network fee calculated',
+      networkFee: fee.toString(),
+      operation: 'btc_send_setup',
+      timestamp: new Date().toISOString(),
+    })
+    this.logger.log({
+      message: 'BTC transaction amounts calculated',
+      amountToSend: amountInSatoshis.toString(),
+      changeAmount: changeAmount.toString(),
+      unit: 'satoshis',
+      operation: 'btc_send_setup',
+      timestamp: new Date().toISOString(),
+    })
 
     psbt.addOutput({
       address: toAddress,
@@ -198,11 +261,20 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
     for (let i = 0; i < psbt.data.inputs.length; i++) {
       psbt.signInput(i, tweakedSigner, [bitcoin.Transaction.SIGHASH_DEFAULT])
-      this.logger.log(`Input ${i} signed successfully`)
+      this.logger.log({
+        message: 'BTC input signed successfully',
+        inputIndex: i,
+        operation: 'btc_send_signing',
+        timestamp: new Date().toISOString(),
+      })
     }
 
     psbt.finalizeAllInputs()
-    this.logger.log('All inputs finalized')
+    this.logger.log({
+      message: 'All BTC inputs finalized',
+      operation: 'btc_send_signing',
+      timestamp: new Date().toISOString(),
+    })
 
     const tx = psbt.extractTransaction()
     const rawTx = tx.toHex()
@@ -226,7 +298,12 @@ export class BTCTransferStrategy implements ITransferStrategy {
         timeout: this.TIMEOUT,
         timeoutErrorMessage: 'Blockstream UTXO fetch timeout',
       })
-      this.logger.log('Successfully fetched UTXOs from Blockstream')
+      this.logger.log({
+        message: 'UTXOs fetched successfully',
+        source: 'Blockstream',
+        operation: 'btc_fetch_utxos',
+        timestamp: new Date().toISOString(),
+      })
       return response.data
     }
 
@@ -235,7 +312,12 @@ export class BTCTransferStrategy implements ITransferStrategy {
         timeout: this.TIMEOUT,
         timeoutErrorMessage: 'Mempool UTXO fetch timeout',
       })
-      this.logger.log('Successfully fetched UTXOs from Mempool')
+      this.logger.log({
+        message: 'UTXOs fetched successfully',
+        source: 'Mempool',
+        operation: 'btc_fetch_utxos',
+        timestamp: new Date().toISOString(),
+      })
       return response.data
     }
 
@@ -244,17 +326,35 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
     for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
       try {
-        this.logger.log(`Attempting to fetch UTXOs (Attempt ${retryCount}/${maxRetries})`)
+        this.logger.log({
+          message: 'Attempting to fetch UTXOs',
+          attemptNumber: retryCount,
+          maxRetries,
+          operation: 'btc_fetch_utxos',
+          timestamp: new Date().toISOString(),
+        })
 
         return await Promise.any([getUTXOsFromMempool(), getUTXOsFromBlockstream()])
       } catch (error) {
-        this.logger.error(error, `Error fetching UTXOs (Attempt ${retryCount}/${maxRetries}):`)
+        this.logger.error({
+          message: 'Error fetching UTXOs',
+          error: error.message || error.toString(),
+          attemptNumber: retryCount,
+          maxRetries,
+          operation: 'btc_fetch_utxos',
+          timestamp: new Date().toISOString(),
+        })
 
         if (retryCount === maxRetries) {
           throw new Error('Failed to fetch UTXOs from both services')
         }
 
-        this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
+        this.logger.log({
+          message: 'Retrying UTXO fetch',
+          retryDelaySeconds: sleepTime / 1000,
+          operation: 'btc_fetch_utxos',
+          timestamp: new Date().toISOString(),
+        })
         await new Promise((resolve) => setTimeout(resolve, sleepTime))
       }
     }
@@ -285,7 +385,12 @@ export class BTCTransferStrategy implements ITransferStrategy {
         timeout: this.TIMEOUT,
         timeoutErrorMessage: 'Mempool fee rate fetch timeout',
       })
-      this.logger.log('Successfully fetched fee rate from Mempool')
+      this.logger.log({
+        message: 'Fee rate fetched successfully',
+        source: 'Mempool',
+        operation: 'btc_fetch_fee_rate',
+        timestamp: new Date().toISOString(),
+      })
       return getLowestFeeRate(response.data)
     }
 
@@ -294,7 +399,12 @@ export class BTCTransferStrategy implements ITransferStrategy {
         timeout: this.TIMEOUT,
         timeoutErrorMessage: 'Blockstream fee rate fetch timeout',
       })
-      this.logger.log('Successfully fetched fee rate from Blockstream')
+      this.logger.log({
+        message: 'Fee rate fetched successfully',
+        source: 'Blockstream',
+        operation: 'btc_fetch_fee_rate',
+        timestamp: new Date().toISOString(),
+      })
       return getLowestFeeRate(response.data)
     }
 
@@ -303,20 +413,43 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
     for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
       try {
-        this.logger.log(`Attempting to fetch fee rate (Attempt ${retryCount}/${maxRetries})`)
+        this.logger.log({
+          message: 'Attempting to fetch fee rate',
+          attemptNumber: retryCount,
+          maxRetries,
+          operation: 'btc_fetch_fee_rate',
+          timestamp: new Date().toISOString(),
+        })
 
         const feeRate = await Promise.any([getFeeFromMempool(), getFeeFromBlockstream()])
 
         return Math.min(feeRate, this.maxFeeRate)
       } catch (error) {
-        this.logger.error(error, `Error fetching fee rate (Attempt ${retryCount}/${maxRetries}):`)
+        this.logger.error({
+          message: 'Error fetching fee rate',
+          error: error.message || error.toString(),
+          attemptNumber: retryCount,
+          maxRetries,
+          operation: 'btc_fetch_fee_rate',
+          timestamp: new Date().toISOString(),
+        })
 
         if (retryCount === maxRetries) {
-          this.logger.warn('Max retries reached, using maxFeeRate as fallback')
+          this.logger.warn({
+            message: 'Max retries reached for fee rate fetch',
+            fallbackFeeRate: this.maxFeeRate,
+            operation: 'btc_fetch_fee_rate',
+            timestamp: new Date().toISOString(),
+          })
           return this.maxFeeRate
         }
 
-        this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
+        this.logger.log({
+          message: 'Retrying fee rate fetch',
+          retryDelaySeconds: sleepTime / 1000,
+          operation: 'btc_fetch_fee_rate',
+          timestamp: new Date().toISOString(),
+        })
         await new Promise((resolve) => setTimeout(resolve, sleepTime))
       }
     }
@@ -344,7 +477,12 @@ export class BTCTransferStrategy implements ITransferStrategy {
         timeout: this.TIMEOUT,
         timeoutErrorMessage: 'Mempool transaction broadcast timeout',
       })
-      this.logger.log('Successfully broadcasted transaction through Mempool')
+      this.logger.log({
+        message: 'Transaction broadcasted successfully',
+        source: 'Mempool',
+        operation: 'btc_broadcast_transaction',
+        timestamp: new Date().toISOString(),
+      })
       return response.data
     }
 
@@ -356,13 +494,18 @@ export class BTCTransferStrategy implements ITransferStrategy {
         timeout: this.TIMEOUT,
         timeoutErrorMessage: 'Blockstream transaction broadcast timeout',
       })
-      this.logger.log('Successfully broadcasted transaction through Blockstream')
+      this.logger.log({
+        message: 'Transaction broadcasted successfully',
+        source: 'Blockstream',
+        operation: 'btc_broadcast_transaction',
+        timestamp: new Date().toISOString(),
+      })
       return response.data
     }
 
     try {
       return await Promise.any([broadcastToMempool(), broadcastToBlockstream()])
-    } catch (error) {
+    } catch {
       throw new Error('Failed to broadcast transaction through both services')
     }
   }
@@ -379,7 +522,12 @@ export class BTCTransferStrategy implements ITransferStrategy {
         timeout: this.TIMEOUT,
         timeoutErrorMessage: 'Blockstream balance fetch timeout',
       })
-      this.logger.log('Successfully fetched balance from Blockstream')
+      this.logger.log({
+        message: 'Balance fetched successfully',
+        source: 'Blockstream',
+        operation: 'btc_check_balance',
+        timestamp: new Date().toISOString(),
+      })
       if (response?.data) {
         return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
       }
@@ -391,7 +539,12 @@ export class BTCTransferStrategy implements ITransferStrategy {
         timeout: this.TIMEOUT,
         timeoutErrorMessage: 'Mempool balance fetch timeout',
       })
-      this.logger.log('Successfully fetched balance from Mempool')
+      this.logger.log({
+        message: 'Balance fetched successfully',
+        source: 'Mempool',
+        operation: 'btc_check_balance',
+        timestamp: new Date().toISOString(),
+      })
       if (response?.data) {
         return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
       }
@@ -400,7 +553,13 @@ export class BTCTransferStrategy implements ITransferStrategy {
 
     for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
       try {
-        this.logger.log(`Attempting to check BTC balance (Attempt ${retryCount}/${maxRetries})`)
+        this.logger.log({
+          message: 'Attempting to check BTC balance',
+          attemptNumber: retryCount,
+          maxRetries,
+          operation: 'btc_check_balance',
+          timestamp: new Date().toISOString(),
+        })
 
         const balance = await Promise.any([getBalanceFromMempool(), getBalanceFromBlockstream()])
 
@@ -411,14 +570,30 @@ export class BTCTransferStrategy implements ITransferStrategy {
         }
         return true
       } catch (error) {
-        this.logger.error(error, `Error checking balance (Attempt ${retryCount}/${maxRetries}):`)
+        this.logger.error({
+          message: 'Error checking BTC balance',
+          error: error.message || error.toString(),
+          attemptNumber: retryCount,
+          maxRetries,
+          operation: 'btc_check_balance',
+          timestamp: new Date().toISOString(),
+        })
 
         if (retryCount === maxRetries) {
-          this.logger.error('Max retries reached for BTC balance check')
+          this.logger.error({
+            message: 'Max retries reached for BTC balance check',
+            operation: 'btc_check_balance',
+            timestamp: new Date().toISOString(),
+          })
           return false
         }
 
-        this.logger.log(`Retrying in ${sleepTime / 1000} seconds...`)
+        this.logger.log({
+          message: 'Retrying BTC balance check',
+          retryDelaySeconds: sleepTime / 1000,
+          operation: 'btc_check_balance',
+          timestamp: new Date().toISOString(),
+        })
         await new Promise((resolve) => setTimeout(resolve, sleepTime))
       }
     }

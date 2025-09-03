@@ -20,11 +20,27 @@ export class NonceRefreshScheduler {
   @Cron('* * * * *')
   async handleNonceRefresh(): Promise<void> {
     try {
-      this.logger.log('Starting scheduled nonce refresh...')
+      this.logger.log({
+        message: 'Starting scheduled nonce refresh',
+        operation: 'nonce_refresh_scheduler',
+        status: 'starting',
+        timestamp: new Date().toISOString(),
+      })
       await this.nonceManagerService.refreshAllNonces()
-      this.logger.log('Completed scheduled nonce refresh')
+      this.logger.log({
+        message: 'Completed scheduled nonce refresh',
+        operation: 'nonce_refresh_scheduler',
+        status: 'completed',
+        timestamp: new Date().toISOString(),
+      })
     } catch (error) {
-      this.logger.error('Failed to refresh nonces during scheduled job:', error)
+      this.logger.error({
+        message: 'Failed to refresh nonces during scheduled job',
+        error: error.message || error.toString(),
+        operation: 'nonce_refresh_scheduler',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
     }
   }
 }

@@ -7,7 +7,11 @@ export class NotificationService {
   private readonly logger = new Logger(NotificationService.name)
 
   constructor(private readonly telegramService: TelegramService) {
-    this.logger.debug('Notification service initialized')
+    this.logger.debug({
+      message: 'Notification service initialized',
+      operation: 'service_initialization',
+      timestamp: new Date().toISOString(),
+    })
   }
 
   /**
@@ -18,14 +22,31 @@ export class NotificationService {
   async sendTelegramMessage(message: string, options?: TelegramMessageOptions): Promise<void> {
     try {
       if (!this.telegramService.validateConfiguration()) {
-        this.logger.warn('Telegram service not configured, skipping notification')
+        this.logger.warn({
+          message: 'Telegram service not configured, skipping notification',
+          operation: 'telegram_notification',
+          status: 'skipped',
+          timestamp: new Date().toISOString(),
+        })
         return
       }
 
       await this.telegramService.sendMessage(message, options)
-      this.logger.debug('Telegram notification sent successfully')
+      this.logger.debug({
+        message: 'Telegram notification sent successfully',
+        operation: 'telegram_notification',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+      })
     } catch (error: any) {
-      this.logger.error(`Failed to send telegram notification: ${error.message}`, error.stack)
+      this.logger.error({
+        message: 'Failed to send telegram notification',
+        error: error.message,
+        stack: error.stack,
+        operation: 'telegram_notification',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
 
       // Don't throw to avoid breaking the main business flow
       // The TelegramService already handles error logging
