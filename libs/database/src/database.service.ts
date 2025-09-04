@@ -23,9 +23,41 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
   private readonly enableColors = process.env['ENABLE_JSON_LOG'] === 'false'
 
   constructor() {
+    const logLevel = process.env['LOG_LEVEL'] || 'info'
+    const prismaLogLevels = DatabaseService.mapLogLevelToPrisma(logLevel)
+    
     super({
-      log: ['query', 'info', 'warn', 'error'],
+      log: prismaLogLevels,
     })
+  }
+
+  /**
+   * Maps standard log levels to Prisma-compatible log levels
+   * @param logLevel - Standard log level (trace, debug, info, warn, error, fatal)
+   * @returns Array of Prisma log levels
+   */
+  private static mapLogLevelToPrisma(logLevel: string): ('query' | 'info' | 'warn' | 'error')[] {
+    const baseLogLevels: ('query' | 'info' | 'warn' | 'error')[] = ['query']
+    
+    switch (logLevel.toLowerCase()) {
+      case 'trace':
+      case 'debug':
+        // Most verbose - include all log levels
+        return [...baseLogLevels, 'info', 'warn', 'error']
+      case 'info':
+        // Standard logging - include info, warnings, and errors
+        return [...baseLogLevels, 'info', 'warn', 'error']
+      case 'warn':
+        // Only warnings and errors
+        return [...baseLogLevels, 'warn', 'error']
+      case 'error':
+      case 'fatal':
+        // Only errors
+        return [...baseLogLevels, 'error']
+      default:
+        // Default to info level for invalid log levels
+        return [...baseLogLevels, 'info', 'warn', 'error']
+    }
   }
 
   async onModuleInit() {
