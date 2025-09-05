@@ -1,12 +1,22 @@
-import { createZodDto } from 'nestjs-zod'
 import { z } from 'zod'
 
 export enum TradeTypeEnum {
   SWAP = 'swap',
-  LIQUID = 'liquid',
+  LENDING = 'lending',
 }
 
-export const CreateTradeSchema = z.object({
+export enum TradeStatus {
+  PENDING = 'PENDING',
+  QUOTE_PROVIDED = 'QUOTE_PROVIDED',
+  COMMITTED = 'COMMITTED',
+  SETTLING = 'SETTLING',
+  COMPLETED = 'COMPLETED',
+  SELECTED = 'SELECTED',
+  FAILED = 'FAILED',
+}
+
+export const TradeEntitySchema = z.object({
+  id: z.number(),
   tradeId: z.string(),
   fromTokenId: z.string(),
   fromNetworkId: z.string(),
@@ -15,31 +25,25 @@ export const CreateTradeSchema = z.object({
   fromUser: z.string(),
   toUser: z.string(),
   amount: z.string(),
-  userDepositTx: z.string(),
-  userDepositVault: z.string(),
-  tradeDeadline: z.string(),
-  scriptDeadline: z.string(),
+  status: z.nativeEnum(TradeStatus),
+  userDepositTx: z.string().optional(),
+  userDepositVault: z.string().optional(),
+  tradeDeadline: z.string().optional(),
+  scriptDeadline: z.string().optional(),
   isLiquid: z.boolean().optional(),
   positionId: z.string().optional(),
   liquidationId: z.string().optional(),
   apm: z.string().optional(),
   validatorSignature: z.string().optional(),
   tradeType: z.nativeEnum(TradeTypeEnum).optional(),
-})
-
-export class CreateTradeDto extends createZodDto(CreateTradeSchema) {}
-
-export const UpdateTradeQuoteSchema = z.object({
   indicativeQuote: z.string().optional(),
   commitmentQuote: z.string().optional(),
   settlementQuote: z.string().optional(),
   executedPriceUsd: z.number().optional(),
+  settlementTx: z.string().optional(),
+  error: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
 })
 
-export class UpdateTradeQuoteDto extends createZodDto(UpdateTradeQuoteSchema) {}
-
-export const UpdateSettlementSchema = z.object({
-  settlementTx: z.string(),
-})
-
-export class UpdateSettlementDto extends createZodDto(UpdateSettlementSchema) {}
+export type TradeEntity = z.infer<typeof TradeEntitySchema>

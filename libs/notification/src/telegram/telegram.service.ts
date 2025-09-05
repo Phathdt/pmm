@@ -100,9 +100,9 @@ export class TelegramService implements TelegramProvider {
       } else if (error instanceof Error) {
         errorMessage = error.message
       }
-      
+
       const errorStack = error instanceof Error ? error.stack : undefined
-      
+
       this.logger.error({
         message: 'Failed to send telegram message',
         error: errorMessage,

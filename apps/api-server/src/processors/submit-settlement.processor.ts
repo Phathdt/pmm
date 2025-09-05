@@ -132,7 +132,7 @@ export class SubmitSettlementProcessor {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
       const errorStack = error instanceof Error ? error.stack : undefined
-      
+
       this.logger.error({
         message: 'Submit settlement error',
         tradeId,

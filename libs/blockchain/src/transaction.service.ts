@@ -1102,12 +1102,12 @@ export class TransactionService {
       })
 
       return nonce
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Error getting account nonce',
         networkId,
         address,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : error.toString(),
         operation: 'get_account_nonce',
         timestamp: new Date().toISOString(),
       })

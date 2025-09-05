@@ -7,7 +7,7 @@ module.exports = [
   ...nx.configs['flat/typescript'],
   ...nx.configs['flat/javascript'],
   {
-    ignores: ['**/dist', '**/*.test.ts'],
+    ignores: ['**/dist', '**/*.test.ts', '*.js'],
   },
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
@@ -57,6 +57,15 @@ module.exports = [
         ...globals.jest,
       },
     },
-    rules: {},
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
+    files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'],
+    // Override or add rules here
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'error',
+    },
   },
 ]

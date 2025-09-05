@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { TransactionService } from '@optimex-pmm/blockchain'
 import { errorDecoder } from '@optimex-pmm/shared'
-import { TradeService } from '@optimex-pmm/trade'
+import { ITradeService, TRADE_SERVICE } from '@optimex-pmm/trade'
 import { config, MorphoLiquidator__factory } from '@optimex-xyz/market-maker-sdk'
 
 import { DecodedError } from 'ethers-decode-error'
@@ -13,7 +13,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
   private readonly logger = new Logger(EVMLiquidationTransferStrategy.name)
 
   constructor(
-    private tradeService: TradeService,
+    @Inject(TRADE_SERVICE) private tradeService: ITradeService,
     private transactionService: TransactionService
   ) {}
 
@@ -123,15 +123,16 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
       operation: 'extract_error_code',
       timestamp: new Date().toISOString(),
     })
-    
-    const errorMessage = error && typeof error === 'object' && 'message' in error 
-      ? (error as { message: string }).message 
-      : error?.toString() || 'Unknown error'
-    
-    const errorObj = error && typeof error === 'object' ? error as Record<string, unknown> : {}
+
+    const errorMessage =
+      error && typeof error === 'object' && 'message' in error
+        ? (error as { message: string }).message
+        : error?.toString() || 'Unknown error'
+
+    const errorObj = error && typeof error === 'object' ? (error as Record<string, unknown>) : {}
     const transactionObj = errorObj?.transaction as Record<string, unknown> | undefined
     const errorData = errorObj?.data || transactionObj?.data
-    
+
     this.logger.debug({
       message: 'Extracting error code from raw error',
       tradeId,

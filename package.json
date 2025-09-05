@@ -4,10 +4,10 @@
   "license": "MIT",
   "scripts": {
     "start": "nx serve api-server",
-    "build": "nx build api-server",
+    "build": "yarn typecheck && nx build api-server",
     "format": "prettier --write \"**/*.ts\"",
-    "lint": "yarn typecheck && eslint \"apps/**/*.ts\" \"libs/**/*.ts\" --fix",
     "typecheck": "tsc --project tsconfig.base.json --noEmit",
+    "lint": "yarn typecheck && eslint \"apps/**/*.ts\" \"libs/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -26,7 +26,9 @@
     "commit": "yarn ctix && yarn check:unused:ci && git-cz",
     "prepare": "husky",
     "check:unused": "node unused-detector.js",
-    "check:unused:ci": "node unused-detector.js --exit-code"
+    "check:unused:ci": "node unused-detector.js --exit-code",
+    "check:unused-methods": "node simple-libs-detector.js",
+    "check:unused-methods:ci": "node simple-libs-detector.js --exit-code"
   },
   "resolutions": {
     "@bull-board/express/express": "5.0.1"

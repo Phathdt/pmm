@@ -90,7 +90,11 @@ export class ReqLoggingInterceptor {
   onError(error: unknown): Promise<never> {
     if (!this.config.enableLogging) return Promise.reject(error)
 
-    const axiosError = error as { config?: { traceId?: string; url?: string }; response?: { status?: number; data?: unknown }; message?: string }
+    const axiosError = error as {
+      config?: { traceId?: string; url?: string }
+      response?: { status?: number; data?: unknown }
+      message?: string
+    }
     const traceId = axiosError.config?.traceId
     const startTime = this.requestTimes.get(traceId)
     const duration = startTime ? Date.now() - startTime : 0
@@ -109,7 +113,7 @@ export class ReqLoggingInterceptor {
 
     // Add traceId to error response if it exists
     if (axiosError.response?.data && typeof axiosError.response.data === 'object') {
-      (axiosError.response.data as { traceId?: string }).traceId = traceId
+      ;(axiosError.response.data as { traceId?: string }).traceId = traceId
     }
 
     return Promise.reject(error)

@@ -18,6 +18,7 @@ import { PrismaModule, PrismaServiceOptions } from 'nestjs-prisma'
 import { AppController } from './app.controller'
 
 import { QuoteController, SettlementController } from '../controllers'
+import { TradeExistsGuard } from '../guards'
 import { IpWhitelistMiddleware } from '../middlewares'
 import { BtcMonitorService, EvmMonitorService, SolanaMonitorService } from '../monitors'
 import {
@@ -87,7 +88,7 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
     SettlementModule,
   ],
   controllers: [AppController, ...controllers],
-  providers: [...processors, ...schedulers, ...monitors],
+  providers: [...processors, ...schedulers, ...monitors, TradeExistsGuard],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

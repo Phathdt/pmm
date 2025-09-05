@@ -1,10 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, NotFoundException } from '@nestjs/common'
-
-import { TradeService } from './trade.service'
+import { CanActivate, ExecutionContext, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { ITradeService, TRADE_SERVICE } from '@optimex-pmm/trade'
 
 @Injectable()
 export class TradeExistsGuard implements CanActivate {
-  constructor(private tradeService: TradeService) {}
+  constructor(@Inject(TRADE_SERVICE) private tradeService: ITradeService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest()

@@ -1,8 +1,8 @@
 import * as crypto from 'crypto'
-import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
+import { BadRequestException, HttpException, Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { TokenService } from '@optimex-pmm/token'
-import { TradeService, TradeTypeEnum } from '@optimex-pmm/trade'
+import { ITradeService, TRADE_SERVICE, TradeTypeEnum } from '@optimex-pmm/trade'
 import { Token } from '@optimex-xyz/market-maker-sdk'
 
 import { QuoteSessionRepository } from './quote-session.repository'
@@ -23,8 +23,8 @@ export class QuoteService {
   private readonly ONLY_SOLANA: boolean
 
   constructor(
+    @Inject(TRADE_SERVICE) private readonly tradeService: ITradeService,
     private readonly configService: ConfigService,
-    private readonly tradeService: TradeService,
     private readonly sessionRepo: QuoteSessionRepository,
     private readonly tokenService: TokenService
   ) {
@@ -203,7 +203,7 @@ export class QuoteService {
           liquidationId: dto.liquidationId,
           apm: dto.apm,
           validatorSignature: dto.validatorSignature,
-          tradeType: TradeTypeEnum.LIQUID,
+          tradeType: TradeTypeEnum.LENDING,
         })
         .catch((error) => {
           throw new BadRequestException(`Failed to create liquidation trade: ${error.message}`)

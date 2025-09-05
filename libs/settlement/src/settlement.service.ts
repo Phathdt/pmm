@@ -1,8 +1,8 @@
-import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
+import { BadRequestException, HttpException, Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { QueueService } from '@optimex-pmm/queue'
 import { isSameAddress, stringToHex } from '@optimex-pmm/shared'
-import { TradeService } from '@optimex-pmm/trade'
+import { ITradeService, TRADE_SERVICE, TradeStatus } from '@optimex-pmm/trade'
 import {
   getCommitInfoHash,
   getSignature,
@@ -12,7 +12,7 @@ import {
   Token,
   tokenService,
 } from '@optimex-xyz/market-maker-sdk'
-import { Trade, TradeStatus } from '@prisma/client'
+import { Trade } from '@prisma/client'
 
 import * as ethers from 'ethers'
 
@@ -41,8 +41,8 @@ export class SettlementService {
   private tokenService = tokenService
 
   constructor(
+    @Inject(TRADE_SERVICE) private readonly tradeService: ITradeService,
     private readonly configService: ConfigService,
-    private readonly tradeService: TradeService,
     private readonly queueService: QueueService
   ) {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL')

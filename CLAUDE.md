@@ -89,10 +89,18 @@ yarn migrate:resolve
 yarn prisma:studio
 ```
 
-### Index Generation
+### Code Quality & Unused Code Detection
 ```bash
 # Generate barrel exports for all modules
 yarn ctix
+
+# Check for unused code (general)
+yarn check:unused
+yarn check:unused:ci
+
+# Check for unused methods in libs/ (focused detection)
+yarn check:unused-methods
+yarn check:unused-methods:ci
 ```
 
 ### NX Commands
@@ -125,10 +133,20 @@ Environment-based configuration using NestJS ConfigModule with type-safe access 
 - Blockchain RPC endpoints  
 - Logging levels and monitoring settings
 
+### Application Layer Organization
+The API server follows a structured layered architecture:
+- **Controllers** (`apps/api-server/src/controllers/`) - HTTP endpoints and request handling
+- **Guards** (`apps/api-server/src/guards/`) - Route protection and validation (e.g., TradeExistsGuard)
+- **Middlewares** (`apps/api-server/src/middlewares/`) - Request processing (IP whitelisting)
+- **Monitors** (`apps/api-server/src/monitors/`) - Blockchain monitoring services
+- **Processors** (`apps/api-server/src/processors/`) - Bull queue job processors
+- **Schedulers** (`apps/api-server/src/schedulers/`) - Cron jobs and periodic tasks
+
 ### Security & Middleware
 - IP whitelist middleware for quote and settlement endpoints
 - Environment-based secrets management
 - Blockchain transaction security with nonce management
+- TradeExistsGuard for validating trade existence before operations
 
 ## Testing Strategy
 
@@ -144,6 +162,12 @@ Environment-based configuration using NestJS ConfigModule with type-safe access 
 - **Strict Rules**: `@typescript-eslint/no-explicit-any` is enforced as error
 - **Unused Imports**: Automatically removes unused imports via `eslint-plugin-unused-imports`
 - **Module Boundaries**: NX enforces library dependency constraints
+
+### Unused Code Detection
+- **Automated Detection**: Custom scripts detect unused methods and exports
+- **CI Integration**: Unused code detection runs in CI pipeline with `--exit-code` flag
+- **Focused Analysis**: Separate detectors for general unused code and library method analysis
+- **Architecture-Aware**: Understands NestJS patterns like dependency injection and decorators
 
 ### Prettier Configuration
 - **Print Width**: 120 characters
@@ -176,3 +200,21 @@ The system implements a 5-phase trade protocol:
 3. **Settlement Agreement**: Cryptographic settlement signatures via `/settlement-signature`
 4. **PMM Selection**: Acknowledgment of selection status via `/ack-settlement`
 5. **Payment Execution**: Transaction submission and completion via `/signal-payment`
+
+## Library Architecture Principles
+
+### Domain-Driven Design Implementation
+Each library in `libs/` follows a consistent internal structure:
+- **Domain Layer** (`domain/`) - Core business logic, entities, and interfaces
+  - `entities/` - Business entities and enums
+  - `interfaces/` - Repository and service contracts
+  - `schemas/` - Zod validation schemas
+- **Application Layer** (`application/`) - Use cases and application services
+- **Infrastructure Layer** (`infras/`) - External concerns (database, APIs)
+  - `repositories/` - Data access implementations
+  - `di/` - Dependency injection configuration
+
+### Cross-Library Communication
+- Libraries communicate through well-defined interfaces exported in `index.ts`
+- Dependency injection tokens (e.g., `TRADE_SERVICE`, `TRADE_REPOSITORY`) enable loose coupling
+- The application layer aggregates multiple libraries via NestJS modules
