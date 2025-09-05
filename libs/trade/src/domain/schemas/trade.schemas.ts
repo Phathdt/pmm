@@ -21,7 +21,7 @@ export const CreateTradeDataSchema = z.object({
   liquidationId: z.string().optional(),
   apm: z.string().optional(),
   validatorSignature: z.string().optional(),
-  tradeType: z.nativeEnum(TradeTypeEnum).optional(),
+  tradeType: z.enum(TradeTypeEnum).optional(),
 })
 
 export const UpdateTradeQuoteDataSchema = z.object({

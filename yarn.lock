@@ -1958,11 +1958,6 @@
     "@emnapi/runtime" "^1.3.1"
     "@tybys/wasm-util" "^0.9.0"
 
-"@nest-zod/z@*":
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/@nest-zod/z/-/z-1.0.1.tgz#80b228ef7797ea38da7770b272ee319465363021"
-  integrity sha512-NsJ2GN7/k92/UCKfJ/y6R+ANNee44gt8t3U84zqGTcHDlz4gvxWnpciVkAlN7vJOfFOLTjPAXpuZMnpmPNA1Iw==
-
 "@nestjs-modules/ioredis@^2.0.2":
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/@nestjs-modules/ioredis/-/ioredis-2.0.2.tgz#b1799944c4932e26d24a930caad83cc7af34601d"
@@ -8246,12 +8241,11 @@ nestjs-prisma@^0.25.0:
     "@angular-devkit/schematics" "^13.3.0"
     "@schematics/angular" "~13.3.0"
 
-nestjs-zod@^4.3.1:
-  version "4.3.1"
-  resolved "https://registry.yarnpkg.com/nestjs-zod/-/nestjs-zod-4.3.1.tgz#4fa4fc502d3a08f965e407f617275cd127b72f29"
-  integrity sha512-gl10NOf/AhWt4HLcnMI1J0WUlBCKyteJBftD6SwNyX71/vzAorr5MJQWiDJoPPkou9QL2CRHHBtyjr55o7++Xw==
+nestjs-zod@^5.0.1:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/nestjs-zod/-/nestjs-zod-5.0.1.tgz#4eeb8855c3ebb6789c8a986964624d9a25cba61b"
+  integrity sha512-IjK99tpK+04UobLJJA5tlHv94Ml3wNWiRr7pRVDFJ62Jy/c/aYhMQa90WKiy7qUcmIDMWyPHQpHQN/MehESOmw==
   dependencies:
-    "@nest-zod/z" "*"
     deepmerge "^4.3.1"
 
 node-abort-controller@^3.0.1:
@@ -11252,3 +11246,8 @@ zod@^3.24.2:
   version "3.24.2"
   resolved "https://registry.yarnpkg.com/zod/-/zod-3.24.2.tgz#8efa74126287c675e92f46871cfc8d15c34372b3"
   integrity sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==
+
+zod@^4.1.5:
+  version "4.1.5"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-4.1.5.tgz#7a21fc3178928ede50a28f7d0db4414c4cdb0161"
+  integrity sha512-rcUUZqlLJgBC33IT3PNMgsCq6TzLQEG/Ei/KTCU0PedSWRMAXoOUN+4t/0H+Q8bdnLPdqUYnvboJT0bn/229qg==

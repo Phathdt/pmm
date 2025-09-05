@@ -1,13 +1,20 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Token, tokenService } from '@optimex-xyz/market-maker-sdk'
 
 import { ethers } from 'ethers'
 
-import { TokenRepository } from './token.repository'
+import {
+  ITokenRepository,
+  ITokenService,
+  TokenPrice,
+  TokenQuoteCalculationData,
+  TokenValidationData,
+} from '../../domain'
+import { TOKEN_REPOSITORY } from '../../infras'
 
 @Injectable()
-export class TokenService {
+export class TokenService implements ITokenService {
   private readonly MIN_TRADE: number
   private readonly SOFT_CAP: number
   private readonly HARD_CAP: number
@@ -15,8 +22,8 @@ export class TokenService {
   private readonly INDICATIVE_BPS: number
 
   constructor(
-    private readonly configService: ConfigService,
-    private readonly tokenRepo: TokenRepository
+    @Inject(TOKEN_REPOSITORY) private readonly tokenRepository: ITokenRepository,
+    private readonly configService: ConfigService
   ) {
     this.MIN_TRADE = Number(this.configService.getOrThrow<string>('MIN_TRADE'))
     this.SOFT_CAP = Number(this.configService.getOrThrow<string>('SOFT_CAP'))
@@ -25,9 +32,14 @@ export class TokenService {
     this.INDICATIVE_BPS = Number(this.configService.getOrThrow<string>('INDICATIVE_BPS', '9000'))
   }
 
-  async validateIndicativeAmount(amount: string, token: Token): Promise<void> {
-    const tokenPrice = await this.tokenRepo.getTokenPrice(token.tokenSymbol)
-    const actualAmount = ethers.formatUnits(amount, token.tokenDecimals)
+  async validateIndicativeAmount(validationData: TokenValidationData): Promise<void> {
+    const token = await this.getTokenByTokenId(validationData.tokenId)
+    if (!token) {
+      throw new BadRequestException(`Token with ID ${validationData.tokenId} not found`)
+    }
+
+    const tokenPrice = await this.tokenRepository.getTokenPrice(token.tokenSymbol)
+    const actualAmount = ethers.formatUnits(validationData.amount, token.tokenDecimals)
     const amountInUsd = ethers.parseUnits((Number(actualAmount) * tokenPrice.currentPrice).toFixed(2), 2)
     const minTradeAmount = ethers.parseUnits(this.MIN_TRADE.toFixed(2), 2)
     const hardCapAmount = ethers.parseUnits(this.HARD_CAP.toFixed(2), 2)
@@ -44,9 +56,14 @@ export class TokenService {
     }
   }
 
-  async validateCommitmentAmount(amount: string, token: Token): Promise<void> {
-    const tokenPrice = await this.tokenRepo.getTokenPrice(token.tokenSymbol)
-    const actualAmount = ethers.formatUnits(amount, token.tokenDecimals)
+  async validateCommitmentAmount(validationData: TokenValidationData): Promise<void> {
+    const token = await this.getTokenByTokenId(validationData.tokenId)
+    if (!token) {
+      throw new BadRequestException(`Token with ID ${validationData.tokenId} not found`)
+    }
+
+    const tokenPrice = await this.tokenRepository.getTokenPrice(token.tokenSymbol)
+    const actualAmount = ethers.formatUnits(validationData.amount, token.tokenDecimals)
     const amountInUsd = ethers.parseUnits((Number(actualAmount) * tokenPrice.currentPrice).toFixed(2), 2)
     const minTradeAmount = ethers.parseUnits(this.MIN_TRADE.toFixed(2), 2)
     const softCapAmount = ethers.parseUnits(this.SOFT_CAP.toFixed(2), 2)
@@ -63,22 +80,33 @@ export class TokenService {
     }
   }
 
-  async calculateBestQuote(amountIn: string, fromToken: Token, toToken: Token, isCommitment = false): Promise<string> {
-    const fromTokenPrice = await this.tokenRepo.getTokenPrice(fromToken.tokenSymbol)
-    const toTokenPrice = await this.tokenRepo.getTokenPrice(toToken.tokenSymbol)
-    const amount = ethers.getBigInt(amountIn)
+  async calculateBestQuote(calculationData: TokenQuoteCalculationData): Promise<string> {
+    const fromToken = await this.getTokenByTokenId(calculationData.fromTokenId)
+    const toToken = await this.getTokenByTokenId(calculationData.toTokenId)
+
+    if (!fromToken || !toToken) {
+      throw new BadRequestException('One or both tokens not found')
+    }
+
+    const fromTokenPrice = await this.tokenRepository.getTokenPrice(fromToken.tokenSymbol)
+    const toTokenPrice = await this.tokenRepository.getTokenPrice(toToken.tokenSymbol)
+    const amount = ethers.getBigInt(calculationData.amountIn)
     const fromDecimals = ethers.getBigInt(fromToken.tokenDecimals)
     const toDecimals = ethers.getBigInt(toToken.tokenDecimals)
     const fromPrice = ethers.getBigInt(Math.round(fromTokenPrice.currentPrice * 1e6))
     const toPrice = ethers.getBigInt(Math.round(toTokenPrice.currentPrice * 1e6))
     const rawQuote = (amount * fromPrice * 10n ** toDecimals) / (toPrice * 10n ** fromDecimals)
     const baseBps = 10000n
-    const bpsMultiplier = isCommitment ? BigInt(this.COMMITMENT_BPS) : BigInt(this.INDICATIVE_BPS)
+    const bpsMultiplier = calculationData.isCommitment ? BigInt(this.COMMITMENT_BPS) : BigInt(this.INDICATIVE_BPS)
     const finalQuote = (rawQuote * bpsMultiplier) / baseBps
     return finalQuote.toString()
   }
 
-  async getTokenByTokenId(tokenId: string) {
+  async getTokenByTokenId(tokenId: string): Promise<Token | null> {
     return tokenService.getTokenByTokenId(tokenId)
+  }
+
+  async getTokenPrice(symbol: string): Promise<TokenPrice> {
+    return this.tokenRepository.getTokenPrice(symbol)
   }
 }

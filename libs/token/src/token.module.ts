@@ -4,8 +4,19 @@ import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { ReqModule } from '@optimex-pmm/req'
 
-import { TokenRepository } from './token.repository'
-import { TokenService } from './token.service'
+import { TokenService } from './application'
+import { TOKEN_REPOSITORY, TOKEN_SERVICE, TokenRemoteRepository } from './infras'
+
+export const providers = [
+  {
+    provide: TOKEN_REPOSITORY,
+    useClass: TokenRemoteRepository,
+  },
+  {
+    provide: TOKEN_SERVICE,
+    useClass: TokenService,
+  },
+]
 
 @Module({
   imports: [
@@ -27,7 +38,7 @@ import { TokenService } from './token.service'
       inject: [ConfigService],
     }),
   ],
-  providers: [TokenRepository, TokenService],
-  exports: [TokenRepository, TokenService],
+  providers: [...providers],
+  exports: [TOKEN_SERVICE],
 })
 export class TokenModule {}

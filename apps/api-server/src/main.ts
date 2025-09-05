@@ -10,7 +10,7 @@ import { SnakeToCamelInterceptor } from '@optimex-pmm/shared'
 import { Environment, sdk } from '@optimex-xyz/market-maker-sdk'
 
 import { LoggerErrorInterceptor, Logger as PinoLogger } from 'nestjs-pino'
-import { patchNestJsSwagger, ZodValidationPipe } from 'nestjs-zod'
+import { ZodValidationPipe } from 'nestjs-zod'
 
 import { AppModule } from './app'
 import {
@@ -28,7 +28,6 @@ async function bootstrap() {
     cors: true,
   })
 
-  patchNestJsSwagger()
   app.useGlobalPipes(new ZodValidationPipe())
 
   app.useGlobalFilters(new ResponseExceptionFilter(), new ZodValidationExceptionFilter())

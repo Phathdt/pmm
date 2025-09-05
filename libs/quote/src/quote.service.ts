@@ -1,7 +1,7 @@
 import * as crypto from 'crypto'
 import { BadRequestException, HttpException, Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { TokenService } from '@optimex-pmm/token'
+import { ITokenService, TOKEN_SERVICE } from '@optimex-pmm/token'
 import { ITradeService, TRADE_SERVICE, TradeTypeEnum } from '@optimex-pmm/trade'
 import { Token } from '@optimex-xyz/market-maker-sdk'
 
@@ -24,9 +24,9 @@ export class QuoteService {
 
   constructor(
     @Inject(TRADE_SERVICE) private readonly tradeService: ITradeService,
+    @Inject(TOKEN_SERVICE) private readonly tokenService: ITokenService,
     private readonly configService: ConfigService,
-    private readonly sessionRepo: QuoteSessionRepository,
-    private readonly tokenService: TokenService
+    private readonly sessionRepo: QuoteSessionRepository
   ) {
     this.EVM_ADDRESS = this.configService.getOrThrow<string>('PMM_EVM_ADDRESS')
     this.BTC_ADDRESS = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS')
@@ -76,9 +76,18 @@ export class QuoteService {
       })
       this.validateSolanaRequirement(fromToken, toToken)
 
-      await this.tokenService.validateIndicativeAmount(dto.amount, fromToken)
+      await this.tokenService.validateIndicativeAmount({
+        amount: dto.amount,
+        tokenId: dto.fromTokenId,
+        validationType: 'indicative',
+      })
 
-      const quote = await this.tokenService.calculateBestQuote(dto.amount, fromToken, toToken, false)
+      const quote = await this.tokenService.calculateBestQuote({
+        amountIn: dto.amount,
+        fromTokenId: dto.fromTokenId,
+        toTokenId: dto.toTokenId,
+        isCommitment: false,
+      })
 
       const pmmAddress = this.getPmmAddressByNetworkType(fromToken)
       await this.sessionRepo.save(sessionId, {
@@ -117,11 +126,20 @@ export class QuoteService {
       })
       this.validateSolanaRequirement(fromToken, toToken)
 
-      await this.tokenService.validateCommitmentAmount(dto.amount, fromToken)
+      await this.tokenService.validateCommitmentAmount({
+        amount: dto.amount,
+        tokenId: dto.fromTokenId,
+        validationType: 'commitment',
+      })
 
       await this.tradeService.deleteTrade(dto.tradeId)
 
-      const quote = await this.tokenService.calculateBestQuote(dto.amount, fromToken, toToken, true)
+      const quote = await this.tokenService.calculateBestQuote({
+        amountIn: dto.amount,
+        fromTokenId: dto.fromTokenId,
+        toTokenId: dto.toTokenId,
+        isCommitment: true,
+      })
 
       const trade = await this.tradeService
         .createTrade({
@@ -178,11 +196,20 @@ export class QuoteService {
       })
       this.validateSolanaRequirement(fromToken, toToken)
 
-      await this.tokenService.validateCommitmentAmount(dto.amount, fromToken)
+      await this.tokenService.validateCommitmentAmount({
+        amount: dto.amount,
+        tokenId: dto.fromTokenId,
+        validationType: 'commitment',
+      })
 
       await this.tradeService.deleteTrade(dto.tradeId)
 
-      const quote = await this.tokenService.calculateBestQuote(dto.amount, fromToken, toToken, true)
+      const quote = await this.tokenService.calculateBestQuote({
+        amountIn: dto.amount,
+        fromTokenId: dto.fromTokenId,
+        toTokenId: dto.toTokenId,
+        isCommitment: true,
+      })
 
       const trade = await this.tradeService
         .createTrade({

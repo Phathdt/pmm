@@ -1,8 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Cron } from '@nestjs/schedule'
 import { NotificationService } from '@optimex-pmm/notification'
-import { TokenRepository } from '@optimex-pmm/token'
+import { ITokenService, TOKEN_SERVICE } from '@optimex-pmm/token'
 import { Connection, PublicKey } from '@solana/web3.js'
 
 import axios from 'axios'
@@ -39,7 +39,7 @@ export class BalanceMonitorScheduler {
   private readonly solAddress: string
 
   constructor(
-    private readonly tokenRepo: TokenRepository,
+    @Inject(TOKEN_SERVICE) private readonly tokenService: ITokenService,
     private readonly configService: ConfigService,
     private readonly notificationService: NotificationService
   ) {
@@ -184,7 +184,7 @@ export class BalanceMonitorScheduler {
   @Cron('*/5 * * * *')
   async checkBTCBalance(): Promise<void> {
     try {
-      const [btcPrice, btcBalance] = await Promise.all([this.tokenRepo.getTokenPrice('BTC'), this.getBtcBalance()])
+      const [btcPrice, btcBalance] = await Promise.all([this.tokenService.getTokenPrice('BTC'), this.getBtcBalance()])
 
       const btcValue = btcBalance * btcPrice.currentPrice
 
@@ -230,7 +230,10 @@ export class BalanceMonitorScheduler {
   @Cron('*/5 * * * *')
   async checkSOLBalance(): Promise<void> {
     try {
-      const [solPrice, solBalance] = await Promise.all([this.tokenRepo.getTokenPrice('SOL'), this.getSolanaBalance()])
+      const [solPrice, solBalance] = await Promise.all([
+        this.tokenService.getTokenPrice('SOL'),
+        this.getSolanaBalance(),
+      ])
 
       const solValue = solBalance * solPrice.currentPrice
 
