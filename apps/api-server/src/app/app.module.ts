@@ -5,12 +5,14 @@ import { BullModule } from '@nestjs/bull'
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
+import { DatabaseService } from '@optimex-pmm/database'
 import { QuoteModule } from '@optimex-pmm/quote'
 import { SETTLEMENT_QUEUE, SETTLEMENT_QUEUE_NAMES, SettlementModule } from '@optimex-pmm/settlement'
 import { TokenModule } from '@optimex-pmm/token'
 import { TradeModule } from '@optimex-pmm/trade'
 
 import { PrismaModule, PrismaServiceOptions } from 'nestjs-prisma'
+
 import { AppController } from './app.controller'
 
 import { QuoteController, SettlementController } from '../controllers'
@@ -27,6 +29,7 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
   name: queue.NAME,
   adapter: BullAdapter,
 }))
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -39,9 +42,10 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
       isGlobal: true,
       imports: [ConfigModule],
       useFactory(configService: ConfigService): PrismaServiceOptions {
+        const logLevel = configService.getOrThrow('LOG_LEVEL')
         return {
           prismaOptions: {
-            log: [configService.getOrThrow('LOG_LEVEL')],
+            log: DatabaseService.mapLogLevelToPrisma(logLevel),
             datasourceUrl: configService.getOrThrow('DATABASE_URL'),
           },
         }

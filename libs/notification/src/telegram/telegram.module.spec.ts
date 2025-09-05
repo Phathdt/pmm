@@ -7,7 +7,7 @@ import { TelegramService } from './telegram.service'
 
 describe('TelegramModule', () => {
   let module: TestingModule
-  
+
   const mockConfigService = {
     get: jest.fn((key: string) => {
       switch (key) {

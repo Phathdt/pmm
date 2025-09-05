@@ -25,7 +25,7 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
   constructor() {
     const logLevel = process.env['LOG_LEVEL'] || 'info'
     const prismaLogLevels = DatabaseService.mapLogLevelToPrisma(logLevel)
-    
+
     super({
       log: prismaLogLevels,
     })
@@ -36,27 +36,25 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
    * @param logLevel - Standard log level (trace, debug, info, warn, error, fatal)
    * @returns Array of Prisma log levels
    */
-  private static mapLogLevelToPrisma(logLevel: string): ('query' | 'info' | 'warn' | 'error')[] {
-    const baseLogLevels: ('query' | 'info' | 'warn' | 'error')[] = ['query']
-    
+  public static mapLogLevelToPrisma(logLevel: string): ('query' | 'info' | 'warn' | 'error')[] {
     switch (logLevel.toLowerCase()) {
       case 'trace':
       case 'debug':
         // Most verbose - include all log levels
-        return [...baseLogLevels, 'info', 'warn', 'error']
+        return ['query', 'info', 'warn', 'error']
       case 'info':
         // Standard logging - include info, warnings, and errors
-        return [...baseLogLevels, 'info', 'warn', 'error']
+        return ['info', 'warn', 'error']
       case 'warn':
         // Only warnings and errors
-        return [...baseLogLevels, 'warn', 'error']
+        return ['warn', 'error']
       case 'error':
       case 'fatal':
         // Only errors
-        return [...baseLogLevels, 'error']
+        return ['error']
       default:
         // Default to info level for invalid log levels
-        return [...baseLogLevels, 'info', 'warn', 'error']
+        return ['info', 'warn', 'error']
     }
   }
 
