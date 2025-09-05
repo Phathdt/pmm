@@ -2,8 +2,7 @@ import { Module } from '@nestjs/common'
 
 import { LoggerModule } from 'nestjs-pino'
 /* prettier-ignore-start */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import pretty from 'pino-pretty'
+ 
 
 interface ExtendedRequest {
   traceId?: string

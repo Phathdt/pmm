@@ -43,11 +43,14 @@ yarn start
 # Build the application
 yarn build
 
-# Format code
+# Format code with Prettier
 yarn format
 
-# Lint with fix
-yarn lint:fix
+# Type checking
+yarn typecheck
+
+# Lint and fix issues (includes typecheck)
+yarn lint
 
 # Run tests
 yarn test
@@ -61,14 +64,26 @@ yarn test:ci
 # Generate Prisma client
 yarn prisma:generate
 
-# Run database migrations
+# Generate Prisma client in watch mode
+yarn prisma:generate:watch
+
+# Run database migrations (development)
 yarn migrate:dev
 
-# Reset database
+# Create migration without applying
+yarn migrate:dev:create
+
+# Reset database with migrations
 yarn migrate:reset
 
 # Deploy migrations to production
 yarn migrate:deploy
+
+# Check migration status
+yarn migrate:status
+
+# Resolve migration issues
+yarn migrate:resolve
 
 # Open Prisma Studio
 yarn prisma:studio
@@ -78,6 +93,15 @@ yarn prisma:studio
 ```bash
 # Generate barrel exports for all modules
 yarn ctix
+```
+
+### NX Commands
+```bash
+# Alternative ways to run commands via NX
+nx serve api-server    # Same as yarn start
+nx build api-server    # Same as yarn build
+nx test <lib-name>     # Test specific library
+nx lint <lib-name>     # Lint specific library
 ```
 
 ## Key Architectural Patterns
@@ -108,9 +132,41 @@ Environment-based configuration using NestJS ConfigModule with type-safe access 
 
 ## Testing Strategy
 
-- **Unit Tests**: Jest with coverage requirements
+- **Unit Tests**: Jest with coverage requirements, tests alongside source files with `.spec.ts` suffix
 - **Integration Tests**: Database and queue integration testing
 - **E2E Tests**: Full API endpoint testing (excluded: `apps/api-server-e2e`)
+- **Coverage**: Required for CI/CD pipelines with `yarn test:ci`
+
+## Code Quality & Linting
+
+### ESLint Configuration
+- Uses modern flat config format with NX ESLint plugin
+- **Strict Rules**: `@typescript-eslint/no-explicit-any` is enforced as error
+- **Unused Imports**: Automatically removes unused imports via `eslint-plugin-unused-imports`
+- **Module Boundaries**: NX enforces library dependency constraints
+
+### Prettier Configuration
+- **Print Width**: 120 characters
+- **Quotes**: Single quotes, no semicolons
+- **Import Sorting**: Uses `@ianvs/prettier-plugin-sort-imports` with specific order
+
+## Local Development Setup
+
+### Prerequisites
+```bash
+# Start required services
+docker-compose up redis-db postgres-db
+
+# Setup database
+yarn migrate:dev
+yarn prisma:generate
+```
+
+### Monitoring & Debugging
+- **Queue Dashboard**: `http://localhost:3000/queues` (Bull Board)
+- **API Documentation**: `http://localhost:3000/api` (Swagger)
+- **Database GUI**: `yarn prisma:studio`
+- **Structured Logging**: JSON format via Pino
 
 ## Trade Flow Implementation
 

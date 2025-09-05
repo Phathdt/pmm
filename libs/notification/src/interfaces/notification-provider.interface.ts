@@ -4,7 +4,7 @@ export interface NotificationProvider {
    * @param message The message content to send
    * @param options Additional provider-specific options
    */
-  sendMessage(message: string, options?: Record<string, any>): Promise<void>
+  sendMessage(message: string, options?: Record<string, unknown>): Promise<void>
 
   /**
    * Validate if the provider is properly configured

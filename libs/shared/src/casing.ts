@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 export function convertToCamelCase(obj: any): any {
   if (Array.isArray(obj)) {
     return obj.map((v) => convertToCamelCase(v))

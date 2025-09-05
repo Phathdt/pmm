@@ -1,6 +1,8 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "rootDir": ".",
     "sourceMap": true,
     "declaration": false,
@@ -10,7 +12,7 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "importHelpers": true,
-    "target": "es2015",
+    "target": "es2020",
     "module": "esnext",
     "lib": ["es2021", "dom"],
     "skipLibCheck": true,

@@ -7,7 +7,7 @@ import { tap } from 'rxjs/operators'
 export class ResponseLoggerInterceptor implements NestInterceptor {
   private readonly logger = new Logger(ResponseLoggerInterceptor.name)
 
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest()
     const { method, url, body, query, params } = request
 
@@ -76,7 +76,7 @@ export class ResponseLoggerInterceptor implements NestInterceptor {
     )
   }
 
-  private sanitizeData(data: any): any {
+  private sanitizeData(data: unknown): unknown {
     if (!data) return data
 
     // Deep clone the data to avoid modifying the original
@@ -96,13 +96,14 @@ export class ResponseLoggerInterceptor implements NestInterceptor {
       'privatekey',
     ]
 
-    const sanitize = (obj: any) => {
-      if (obj && typeof obj === 'object') {
-        Object.keys(obj).forEach((key) => {
+    const sanitize = (obj: unknown): unknown => {
+      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+        const objectToSanitize = obj as Record<string, unknown>
+        Object.keys(objectToSanitize).forEach((key) => {
           if (sensitiveFields.includes(key.toLowerCase())) {
-            obj[key] = '***REDACTED***'
-          } else if (typeof obj[key] === 'object') {
-            sanitize(obj[key])
+            objectToSanitize[key] = '***REDACTED***'
+          } else if (typeof objectToSanitize[key] === 'object') {
+            sanitize(objectToSanitize[key])
           }
         })
       }

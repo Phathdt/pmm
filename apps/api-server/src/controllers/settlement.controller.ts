@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common'
+import { Trade } from '@prisma/client'
 import {
   AckSettlementDto,
   GetSettlementSignatureDto,
@@ -8,6 +9,11 @@ import {
 } from '@optimex-pmm/settlement'
 import { TransformedBody, TransformedQuery } from '@optimex-pmm/shared'
 import { TradeExistsGuard } from '@optimex-pmm/trade'
+import { Request } from 'express'
+
+interface RequestWithTrade extends Request {
+  trade: Trade
+}
 
 @Controller()
 export class SettlementController {
@@ -15,7 +21,7 @@ export class SettlementController {
 
   @Get('settlement-signature')
   @UseGuards(TradeExistsGuard)
-  getSettlementSignature(@TransformedQuery() query: GetSettlementSignatureDto, @Req() req: any) {
+  getSettlementSignature(@TransformedQuery() query: GetSettlementSignatureDto, @Req() req: RequestWithTrade) {
     return this.settlementService.getSettlementSignature(query, req.trade)
   }
 
@@ -27,7 +33,7 @@ export class SettlementController {
 
   @Post('signal-payment')
   @UseGuards(TradeExistsGuard)
-  signalPayment(@TransformedBody() body: SignalPaymentDto, @Req() req: any): Promise<SignalPaymentResponseDto> {
+  signalPayment(@TransformedBody() body: SignalPaymentDto, @Req() req: RequestWithTrade): Promise<SignalPaymentResponseDto> {
     return this.settlementService.signalPayment(body, req.trade)
   }
 }

@@ -13,10 +13,10 @@ export class TransferFactory {
   private strategies = new Map<string, ITransferStrategy>()
 
   constructor(
-    private evmTransferStrategy: EVMTransferStrategy,
-    private btcTransferStrategy: BTCTransferStrategy,
-    private solanaTransferStrategy: SolanaTransferStrategy,
-    private evmLiquidationTransferStrategy: EVMLiquidationTransferStrategy
+    evmTransferStrategy: EVMTransferStrategy,
+    btcTransferStrategy: BTCTransferStrategy,
+    solanaTransferStrategy: SolanaTransferStrategy,
+    evmLiquidationTransferStrategy: EVMLiquidationTransferStrategy
   ) {
     this.strategies.set('EVM-swap', evmTransferStrategy)
     this.strategies.set('TBTC-swap', btcTransferStrategy)

@@ -115,11 +115,12 @@ export class SettlementService {
         deadline: Number(deadline),
         error: '',
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof HttpException) {
         throw error
       }
-      throw new BadRequestException(error.message)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      throw new BadRequestException(errorMessage)
     }
   }
 
@@ -139,11 +140,12 @@ export class SettlementService {
         status: 'acknowledged',
         error: '',
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof HttpException) {
         throw error
       }
-      throw new BadRequestException(error.message)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      throw new BadRequestException(errorMessage)
     }
   }
 
@@ -171,11 +173,12 @@ export class SettlementService {
         status: 'acknowledged',
         error: '',
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof HttpException) {
         throw error
       }
-      throw new BadRequestException(error.message)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      throw new BadRequestException(errorMessage)
     }
   }
 

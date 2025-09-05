@@ -91,12 +91,22 @@ export class TelegramService implements TelegramProvider {
         })
         throw new Error(`Telegram API error: ${response.data?.description || 'Unknown error'}`)
       }
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.description || error.message || 'Unknown error'
+    } catch (error: unknown) {
+      // Handle axios error with response
+      let errorMessage = 'Unknown error'
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response?: { data?: { description?: string } } }
+        errorMessage = axiosError.response?.data?.description || 'Unknown error'
+      } else if (error instanceof Error) {
+        errorMessage = error.message
+      }
+      
+      const errorStack = error instanceof Error ? error.stack : undefined
+      
       this.logger.error({
         message: 'Failed to send telegram message',
         error: errorMessage,
-        stack: error.stack,
+        stack: errorStack,
         operation: 'telegram_send_message',
         status: 'failed',
         timestamp: new Date().toISOString(),

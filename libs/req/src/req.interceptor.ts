@@ -15,7 +15,7 @@ export class ReqLoggingInterceptor {
     private readonly config: ReqModuleConfig
   ) {}
 
-  private getTraceId(headers: Record<string, any>): string {
+  private getTraceId(headers: Record<string, unknown>): string {
     const possibleHeaders = ['x-request-id', 'x-b3-traceid', 'x-trace-id', 'x-amzn-trace-id', 'traceparent'] as const
 
     for (const header of possibleHeaders) {
@@ -31,7 +31,7 @@ export class ReqLoggingInterceptor {
   onRequest(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
     if (!this.config.enableLogging) return config
 
-    const traceId = (global as any).traceId || this.getTraceId(config.headers || {})
+    const traceId = (global as { traceId?: string }).traceId || this.getTraceId(config.headers || {})
     this.requestTimes.set(traceId, Date.now())
 
     // Add trace ID to config
@@ -87,28 +87,29 @@ export class ReqLoggingInterceptor {
     return response
   }
 
-  onError(error: any): Promise<never> {
+  onError(error: unknown): Promise<never> {
     if (!this.config.enableLogging) return Promise.reject(error)
 
-    const traceId = error.config?.['traceId']
+    const axiosError = error as { config?: { traceId?: string; url?: string }; response?: { status?: number; data?: unknown }; message?: string }
+    const traceId = axiosError.config?.traceId
     const startTime = this.requestTimes.get(traceId)
     const duration = startTime ? Date.now() - startTime : 0
 
     this.logger.error({
       type: 'Error',
       traceId,
-      url: error.config?.url,
+      url: axiosError.config?.url,
       duration: `${duration}ms`,
-      status: error.response?.status,
-      error: error.message,
-      response: error.response?.data,
+      status: axiosError.response?.status,
+      error: axiosError.message || 'Unknown error',
+      response: axiosError.response?.data,
     })
 
     this.requestTimes.delete(traceId)
 
     // Add traceId to error response if it exists
-    if (error.response?.data && typeof error.response.data === 'object') {
-      error.response.data.traceId = traceId
+    if (axiosError.response?.data && typeof axiosError.response.data === 'object') {
+      (axiosError.response.data as { traceId?: string }).traceId = traceId
     }
 
     return Promise.reject(error)

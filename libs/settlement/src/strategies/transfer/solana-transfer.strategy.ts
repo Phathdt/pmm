@@ -28,7 +28,7 @@ export class SolanaTransferStrategy implements ITransferStrategy {
   private readonly logger = new Logger(SolanaTransferStrategy.name)
 
   constructor(
-    private readonly configService: ConfigService,
+    readonly configService: ConfigService,
     private readonly notificationService: NotificationService
   ) {
     const endpoint = configService.getOrThrow('SOLANA_RPC_URL')

@@ -1,5 +1,3 @@
-import { TradeStatus } from '@prisma/client'
-
 import { createZodDto } from 'nestjs-zod'
 import { z } from 'zod'
 
@@ -45,9 +43,3 @@ export const UpdateSettlementSchema = z.object({
 })
 
 export class UpdateSettlementDto extends createZodDto(UpdateSettlementSchema) {}
-
-export const GetTradesByStatusSchema = z.object({
-  status: z.nativeEnum(TradeStatus),
-})
-
-export class GetTradesByStatusDto extends createZodDto(GetTradesByStatusSchema) {}

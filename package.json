@@ -6,8 +6,8 @@
     "start": "nx serve api-server",
     "build": "nx build api-server",
     "format": "prettier --write \"**/*.ts\"",
-    "lint": "eslint . --ext .ts,.tsx,.js,.jsx --no-warn-ignored",
-    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix --no-warn-ignored",
+    "lint": "yarn typecheck && eslint \"apps/**/*.ts\" \"libs/**/*.ts\" --fix",
+    "typecheck": "tsc --project tsconfig.base.json --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -21,7 +21,12 @@
     "prisma:studio": "npx prisma studio",
     "prisma:generate": "npx prisma generate",
     "prisma:generate:watch": "npx prisma generate --watch",
-    "ctix": "node generate-indexes.js"
+    "ctix": "node generate-indexes.js",
+    "lint-staged": "lint-staged",
+    "commit": "yarn ctix && yarn check:unused:ci && git-cz",
+    "prepare": "husky",
+    "check:unused": "node unused-detector.js",
+    "check:unused:ci": "node unused-detector.js --exit-code"
   },
   "resolutions": {
     "@bull-board/express/express": "5.0.1"
@@ -70,6 +75,8 @@
     "zod": "^3.24.4"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
     "@eslint/js": "^9.26.0",
     "@ianvs/prettier-plugin-sort-imports": "^4.4.1",
     "@nestjs/schematics": "^11.0.5",
@@ -88,10 +95,16 @@
     "@swc/helpers": "~0.5.17",
     "@types/jest": "^29.5.14",
     "@types/node": "~22.15.17",
+    "commitizen": "^4.3.1",
+    "cz-conventional-changelog": "^3.3.0",
     "eslint": "^9.26.0",
     "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-unused-imports": "^4.2.0",
+    "git-cz": "^4.9.0",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
     "jest-environment-node": "^29.7.0",
+    "lint-staged": "^16.1.6",
     "nx": "21.0.3",
     "prettier": "^3.5.3",
     "prisma": "^6.7.0",
@@ -101,5 +114,16 @@
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.32.0",
     "webpack-cli": "^6.0.1"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

@@ -94,11 +94,12 @@ export class QuoteService {
         indicativeQuote: quote,
         error: '',
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof HttpException) {
         throw error
       }
-      throw new BadRequestException(error.message)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      throw new BadRequestException(errorMessage)
     }
   }
 
@@ -153,11 +154,12 @@ export class QuoteService {
         commitmentQuote: quote,
         error: '',
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof HttpException) {
         throw error
       }
-      throw new BadRequestException(error.message)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      throw new BadRequestException(errorMessage)
     }
   }
 
@@ -220,11 +222,12 @@ export class QuoteService {
         liquidationQuote: quote,
         error: '',
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof HttpException) {
         throw error
       }
-      throw new BadRequestException(error.message)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      throw new BadRequestException(errorMessage)
     }
   }
 }

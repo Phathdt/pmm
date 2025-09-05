@@ -10,7 +10,7 @@ export class ResponseExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>()
     const request = ctx.getRequest<Request>()
 
-    const traceId = (request as any).traceId || uuidv7()
+    const traceId = (request as Request & { traceId?: string }).traceId || uuidv7()
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR
     let message = 'Internal server error'
@@ -18,14 +18,15 @@ export class ResponseExceptionFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       status = exception.getStatus()
-      const responseBody = exception.getResponse() as any
+      const responseBody = exception.getResponse() as string | object
 
       if (typeof responseBody === 'object' && responseBody !== null) {
-        error = responseBody.error || exception.message || 'Error'
-        message = responseBody.message || 'An error occurred'
+        const errorResponse = responseBody as { error?: string; message?: string }
+        error = errorResponse.error || exception.message || 'Error'
+        message = errorResponse.message || 'An error occurred'
       } else {
         error = exception.message
-        message = responseBody || 'An error occurred'
+        message = typeof responseBody === 'string' ? responseBody : 'An error occurred'
       }
     } else if (exception instanceof Error) {
       error = exception.message

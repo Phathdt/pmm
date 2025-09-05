@@ -4,7 +4,7 @@ import { clusterApiUrl, Connection } from '@solana/web3.js'
 import { OptimexSolSmartcontract } from './optimex_sol_smartcontract'
 import IDL from './optimex_sol_smartcontract.json'
 
-const provider = new anchor.AnchorProvider(new Connection(clusterApiUrl('devnet')), {} as any, {
+const provider = new anchor.AnchorProvider(new Connection(clusterApiUrl('devnet')), {} as anchor.Wallet, {
   commitment: 'confirmed',
 })
 const optimexSolProgram = new anchor.Program(

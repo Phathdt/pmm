@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ITypes } from '@optimex-xyz/market-maker-sdk'
 
 import { AbiCoder } from 'ethers'
 
-export interface LiquidateAffiliateInfo {
+interface LiquidateAffiliateInfo {
   positionId: string
   liquidationId: string
   apm: string

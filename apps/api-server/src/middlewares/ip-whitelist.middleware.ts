@@ -9,14 +9,14 @@ export class IpWhitelistMiddleware implements NestMiddleware {
   private readonly enabled: boolean
   private readonly logger = new Logger(IpWhitelistMiddleware.name)
 
-  constructor(private configService: ConfigService) {
-    const whitelistString = this.configService.get<string>('IP_WHITELIST', '')
+  constructor(configService: ConfigService) {
+    const whitelistString = configService.get<string>('IP_WHITELIST', '')
     this.whitelistedIps = whitelistString
       .split(',')
       .map((ip) => ip.trim())
       .filter((ip) => ip.length > 0)
 
-    this.enabled = this.configService.get<string>('ENABLE_IP_WHITELIST', 'false').toLowerCase() === 'true'
+    this.enabled = configService.get<string>('ENABLE_IP_WHITELIST', 'false').toLowerCase() === 'true'
   }
 
   use(req: Request, res: Response, next: NextFunction) {

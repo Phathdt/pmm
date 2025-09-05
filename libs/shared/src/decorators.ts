@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createParamDecorator, ExecutionContext } from '@nestjs/common'
 
 function convertToCamelCase(obj: any): any {
@@ -19,13 +20,13 @@ function snakeToCamelCase(str: string): string {
   return str.replace(/([-_][a-z])/g, (group) => group.toUpperCase().replace('-', '').replace('_', ''))
 }
 
-export const TransformedQuery = createParamDecorator((data: unknown, ctx: ExecutionContext) => {
+export const TransformedQuery = createParamDecorator((_data: unknown, ctx: ExecutionContext) => {
   const request = ctx.switchToHttp().getRequest()
 
   return convertToCamelCase({ ...request.query })
 })
 
-export const TransformedBody = createParamDecorator((data: unknown, ctx: ExecutionContext) => {
+export const TransformedBody = createParamDecorator((_data: unknown, ctx: ExecutionContext) => {
   const request = ctx.switchToHttp().getRequest()
   return convertToCamelCase({ ...request.body })
 })

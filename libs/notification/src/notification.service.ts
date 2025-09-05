@@ -38,11 +38,14 @@ export class NotificationService {
         status: 'success',
         timestamp: new Date().toISOString(),
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      const errorStack = error instanceof Error ? error.stack : undefined
+      
       this.logger.error({
         message: 'Failed to send telegram notification',
-        error: error.message,
-        stack: error.stack,
+        error: errorMessage,
+        stack: errorStack,
         operation: 'telegram_notification',
         status: 'failed',
         timestamp: new Date().toISOString(),

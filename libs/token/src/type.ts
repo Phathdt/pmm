@@ -11,14 +11,6 @@ export const TokenPriceSchema = z.object({
 
 export type TokenPrice = z.infer<typeof TokenPriceSchema>
 
-export const ResponseSchema = <T extends z.ZodType>(dataSchema: T) =>
-  z.object({
-    data: dataSchema,
-    traceId: z.string(),
-  })
-
-export type IResponse<T> = z.infer<ReturnType<typeof ResponseSchema<z.ZodType<T>>>>
-
 export interface CoinGeckoToken {
   id: string
   symbol: string

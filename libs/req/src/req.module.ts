@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { HttpModule, HttpService } from '@nestjs/axios'
 import { DynamicModule, Module, Provider } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'

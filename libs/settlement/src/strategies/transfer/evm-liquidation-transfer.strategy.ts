@@ -115,7 +115,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     }
   }
 
-  private extractErrorCode(tradeId: string, error: any, decodedError: DecodedError): string {
+  private extractErrorCode(tradeId: string, error: unknown, decodedError: DecodedError): string {
     this.logger.debug({
       message: 'Extracting error code from decoded error',
       tradeId,
@@ -123,21 +123,30 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
       operation: 'extract_error_code',
       timestamp: new Date().toISOString(),
     })
+    
+    const errorMessage = error && typeof error === 'object' && 'message' in error 
+      ? (error as { message: string }).message 
+      : error?.toString() || 'Unknown error'
+    
+    const errorObj = error && typeof error === 'object' ? error as Record<string, unknown> : {}
+    const transactionObj = errorObj?.transaction as Record<string, unknown> | undefined
+    const errorData = errorObj?.data || transactionObj?.data
+    
     this.logger.debug({
       message: 'Extracting error code from raw error',
       tradeId,
-      error: error.message || error.toString(),
-      errorData: error?.data || error?.transaction?.data,
+      error: errorMessage,
+      errorData,
       operation: 'extract_error_code',
       timestamp: new Date().toISOString(),
     })
 
-    const errorData = error?.data || error?.transaction?.data || decodedError?.data
-    if (!errorData) {
+    const finalErrorData = errorData || decodedError?.data
+    if (!finalErrorData) {
       throw new Error('No error data available to extract error code')
     }
 
-    const selector = errorData.slice(0, 10)
+    const selector = String(finalErrorData).slice(0, 10)
     return selector
   }
 

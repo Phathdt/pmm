@@ -129,12 +129,15 @@ export class SubmitSettlementProcessor {
         }
         throw axiosError // Re-throw to be caught by outer catch block
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      const errorStack = error instanceof Error ? error.stack : undefined
+      
       this.logger.error({
         message: 'Submit settlement error',
         tradeId,
-        error: error.message,
-        stack: error.stack,
+        error: errorMessage,
+        stack: errorStack,
         operation: 'settlement_submission_error',
         timestamp: new Date().toISOString(),
       })

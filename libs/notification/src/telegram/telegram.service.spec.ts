@@ -1,4 +1,5 @@
 import { HttpService } from '@nestjs/axios'
+import { ConfigService } from '@nestjs/config'
 
 import { AxiosResponse } from 'axios'
 import { of, throwError } from 'rxjs'
@@ -14,10 +15,21 @@ describe('TelegramService', () => {
 
   beforeEach(async () => {
     const mockHttpService = {
+      request: jest.fn(),
+      get: jest.fn(),
+      delete: jest.fn(),
+      head: jest.fn(),
       post: jest.fn(),
+      put: jest.fn(),
+      patch: jest.fn(),
+      options: jest.fn(),
+      postForm: jest.fn(),
+      putForm: jest.fn(),
+      patchForm: jest.fn(),
+      axiosRef: {} as never,
     }
 
-    httpService = mockHttpService as any
+    httpService = mockHttpService as unknown as jest.Mocked<HttpService>
   })
 
   const createService = (
@@ -58,9 +70,9 @@ describe('TelegramService', () => {
             throw new Error(`Missing ${key}`)
         }
       }),
-    } as any
+    }
 
-    return new TelegramService(mockConfigService, httpService)
+    return new TelegramService(mockConfigService as unknown as ConfigService, httpService)
   }
 
   it('should be defined', () => {
@@ -93,7 +105,7 @@ describe('TelegramService', () => {
       status: 200,
       statusText: 'OK',
       headers: {},
-      config: {} as any,
+      config: {} as never,
     }
 
     it('should send message successfully', async () => {
@@ -203,7 +215,7 @@ describe('TelegramService', () => {
           status: 200,
           statusText: 'OK',
           headers: {},
-          config: {} as any,
+          config: {} as never,
         })
       )
 
@@ -229,7 +241,7 @@ describe('TelegramService', () => {
           status: 200,
           statusText: 'OK',
           headers: {},
-          config: {} as any,
+          config: {} as never,
         })
       )
 

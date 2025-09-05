@@ -1,5 +1,5 @@
 import { InjectQueue, Process, Processor } from '@nestjs/bull'
-import { Inject, Logger } from '@nestjs/common'
+import { Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
   l2Decode,
