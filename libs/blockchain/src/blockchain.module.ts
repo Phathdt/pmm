@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common'
-import { ScheduleModule } from '@nestjs/schedule'
+import { ConfigModule } from '@nestjs/config'
 
 import { NonceManagerService } from './nonce-manager.service'
 import { NonceRefreshScheduler } from './nonce-refresh.scheduler'
 import { TransactionService } from './transaction.service'
 
 @Module({
-  imports: [ScheduleModule.forRoot()],
+  imports: [ConfigModule],
   controllers: [],
   providers: [NonceManagerService, NonceRefreshScheduler, TransactionService],
   exports: [NonceManagerService, TransactionService],

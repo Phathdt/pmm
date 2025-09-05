@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing'
 
 import { NotificationModule } from './notification.module'
 import { NotificationService } from './notification.service'
-import { TelegramService } from './telegram/telegram.service'
+import { TelegramService } from './telegram'
 
 describe('NotificationModule', () => {
   let module: TestingModule

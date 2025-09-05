@@ -6,7 +6,7 @@ import { config, Payment__factory, routerService } from '@optimex-xyz/market-mak
 import { ZeroAddress } from 'ethers'
 import { DecodedError } from 'ethers-decode-error'
 
-import { ITransferStrategy, TransferParams } from '../../interfaces'
+import { ITransferStrategy, TransferParams, TransferResult } from '../../interfaces'
 
 @Injectable()
 export class EVMTransferStrategy implements ITransferStrategy {
@@ -16,7 +16,7 @@ export class EVMTransferStrategy implements ITransferStrategy {
 
   constructor(private transactionService: TransactionService) {}
 
-  async transfer(params: TransferParams): Promise<string> {
+  async transfer(params: TransferParams): Promise<TransferResult> {
     const { token, toAddress, amount, tradeId } = params
     const { tokenAddress, networkId } = token
 
@@ -60,11 +60,16 @@ export class EVMTransferStrategy implements ITransferStrategy {
         tokenAddress,
         toAddress,
         amount: amount.toString(),
+        nonce: result.nonce,
+        gasLimit: result.gasLimit?.toString(),
+        gasPrice: result.gasPrice?.toString(),
+        maxFeePerGas: result.maxFeePerGas?.toString(),
+        maxPriorityFeePerGas: result.maxPriorityFeePerGas?.toString(),
         operation: 'evm_transfer',
         status: 'success',
         timestamp: new Date().toISOString(),
       })
-      return result.hash
+      return result
     } catch (error) {
       const decodedError: DecodedError = await decoder.decode(error)
 

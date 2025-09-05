@@ -21,6 +21,7 @@
       "@optimex-pmm/custom-logger": ["libs/custom-logger/src/index.ts"],
       "@optimex-pmm/database": ["libs/database/src/index.ts"],
       "@optimex-pmm/notification": ["libs/notification/src/index.ts"],
+      "@optimex-pmm/queue": ["libs/queue/src/index.ts"],
       "@optimex-pmm/quote": ["libs/quote/src/index.ts"],
       "@optimex-pmm/req": ["libs/req/src/index.ts"],
       "@optimex-pmm/settlement": ["libs/settlement/src/index.ts"],

@@ -6,7 +6,7 @@ import { AxiosResponse } from 'axios'
 import { firstValueFrom } from 'rxjs'
 
 import { SendMessageDto, TelegramMessageOptions } from './dto'
-import { TelegramProvider } from './interfaces/telegram.interface'
+import { TelegramProvider } from './interfaces'
 
 @Injectable()
 export class TelegramService implements TelegramProvider {

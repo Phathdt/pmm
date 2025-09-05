@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "postgresql": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-postgres"],
+      "env": {
+        "POSTGRES_CONNECTION_STRING": "postgresql://postgres:123123123@localhost:5432/bitfi-pmm"
+      }
+    }
+  }
+}

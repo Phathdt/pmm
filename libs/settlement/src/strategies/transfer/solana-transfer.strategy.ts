@@ -9,7 +9,7 @@ import { AccountMeta, Connection, Keypair, PublicKey, Transaction } from '@solan
 import bs58 from 'bs58'
 
 import { optimexSolProgram } from '../../artifacts'
-import { ITransferStrategy, TransferParams } from '../../interfaces'
+import { ITransferStrategy, TransferParams, TransferResult } from '../../interfaces'
 import {
   bigintToBytes32,
   createAssociatedTokenAccountInstructionIfNeeded,
@@ -86,7 +86,7 @@ export class SolanaTransferStrategy implements ITransferStrategy {
     }
   }
 
-  async transfer(params: TransferParams): Promise<string> {
+  async transfer(params: TransferParams): Promise<TransferResult> {
     const { toAddress, amount, tradeId, token } = params
     const deadline = Math.floor(Date.now() / 1000) + 3600
     this.logger.log({
@@ -254,7 +254,7 @@ export class SolanaTransferStrategy implements ITransferStrategy {
         timestamp: new Date().toISOString(),
       })
 
-      return txHash
+      return { hash: txHash }
     } catch (error) {
       this.logger.error({
         message: 'Solana payment failed',

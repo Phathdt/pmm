@@ -46,3 +46,4 @@ Thumbs.db
 # claude code agent sessions
 /plans
 .claude_sessions
+.serena/cache

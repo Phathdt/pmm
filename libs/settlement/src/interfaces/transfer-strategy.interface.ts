@@ -8,6 +8,16 @@ export interface TransferParams {
   isLiquid: boolean
 }
 
+export interface TransferResult {
+  hash: string
+  // Gas details for record keeping
+  nonce?: number
+  gasLimit?: bigint
+  gasPrice?: bigint
+  maxFeePerGas?: bigint
+  maxPriorityFeePerGas?: bigint
+}
+
 export interface ITransferStrategy {
-  transfer(params: TransferParams): Promise<string>
+  transfer(params: TransferParams): Promise<TransferResult>
 }

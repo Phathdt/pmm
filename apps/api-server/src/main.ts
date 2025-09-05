@@ -12,11 +12,13 @@ import { Environment, sdk } from '@optimex-xyz/market-maker-sdk'
 import { LoggerErrorInterceptor, Logger as PinoLogger } from 'nestjs-pino'
 import { patchNestJsSwagger, ZodValidationPipe } from 'nestjs-zod'
 
-import { AppModule } from './app/app.module'
-import { ResponseExceptionFilter } from './interceptors/response-exception.filter'
-import { ResponseLoggerInterceptor } from './interceptors/response-logger.interceptor'
-import { TraceIdInterceptor } from './interceptors/trace-id.interceptor'
-import { ZodValidationExceptionFilter } from './interceptors/zod-validation-exception.filter'
+import { AppModule } from './app'
+import {
+  ResponseExceptionFilter,
+  ResponseLoggerInterceptor,
+  TraceIdInterceptor,
+  ZodValidationExceptionFilter,
+} from './interceptors'
 
 sdk.setEnvironment(process.env.ENV as Environment)
 

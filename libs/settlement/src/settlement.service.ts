@@ -1,7 +1,7 @@
-import { InjectQueue } from '@nestjs/bull'
 import { BadRequestException, HttpException, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { isSameAddress, stringToHex, toString } from '@optimex-pmm/shared'
+import { QueueService } from '@optimex-pmm/queue'
+import { isSameAddress, stringToHex } from '@optimex-pmm/shared'
 import { TradeService } from '@optimex-pmm/trade'
 import {
   getCommitInfoHash,
@@ -14,10 +14,9 @@ import {
 } from '@optimex-xyz/market-maker-sdk'
 import { Trade, TradeStatus } from '@prisma/client'
 
-import { Queue } from 'bull'
 import * as ethers from 'ethers'
 
-import { SETTLEMENT_QUEUE } from './const'
+import { SETTLEMENT_REDIS_QUEUE } from './const'
 import {
   AckSettlementDto,
   AckSettlementResponseDto,
@@ -44,8 +43,7 @@ export class SettlementService {
   constructor(
     private readonly configService: ConfigService,
     private readonly tradeService: TradeService,
-    @InjectQueue(SETTLEMENT_QUEUE.TRANSFER.NAME)
-    private transferSettlementQueue: Queue
+    private readonly queueService: QueueService
   ) {
     const rpcUrl = this.configService.getOrThrow<string>('RPC_URL')
     const pmmPrivateKey = this.configService.getOrThrow<string>('PMM_PRIVATE_KEY')
@@ -159,14 +157,11 @@ export class SettlementService {
         tradeId: dto.tradeId,
       } as TransferSettlementEvent
 
-      await this.transferSettlementQueue.add(SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS, toString(eventData), {
-        removeOnComplete: {
-          age: 24 * 3600,
-        },
-        removeOnFail: {
-          age: 24 * 3600,
-        },
-      })
+      // Get the token to determine which platform queue to use
+      const token = await this.tokenService.getTokenByTokenId(trade.toTokenId)
+      const queueName = this.getQueueNameByNetworkType(token.networkType.toUpperCase())
+
+      await this.queueService.pushToQueue(queueName, eventData)
 
       // You might want to store the protocol fee amount or handle it in your business logic
       await this.tradeService.updateTradeStatus(dto.tradeId, TradeStatus.SETTLING)
@@ -195,6 +190,20 @@ export class SettlementService {
         return this.PMM_SOLANA_ADDRESS
       default:
         throw new BadRequestException(`Unsupported network type: ${token.networkType}`)
+    }
+  }
+
+  private getQueueNameByNetworkType(networkType: string): string {
+    switch (networkType.toUpperCase()) {
+      case 'EVM':
+        return SETTLEMENT_REDIS_QUEUE.EVM_TRANSFER.NAME
+      case 'BTC':
+      case 'TBTC':
+        return SETTLEMENT_REDIS_QUEUE.BTC_TRANSFER.NAME
+      case 'SOLANA':
+        return SETTLEMENT_REDIS_QUEUE.SOLANA_TRANSFER.NAME
+      default:
+        throw new BadRequestException(`Unsupported network type: ${networkType}`)
     }
   }
 }

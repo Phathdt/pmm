@@ -6,7 +6,7 @@ import { config, MorphoLiquidator__factory } from '@optimex-xyz/market-maker-sdk
 
 import { DecodedError } from 'ethers-decode-error'
 
-import { ITransferStrategy, TransferParams } from '../../interfaces'
+import { ITransferStrategy, TransferParams, TransferResult } from '../../interfaces'
 
 @Injectable()
 export class EVMLiquidationTransferStrategy implements ITransferStrategy {
@@ -17,7 +17,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     private transactionService: TransactionService
   ) {}
 
-  async transfer(params: TransferParams): Promise<string> {
+  async transfer(params: TransferParams): Promise<TransferResult> {
     const { amount, token, tradeId } = params
     const { tokenAddress, networkId } = token
 
@@ -68,12 +68,17 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
         amount: amount.toString(),
         positionManager,
         positionId,
+        nonce: result.nonce,
+        gasLimit: result.gasLimit?.toString(),
+        gasPrice: result.gasPrice?.toString(),
+        maxFeePerGas: result.maxFeePerGas?.toString(),
+        maxPriorityFeePerGas: result.maxPriorityFeePerGas?.toString(),
         operation: 'evm_liquidation_transfer',
         status: 'success',
         timestamp: new Date().toISOString(),
       })
 
-      return result.hash
+      return result
     } catch (error) {
       this.logger.error({
         message: 'Liquidation transfer error details',
@@ -106,7 +111,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
         timestamp: new Date().toISOString(),
       })
 
-      return paddedTxHash
+      return { hash: paddedTxHash }
     }
   }
 

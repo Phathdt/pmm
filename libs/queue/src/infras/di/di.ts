@@ -1,0 +1,1 @@
+export const QUEUE_SERVICE_TOKEN = Symbol('QUEUE_SERVICE_TOKEN')

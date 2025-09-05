@@ -1,2 +1,4 @@
+export * from './btc-transfer-settlement.processor'
+export * from './evm-transfer-settlement.processor'
+export * from './solana-transfer-settlement.processor'
 export * from './submit-settlement.processor'
-export * from './transfer-settlement.processor'

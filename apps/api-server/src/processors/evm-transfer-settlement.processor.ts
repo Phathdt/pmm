@@ -1,11 +1,12 @@
 import { InjectQueue, Process, Processor } from '@nestjs/bull'
-import { Logger } from '@nestjs/common'
+import { Inject, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import {
   l2Decode,
   SETTLEMENT_QUEUE,
   SubmitSettlementEvent,
   TransferFactory,
+  TransferResult,
   TransferSettlementEvent,
 } from '@optimex-pmm/settlement'
 import { stringToHex, toObject, toString } from '@optimex-pmm/shared'
@@ -15,8 +16,8 @@ import { Trade } from '@prisma/client'
 
 import { Job, Queue } from 'bull'
 
-@Processor(SETTLEMENT_QUEUE.TRANSFER.NAME)
-export class TransferSettlementProcessor {
+@Processor(SETTLEMENT_QUEUE.EVM_TRANSFER.NAME)
+export class EvmTransferSettlementProcessor {
   private pmmId: string
   private readonly MAX_RETRIES = 60
   private readonly RETRY_DELAY = 60000
@@ -24,28 +25,28 @@ export class TransferSettlementProcessor {
   private routerService = routerService
   private tokenRepo = tokenService
 
-  private readonly logger = new Logger(TransferSettlementProcessor.name)
+  private readonly logger = new Logger(EvmTransferSettlementProcessor.name)
 
   constructor(
     private configService: ConfigService,
     private transferFactory: TransferFactory,
     @InjectQueue(SETTLEMENT_QUEUE.SUBMIT.NAME) private submitSettlementQueue: Queue,
-    @InjectQueue(SETTLEMENT_QUEUE.TRANSFER.NAME) private transferSettlementQueue: Queue,
+    @InjectQueue(SETTLEMENT_QUEUE.EVM_TRANSFER.NAME) private transferSettlementQueue: Queue,
     private tradeService: TradeService
   ) {
     this.pmmId = stringToHex(this.configService.getOrThrow<string>('PMM_ID'))
   }
 
-  @Process(SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS)
+  @Process(SETTLEMENT_QUEUE.EVM_TRANSFER.JOBS.PROCESS)
   async transfer(job: Job<string>) {
     const { tradeId, retryCount = 0 } = toObject(job.data) as TransferSettlementEvent & { retryCount?: number }
 
     this.logger.log({
-      message: 'Processing transfer settlement retry',
+      message: 'Processing EVM transfer settlement retry',
       tradeId,
       retryCount,
       maxRetries: this.MAX_RETRIES,
-      operation: 'transfer_settlement',
+      operation: 'evm_transfer_settlement',
       timestamp: new Date().toISOString(),
     })
 
@@ -59,7 +60,7 @@ export class TransferSettlementProcessor {
           message: 'Trade does not belong to this PMM',
           tradeId,
           pmmId: this.pmmId,
-          operation: 'transfer_settlement',
+          operation: 'evm_transfer_settlement',
           error: 'trade_pmm_mismatch',
           timestamp: new Date().toISOString(),
         })
@@ -74,7 +75,7 @@ export class TransferSettlementProcessor {
         this.logger.error({
           message: 'Trade not found in database',
           tradeId,
-          operation: 'transfer_settlement',
+          operation: 'evm_transfer_settlement',
           error: 'trade_not_found',
           timestamp: new Date().toISOString(),
         })
@@ -89,14 +90,15 @@ export class TransferSettlementProcessor {
           tradeId,
           tradeDeadline: tradeDb.tradeDeadline,
           currentTime: now,
-          operation: 'transfer_settlement',
+          operation: 'evm_transfer_settlement',
           error: 'trade_expired',
           timestamp: new Date().toISOString(),
         })
         return
       }
 
-      const paymentTxId = await this.transferToken(pmmInfo, trade, tradeDb, tradeId)
+      const transferResult = await this.transferToken(pmmInfo, trade, tradeDb, tradeId)
+      const paymentTxId = transferResult.hash
 
       const eventData = {
         tradeId: tradeId,
@@ -113,28 +115,28 @@ export class TransferSettlementProcessor {
       })
 
       this.logger.log({
-        message: 'Transfer settlement completed successfully',
+        message: 'EVM transfer settlement completed successfully',
         tradeId,
         paymentTxId,
-        operation: 'transfer_settlement',
+        operation: 'evm_transfer_settlement',
         status: 'success',
         timestamp: new Date().toISOString(),
       })
     } catch (error) {
       if (retryCount < this.MAX_RETRIES - 1) {
         this.logger.warn({
-          message: 'Transfer settlement retry scheduled',
+          message: 'EVM transfer settlement retry scheduled',
           tradeId,
           retryCount: retryCount + 1,
           maxRetries: this.MAX_RETRIES,
           error: error.message || error.toString(),
-          operation: 'transfer_settlement',
+          operation: 'evm_transfer_settlement',
           nextRetryDelayMs: this.RETRY_DELAY,
           timestamp: new Date().toISOString(),
         })
 
         await this.transferSettlementQueue.add(
-          SETTLEMENT_QUEUE.TRANSFER.JOBS.PROCESS,
+          SETTLEMENT_QUEUE.EVM_TRANSFER.JOBS.PROCESS,
           toString({ tradeId, retryCount: retryCount + 1 }),
           {
             delay: this.RETRY_DELAY,
@@ -149,11 +151,11 @@ export class TransferSettlementProcessor {
         return
       }
       this.logger.error({
-        message: 'Transfer settlement failed after maximum retries',
+        message: 'EVM transfer settlement failed after maximum retries',
         tradeId,
         maxRetries: this.MAX_RETRIES,
         error: error.message || error.toString(),
-        operation: 'transfer_settlement',
+        operation: 'evm_transfer_settlement',
         status: 'failed',
         timestamp: new Date().toISOString(),
       })
@@ -167,7 +169,7 @@ export class TransferSettlementProcessor {
     trade: ITypes.TradeDataStructOutput,
     tradeDb: Trade,
     tradeId: string
-  ): Promise<string> {
+  ): Promise<TransferResult> {
     const amount = pmmInfo.amountOut
     const {
       address: toUserAddress,
@@ -176,12 +178,12 @@ export class TransferSettlementProcessor {
     } = await this.decodeChainInfo(trade.tradeInfo.toChain)
 
     this.logger.log({
-      message: 'Chain information decoded successfully',
+      message: 'EVM chain information decoded successfully',
       tradeId,
       toUserAddress,
       networkId,
       tokenAddress: toTokenAddress,
-      operation: 'chain_info_decode',
+      operation: 'evm_chain_info_decode',
       timestamp: new Date().toISOString(),
     })
 
@@ -189,7 +191,7 @@ export class TransferSettlementProcessor {
 
     try {
       const strategy = this.transferFactory.getStrategy(toToken.networkType.toUpperCase(), tradeDb.tradeType)
-      const tx = await strategy.transfer({
+      const transferResult = await strategy.transfer({
         toAddress: toUserAddress,
         amount,
         token: toToken,
@@ -197,13 +199,13 @@ export class TransferSettlementProcessor {
         isLiquid: tradeDb.isLiquid,
       })
 
-      return tx
+      return transferResult
     } catch (error) {
       this.logger.error({
-        message: 'Token transfer failed',
+        message: 'EVM token transfer failed',
         tradeId,
         error: error.message || error.toString(),
-        operation: 'token_transfer',
+        operation: 'evm_token_transfer',
         status: 'failed',
         timestamp: new Date().toISOString(),
       })

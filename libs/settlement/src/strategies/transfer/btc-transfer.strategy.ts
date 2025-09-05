@@ -9,7 +9,7 @@ import * as bitcoin from 'bitcoinjs-lib'
 import { ECPairFactory } from 'ecpair'
 import * as ecc from 'tiny-secp256k1'
 
-import { ITransferStrategy, TransferParams } from '../../interfaces'
+import { ITransferStrategy, TransferParams, TransferResult } from '../../interfaces'
 
 const BLOCKSTREAM_MAINNET_API = 'https://blockstream.info/api'
 const BLOCKSTREAM_TESTNET_API = 'https://blockstream.info/testnet/api'
@@ -62,7 +62,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
     bitcoin.initEccLib(ecc)
   }
 
-  async transfer(params: TransferParams): Promise<string> {
+  async transfer(params: TransferParams): Promise<TransferResult> {
     const { toAddress, amount, token, tradeId } = params
 
     try {
@@ -98,7 +98,7 @@ export class BTCTransferStrategy implements ITransferStrategy {
         timestamp: new Date().toISOString(),
       })
 
-      return txId
+      return { hash: txId }
     } catch (error) {
       this.logger.error({
         message: 'BTC transfer failed',

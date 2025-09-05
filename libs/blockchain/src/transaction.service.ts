@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import { ERC20__factory } from '@optimex-xyz/market-maker-sdk'
 
 import {
@@ -10,6 +11,22 @@ import {
 } from 'ethers'
 
 import { NonceManagerService } from './nonce-manager.service'
+
+export interface TransactionReceipt {
+  hash: string
+  status: number // 1 for success, 0 for failure
+  blockNumber: number
+  confirmations: number
+  gasUsed: string
+}
+
+export interface TransactionStatus {
+  exists: boolean
+  inMempool: boolean
+  confirmed: boolean
+  receipt: TransactionReceipt | null
+  error?: string
+}
 
 export interface TransactionData {
   to?: string
@@ -44,6 +61,12 @@ export interface TransactionResult {
   gasUsed?: bigint
   effectiveGasPrice?: bigint
   blockNumber?: number
+  // Gas details for record keeping
+  nonce?: number
+  gasLimit?: bigint
+  gasPrice?: bigint
+  maxFeePerGas?: bigint
+  maxPriorityFeePerGas?: bigint
 }
 
 // Extract parameter types from a contract method's populateTransaction function
@@ -70,9 +93,17 @@ export class TransactionService {
   private readonly DEFAULT_MIN_GAS_BUFFER = 50000
   private readonly DEFAULT_GAS_PRICE_BUFFER_PERCENTAGE = 30 // 30% buffer for gas price
   private readonly DEFAULT_MAX_GAS_PRICE_MULTIPLIER = 3 // Max 3x base fee
+  private TESTING_STUCK_TRANSACTIONS = false
   private readonly logger = new Logger(TransactionService.name)
 
-  constructor(private nonceManagerService: NonceManagerService) {}
+  constructor(
+    private nonceManagerService: NonceManagerService,
+    private configService: ConfigService
+  ) {
+    const TESTING_STUCK_TRANSACTIONS = this.configService.get<string>('TESTING_STUCK_TRANSACTIONS', 'false')
+
+    this.TESTING_STUCK_TRANSACTIONS = TESTING_STUCK_TRANSACTIONS === 'true'
+  }
 
   /**
    * Execute transaction with automatic gas handling
@@ -108,33 +139,56 @@ export class TransactionService {
       // Enhanced gas price handling (NEW)
       const gasConfig = await this.getOptimalGasPrice(wallet, options)
 
-      // Prepare final transaction with enhanced gas handling
+      // Apply testing modifications for stuck transaction simulation if enabled
+      const gasPrice = gasConfig.gasPrice || gasConfig.maxFeePerGas || BigInt(0)
+      const testingModifications = this.applyTestingModifications(gasPrice, gasLimit)
+
+      // Update gas configuration with testing modifications
+      const finalGasConfig = gasConfig.gasPrice
+        ? { gasPrice: testingModifications.gasPrice }
+        : {
+            maxFeePerGas: testingModifications.gasPrice,
+            maxPriorityFeePerGas: gasConfig.maxPriorityFeePerGas,
+          }
+
+      // Prepare final transaction with enhanced gas handling and testing modifications
       const finalTxData: EthersTransactionRequest = {
         ...txData,
-        gasLimit,
+        gasLimit: testingModifications.gasLimit,
         value: options.value || txData.value,
-        ...gasConfig, // Spread gas price configuration (gasPrice OR maxFeePerGas + maxPriorityFeePerGas)
+        ...finalGasConfig, // Spread modified gas price configuration
       }
 
       // Execute transaction
       const tx: TransactionResponse = await wallet.sendTransaction(finalTxData)
 
-      // Enhanced logging with gas price information
-      const gasType = gasConfig.maxFeePerGas ? 'EIP-1559' : 'Legacy'
-      const gasValue = gasConfig.maxFeePerGas || gasConfig.gasPrice
+      // Enhanced logging with gas price information including testing modifications
+      const gasType = finalGasConfig.maxFeePerGas ? 'EIP-1559' : 'Legacy'
+      const gasValue = finalGasConfig.maxFeePerGas || finalGasConfig.gasPrice
+
       this.logger.log({
         message: 'Transaction executed successfully',
         txHash: tx.hash,
-        gasLimit: gasLimit.toString(),
+        gasLimit: testingModifications.gasLimit.toString(),
         gasType,
         gasValue: gasValue?.toString(),
+        nonce: tx.nonce,
         networkId,
+        testingMode: this.TESTING_STUCK_TRANSACTIONS,
         operation: 'execute_transaction',
         status: 'success',
         timestamp: new Date().toISOString(),
       })
 
-      return { hash: tx.hash }
+      // Return comprehensive transaction result with gas details
+      return {
+        hash: tx.hash,
+        nonce: tx.nonce,
+        gasLimit: tx.gasLimit,
+        gasPrice: tx.gasPrice,
+        maxFeePerGas: tx.maxFeePerGas || undefined,
+        maxPriorityFeePerGas: tx.maxPriorityFeePerGas || undefined,
+      }
     } catch (error) {
       this.logger.error({
         message: 'Transaction execution failed',
@@ -571,6 +625,38 @@ export class TransactionService {
   // Private helper methods for gas price (new)
 
   /**
+   * Apply testing modifications to simulate stuck transactions
+   * TESTING ONLY: Reduces gas price and gas limit by 10x when TESTING_STUCK_TRANSACTIONS=true
+   * @param gasPrice Original gas price
+   * @param gasLimit Original gas limit
+   * @returns Modified gas price and limit for testing, or original values in production
+   */
+  private applyTestingModifications(gasPrice: bigint, gasLimit: bigint): { gasPrice: bigint; gasLimit: bigint } {
+    if (this.TESTING_STUCK_TRANSACTIONS) {
+      const modifiedGasPrice = gasPrice / BigInt(4)
+      const modifiedGasLimit = gasLimit / BigInt(4)
+
+      this.logger.warn({
+        message: 'TESTING MODE: Reducing gas price and limit by 10x to simulate stuck transactions',
+        originalGasPrice: gasPrice.toString(),
+        originalGasLimit: gasLimit.toString(),
+        modifiedGasPrice: modifiedGasPrice.toString(),
+        modifiedGasLimit: modifiedGasLimit.toString(),
+        operation: 'testing_stuck_transactions',
+        testingEnabled: true,
+        timestamp: new Date().toISOString(),
+      })
+
+      return {
+        gasPrice: modifiedGasPrice,
+        gasLimit: modifiedGasLimit,
+      }
+    }
+
+    return { gasPrice, gasLimit }
+  }
+
+  /**
    * Retrieve base fee information from the provider
    * Used for multiplier-based gas price protection
    * @param provider Ethereum provider instance
@@ -847,5 +933,222 @@ export class TransactionService {
     ]
 
     return gasPriceErrorPatterns.some((pattern) => errorMessage.includes(pattern))
+  }
+
+  // ===== MONITORING METHODS =====
+  // These methods provide transaction monitoring capabilities
+  // previously handled by EVMRPCQueryService
+
+  /**
+   * Get transaction status from blockchain
+   * @param networkId Network identifier (ETHEREUM or ETHEREUM_SEPOLIA)
+   * @param txHash Transaction hash
+   * @returns Transaction status with confirmation details
+   */
+  async getTransactionStatus(networkId: string, txHash: string): Promise<TransactionStatus> {
+    try {
+      const provider = this.getProvider(networkId)
+
+      this.logger.log({
+        message: 'Checking transaction status',
+        networkId,
+        txHash,
+        operation: 'get_transaction_status',
+        timestamp: new Date().toISOString(),
+      })
+
+      // Get transaction from provider
+      const tx = await provider.getTransaction(txHash)
+
+      if (!tx) {
+        return {
+          exists: false,
+          inMempool: false,
+          confirmed: false,
+          receipt: null,
+        }
+      }
+
+      // Check if transaction is mined
+      if (tx.blockNumber === null) {
+        return {
+          exists: true,
+          inMempool: true,
+          confirmed: false,
+          receipt: null,
+        }
+      }
+
+      // Get receipt for confirmed transaction
+      const receipt = await provider.getTransactionReceipt(txHash)
+      if (!receipt) {
+        return {
+          exists: true,
+          inMempool: false,
+          confirmed: false,
+          receipt: null,
+        }
+      }
+
+      // Get current block for confirmation count
+      const currentBlock = await provider.getBlockNumber()
+      const confirmations = currentBlock - receipt.blockNumber + 1
+
+      return {
+        exists: true,
+        inMempool: false,
+        confirmed: true,
+        receipt: {
+          hash: receipt.hash,
+          status: receipt.status || 0,
+          blockNumber: receipt.blockNumber,
+          confirmations,
+          gasUsed: receipt.gasUsed.toString(),
+        },
+      }
+    } catch (error) {
+      this.logger.error({
+        message: 'Error checking transaction status',
+        networkId,
+        txHash,
+        error: error.message || error.toString(),
+        operation: 'get_transaction_status',
+        timestamp: new Date().toISOString(),
+      })
+
+      return {
+        exists: false,
+        inMempool: false,
+        confirmed: false,
+        receipt: null,
+        error: error.message || error.toString(),
+      }
+    }
+  }
+
+  /**
+   * Get transaction receipt directly
+   * @param networkId Network identifier
+   * @param txHash Transaction hash
+   * @returns Transaction receipt or null if not found
+   */
+  async getTransactionReceipt(networkId: string, txHash: string): Promise<TransactionReceipt | null> {
+    try {
+      const provider = this.getProvider(networkId)
+      const receipt = await provider.getTransactionReceipt(txHash)
+
+      if (!receipt) {
+        return null
+      }
+
+      const currentBlock = await provider.getBlockNumber()
+      const confirmations = currentBlock - receipt.blockNumber + 1
+
+      return {
+        hash: receipt.hash,
+        status: receipt.status || 0,
+        blockNumber: receipt.blockNumber,
+        confirmations,
+        gasUsed: receipt.gasUsed.toString(),
+      }
+    } catch (error) {
+      this.logger.error({
+        message: 'Error getting transaction receipt',
+        networkId,
+        txHash,
+        error: error.message || error.toString(),
+        operation: 'get_transaction_receipt',
+        timestamp: new Date().toISOString(),
+      })
+      return null
+    }
+  }
+
+  /**
+   * Get ethers provider for advanced queries
+   * @param networkId Network identifier
+   * @returns Ethers provider instance
+   */
+  getProvider(networkId: string): ethers.Provider {
+    const wallet = this.nonceManagerService.getNonceManager(networkId)
+    const provider = wallet.provider
+
+    if (!provider) {
+      throw new Error(`No provider available for network ${networkId}`)
+    }
+
+    return provider
+  }
+
+  /**
+   * Get account nonce for monitoring purposes
+   * @param networkId Network identifier
+   * @param address Address to check
+   * @returns Current nonce
+   */
+  async getAccountNonce(networkId: string, address: string): Promise<number> {
+    try {
+      const provider = this.getProvider(networkId)
+      const nonce = await provider.getTransactionCount(address, 'pending')
+
+      this.logger.log({
+        message: 'Account nonce retrieved',
+        networkId,
+        address,
+        nonce,
+        operation: 'get_account_nonce',
+        timestamp: new Date().toISOString(),
+      })
+
+      return nonce
+    } catch (error) {
+      this.logger.error({
+        message: 'Error getting account nonce',
+        networkId,
+        address,
+        error: error.message || error.toString(),
+        operation: 'get_account_nonce',
+        timestamp: new Date().toISOString(),
+      })
+      throw error
+    }
+  }
+
+  /**
+   * Get current gas price information
+   * @param networkId Network identifier
+   * @returns Gas price information
+   */
+  async getCurrentGasPrice(
+    networkId: string
+  ): Promise<{ gasPrice: string; maxFeePerGas?: string; maxPriorityFeePerGas?: string }> {
+    try {
+      const provider = this.getProvider(networkId)
+
+      // Try to get EIP-1559 fee data first
+      try {
+        const feeData = await provider.getFeeData()
+        return {
+          gasPrice: feeData.gasPrice?.toString() || '0',
+          maxFeePerGas: feeData.maxFeePerGas?.toString(),
+          maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toString(),
+        }
+      } catch {
+        // Fallback to legacy gas price from fee data
+        const feeData = await provider.getFeeData()
+        return {
+          gasPrice: feeData.gasPrice?.toString() || '0',
+        }
+      }
+    } catch (error) {
+      this.logger.error({
+        message: 'Error getting gas price',
+        networkId,
+        error: error.message || error.toString(),
+        operation: 'get_gas_price',
+        timestamp: new Date().toISOString(),
+      })
+      throw error
+    }
   }
 }
