@@ -119,24 +119,6 @@ export class TelegramService implements TelegramProvider {
     }
   }
 
-  async sendFormattedMessage(
-    message: string,
-    parseMode: 'HTML' | 'Markdown' | 'MarkdownV2',
-    options?: TelegramMessageOptions
-  ): Promise<void> {
-    await this.sendMessage(message, {
-      ...options,
-      parseMode,
-    })
-  }
-
-  async sendSilentMessage(message: string, options?: TelegramMessageOptions): Promise<void> {
-    await this.sendMessage(message, {
-      ...options,
-      silent: true,
-    })
-  }
-
   validateConfiguration(): boolean {
     const isValid = !!(this.botToken && this.chatId)
 

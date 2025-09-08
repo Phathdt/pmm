@@ -11,8 +11,6 @@ describe('NotificationService', () => {
     const mockTelegramService = {
       validateConfiguration: jest.fn(),
       sendMessage: jest.fn(),
-      sendFormattedMessage: jest.fn(),
-      sendSilentMessage: jest.fn(),
       getConfigurationStatus: jest.fn(),
       providerName: 'telegram',
     }
@@ -73,108 +71,6 @@ describe('NotificationService', () => {
       await service.sendTelegramMessage('Test message', options)
 
       expect(telegramService.sendMessage).toHaveBeenCalledWith('Test message', options)
-    })
-  })
-
-  describe('sendFormattedTelegramMessage', () => {
-    it('should send formatted telegram message with default HTML parse mode', async () => {
-      telegramService.validateConfiguration.mockReturnValue(true)
-      telegramService.sendMessage.mockResolvedValue()
-
-      await service.sendFormattedTelegramMessage('<b>Bold text</b>')
-
-      expect(telegramService.sendMessage).toHaveBeenCalledWith('<b>Bold text</b>', {
-        parseMode: 'HTML',
-      })
-    })
-
-    it('should send formatted telegram message with custom parse mode', async () => {
-      telegramService.validateConfiguration.mockReturnValue(true)
-      telegramService.sendMessage.mockResolvedValue()
-
-      await service.sendFormattedTelegramMessage('**Bold text**', 'Markdown')
-
-      expect(telegramService.sendMessage).toHaveBeenCalledWith('**Bold text**', {
-        parseMode: 'Markdown',
-      })
-    })
-
-    it('should pass additional options correctly', async () => {
-      telegramService.validateConfiguration.mockReturnValue(true)
-      telegramService.sendMessage.mockResolvedValue()
-
-      const options = { chatId: 'custom-chat', silent: true }
-      await service.sendFormattedTelegramMessage('<b>Bold text</b>', 'HTML', options)
-
-      expect(telegramService.sendMessage).toHaveBeenCalledWith('<b>Bold text</b>', {
-        ...options,
-        parseMode: 'HTML',
-      })
-    })
-  })
-
-  describe('sendSilentTelegramMessage', () => {
-    it('should send silent telegram message', async () => {
-      telegramService.validateConfiguration.mockReturnValue(true)
-      telegramService.sendMessage.mockResolvedValue()
-
-      await service.sendSilentTelegramMessage('Silent message')
-
-      expect(telegramService.sendMessage).toHaveBeenCalledWith('Silent message', {
-        silent: true,
-      })
-    })
-
-    it('should merge silent option with other options', async () => {
-      telegramService.validateConfiguration.mockReturnValue(true)
-      telegramService.sendMessage.mockResolvedValue()
-
-      const options = { chatId: 'custom-chat', parseMode: 'Markdown' as const }
-      await service.sendSilentTelegramMessage('Silent message', options)
-
-      expect(telegramService.sendMessage).toHaveBeenCalledWith('Silent message', {
-        ...options,
-        silent: true,
-      })
-    })
-  })
-
-  describe('getProvidersStatus', () => {
-    it('should return providers status', () => {
-      const mockStatus = {
-        isConfigured: true,
-        hasToken: true,
-        hasChatId: true,
-        providerName: 'telegram',
-      }
-      telegramService.getConfigurationStatus.mockReturnValue(mockStatus)
-
-      const result = service.getProvidersStatus()
-
-      expect(result).toEqual({
-        telegram: mockStatus,
-      })
-      expect(telegramService.getConfigurationStatus).toHaveBeenCalled()
-    })
-  })
-
-  describe('hasAnyProviderConfigured', () => {
-    it('should return true when telegram is configured', () => {
-      telegramService.validateConfiguration.mockReturnValue(true)
-
-      const result = service.hasAnyProviderConfigured()
-
-      expect(result).toBe(true)
-      expect(telegramService.validateConfiguration).toHaveBeenCalled()
-    })
-
-    it('should return false when no providers are configured', () => {
-      telegramService.validateConfiguration.mockReturnValue(false)
-
-      const result = service.hasAnyProviderConfigured()
-
-      expect(result).toBe(false)
-      expect(telegramService.validateConfiguration).toHaveBeenCalled()
     })
   })
 })

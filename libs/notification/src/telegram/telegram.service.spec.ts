@@ -206,58 +206,6 @@ describe('TelegramService', () => {
     })
   })
 
-  describe('sendFormattedMessage', () => {
-    it('should send message with specified parse mode', async () => {
-      const service = createService()
-      httpService.post.mockReturnValue(
-        of({
-          data: { ok: true },
-          status: 200,
-          statusText: 'OK',
-          headers: {},
-          config: {} as never,
-        })
-      )
-
-      await service.sendFormattedMessage('**Bold text**', 'Markdown')
-
-      expect(httpService.post).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          text: '**Bold text**',
-          parse_mode: 'Markdown',
-        }),
-        expect.any(Object)
-      )
-    })
-  })
-
-  describe('sendSilentMessage', () => {
-    it('should send silent message', async () => {
-      const service = createService()
-      httpService.post.mockReturnValue(
-        of({
-          data: { ok: true },
-          status: 200,
-          statusText: 'OK',
-          headers: {},
-          config: {} as never,
-        })
-      )
-
-      await service.sendSilentMessage('Silent message')
-
-      expect(httpService.post).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          text: 'Silent message',
-          disable_notification: true,
-        }),
-        expect.any(Object)
-      )
-    })
-  })
-
   describe('getConfigurationStatus', () => {
     it('should return configuration status', () => {
       const service = createService()

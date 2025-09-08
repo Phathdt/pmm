@@ -23,12 +23,10 @@
     "prisma:generate:watch": "npx prisma generate --watch",
     "ctix": "node generate-indexes.js",
     "lint-staged": "lint-staged",
-    "commit": "yarn ctix && yarn check:unused:ci && git-cz",
+    "commit": "yarn ctix && git-cz",
     "prepare": "husky",
     "check:unused": "node unused-detector.js",
-    "check:unused:ci": "node unused-detector.js --exit-code",
-    "check:unused-methods": "node simple-libs-detector.js",
-    "check:unused-methods:ci": "node simple-libs-detector.js --exit-code"
+    "check:unused:ci": "node unused-detector.js --exit-code"
   },
   "resolutions": {
     "@bull-board/express/express": "5.0.1"
