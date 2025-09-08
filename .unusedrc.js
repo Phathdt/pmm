@@ -19,6 +19,7 @@ module.exports = {
     'libs/queue/src/domain/interfaces/queue.service.interface.ts',
     'libs/req/src/req.service.ts',
     'libs/req/src/req.interceptor.ts',
+    'libs/shared/src/address.ts',
   ],
 
   // Function name patterns to ignore (regex patterns)

@@ -439,9 +439,28 @@ class UnusedDetector {
   handleIdentifier(node, filePath) {
     const name = node.text
     this.allUsages.add(name)
-    this.classUsages.add(name)
-    this.interfaceUsages.add(name)
-    this.functionUsages.add(name)
+
+    // Only add to specific usage sets if not in a declaration context
+    const parent = node.parent
+    if (parent) {
+      // Skip if this identifier is the name being declared
+      const isDeclarationName =
+        (ts.isInterfaceDeclaration(parent) && parent.name === node) ||
+        (ts.isClassDeclaration(parent) && parent.name === node) ||
+        (ts.isFunctionDeclaration(parent) && parent.name === node) ||
+        (ts.isVariableDeclaration(parent) && parent.name === node)
+
+      if (!isDeclarationName) {
+        this.classUsages.add(name)
+        this.interfaceUsages.add(name)
+        this.functionUsages.add(name)
+      }
+    } else {
+      // Fallback for cases where parent is not available
+      this.classUsages.add(name)
+      this.interfaceUsages.add(name)
+      this.functionUsages.add(name)
+    }
   }
 
   // Check if node has export modifier
@@ -786,6 +805,18 @@ class UnusedDetector {
           ...info,
           type: 'class',
           category: 'class',
+        })
+      }
+    }
+
+    // Check unused interfaces
+    for (const [interfaceName, info] of this.allInterfaces) {
+      if (!this.interfaceUsages.has(interfaceName)) {
+        unused.push({
+          name: interfaceName,
+          ...info,
+          type: 'interface',
+          category: 'interface',
         })
       }
     }
