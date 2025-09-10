@@ -22,7 +22,7 @@ export class TransferFactory {
     this.strategies.set('TBTC-swap', btcTransferStrategy)
     this.strategies.set('BTC-swap', btcTransferStrategy)
     this.strategies.set('SOLANA-swap', solanaTransferStrategy)
-    this.strategies.set('EVM-liquid', evmLiquidationTransferStrategy)
+    this.strategies.set('EVM-lending', evmLiquidationTransferStrategy)
   }
 
   getStrategy(networkType: string, tradeType: string): ITransferStrategy {
