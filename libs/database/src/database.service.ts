@@ -63,7 +63,6 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
     await this.$connect()
 
     // Enhanced SQL query logging
-    // @ts-expect-error: ignore here
     this.$on('query', (e: any) => {
       const queryType = e.query.split(' ')[0].toUpperCase() as QueryType
       const formattedQuery = this.formatQuery(e.query)
