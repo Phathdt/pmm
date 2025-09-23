@@ -2,7 +2,12 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { TransactionService } from '@optimex-pmm/blockchain'
 import { errorDecoder } from '@optimex-pmm/shared'
 import { ITradeService, TRADE_SERVICE } from '@optimex-pmm/trade'
-import { config, MorphoLiquidator__factory } from '@optimex-xyz/market-maker-sdk'
+import {
+  AssetChainContractRole,
+  MorphoLiquidator__factory,
+  OptimexEvmNetwork,
+  protocolService,
+} from '@optimex-xyz/market-maker-sdk'
 
 import { DecodedError } from 'ethers-decode-error'
 
@@ -27,7 +32,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
       throw new Error(`Trade not found: ${tradeId}`)
     }
 
-    const liquidAddress = this.getLiquidationPaymentAddress(networkId)
+    const liquidAddress = await this.getLiquidationPaymentAddress(networkId)
 
     // Handle token approval if not native token
     if (tokenAddress !== 'native') {
@@ -41,7 +46,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     const positionManager = trade.apm
     const signature = trade.validatorSignature || '0x'
     const positionId = trade.positionId
-    const isLiquid = trade.isLiquid
+    const isLiquid = trade.isLiquid as boolean
 
     const decoder = errorDecoder()
 
@@ -79,11 +84,14 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
       })
 
       return result
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Liquidation transfer error details',
         tradeId,
-        error: error.message || error.toString(),
+        error:
+          error && typeof error === 'object' && 'message' in error
+            ? (error as { message: string }).message
+            : error?.toString() || 'Unknown error',
         operation: 'evm_liquidation_transfer',
         timestamp: new Date().toISOString(),
       })
@@ -130,8 +138,8 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
         : error?.toString() || 'Unknown error'
 
     const errorObj = error && typeof error === 'object' ? (error as Record<string, unknown>) : {}
-    const transactionObj = errorObj?.transaction as Record<string, unknown> | undefined
-    const errorData = errorObj?.data || transactionObj?.data
+    const transactionObj = errorObj?.['transaction'] as Record<string, unknown> | undefined
+    const errorData = errorObj?.['data'] || transactionObj?.['data']
 
     this.logger.debug({
       message: 'Extracting error code from raw error',
@@ -157,12 +165,15 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     return paddedHash
   }
 
-  private getLiquidationPaymentAddress(networkId: string) {
-    const paymentAddress = config.getLiquidationAddress(networkId)
+  private async getLiquidationPaymentAddress(networkId: string) {
+    const paymentAddress = await protocolService.getAssetChainConfig(
+      networkId as OptimexEvmNetwork,
+      AssetChainContractRole.MorphoLiquidator
+    )
     if (!paymentAddress) {
       throw new Error(`Unsupported networkId: ${networkId}`)
     }
 
-    return paymentAddress
+    return paymentAddress[0]
   }
 }

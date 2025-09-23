@@ -1,7 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { TransactionService } from '@optimex-pmm/blockchain'
 import { errorDecoder } from '@optimex-pmm/shared'
-import { config, Payment__factory, routerService } from '@optimex-xyz/market-maker-sdk'
+import {
+  AssetChainContractRole,
+  OptimexEvmNetwork,
+  Payment__factory,
+  protocolService,
+  routerService,
+} from '@optimex-xyz/market-maker-sdk'
 
 import { ZeroAddress } from 'ethers'
 import { DecodedError } from 'ethers-decode-error'
@@ -20,7 +26,7 @@ export class EVMTransferStrategy implements ITransferStrategy {
     const { token, toAddress, amount, tradeId } = params
     const { tokenAddress, networkId } = token
 
-    const paymentAddress = this.getPaymentAddress(networkId)
+    const paymentAddress = await this.getPaymentAddress(networkId)
 
     // Handle token approval if not native token
     if (tokenAddress !== 'native') {
@@ -70,7 +76,7 @@ export class EVMTransferStrategy implements ITransferStrategy {
         timestamp: new Date().toISOString(),
       })
       return result
-    } catch (error) {
+    } catch (error: unknown) {
       const decodedError: DecodedError = await decoder.decode(error)
 
       this.logger.error({
@@ -80,7 +86,12 @@ export class EVMTransferStrategy implements ITransferStrategy {
         tokenAddress,
         toAddress,
         amount: amount.toString(),
-        error: decodedError.reason || error.message || error.toString(),
+        error:
+          decodedError.reason ||
+          (error && typeof error === 'object' && 'message' in error
+            ? (error as { message: string }).message
+            : error?.toString()) ||
+          'Unknown error',
         operation: 'evm_transfer',
         status: 'failed',
         timestamp: new Date().toISOString(),
@@ -90,12 +101,15 @@ export class EVMTransferStrategy implements ITransferStrategy {
     }
   }
 
-  private getPaymentAddress(networkId: string) {
-    const paymentAddress = config.getPaymentAddress(networkId)
+  private async getPaymentAddress(networkId: string) {
+    const paymentAddress = await protocolService.getAssetChainConfig(
+      networkId as OptimexEvmNetwork,
+      AssetChainContractRole.Payment
+    )
     if (!paymentAddress) {
       throw new Error(`Unsupported networkId: ${networkId}`)
     }
 
-    return paymentAddress
+    return paymentAddress[0]
   }
 }
