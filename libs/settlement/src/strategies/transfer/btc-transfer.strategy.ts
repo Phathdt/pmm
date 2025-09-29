@@ -100,14 +100,14 @@ export class BTCTransferStrategy implements ITransferStrategy {
       })
 
       return { hash: txId }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'BTC transfer failed',
         tradeId,
         toAddress,
         amount: amount.toString(),
         networkId: token.networkId,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'btc_transfer',
         status: 'failed',
         timestamp: new Date().toISOString(),
@@ -336,10 +336,10 @@ export class BTCTransferStrategy implements ITransferStrategy {
         })
 
         return await Promise.any([getUTXOsFromMempool(), getUTXOsFromBlockstream()])
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error({
           message: 'Error fetching UTXOs',
-          error: error.message || error.toString(),
+          error: error instanceof Error ? error.message : String(error),
           attemptNumber: retryCount,
           maxRetries,
           operation: 'btc_fetch_utxos',
@@ -425,10 +425,10 @@ export class BTCTransferStrategy implements ITransferStrategy {
         const feeRate = await Promise.any([getFeeFromMempool(), getFeeFromBlockstream()])
 
         return Math.min(feeRate, this.maxFeeRate)
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error({
           message: 'Error fetching fee rate',
-          error: error.message || error.toString(),
+          error: error instanceof Error ? error.message : String(error),
           attemptNumber: retryCount,
           maxRetries,
           operation: 'btc_fetch_fee_rate',
@@ -570,10 +570,10 @@ export class BTCTransferStrategy implements ITransferStrategy {
           return false
         }
         return true
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error({
           message: 'Error checking BTC balance',
-          error: error.message || error.toString(),
+          error: error instanceof Error ? error.message : String(error),
           attemptNumber: retryCount,
           maxRetries,
           operation: 'btc_check_balance',

@@ -111,11 +111,11 @@ export class NonceManagerService {
               status: 'success',
               timestamp: new Date().toISOString(),
             })
-          } catch (error) {
+          } catch (error: unknown) {
             this.logger.warn({
               message: 'Failed to refresh nonce for cache key',
               cacheKey,
-              error: error.message || error.toString(),
+              error: error instanceof Error ? error.message : String(error),
               operation: 'nonce_refresh',
               status: 'failed',
               timestamp: new Date().toISOString(),

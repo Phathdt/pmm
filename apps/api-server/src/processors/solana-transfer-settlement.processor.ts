@@ -119,14 +119,14 @@ export class SolanaTransferSettlementProcessor {
         status: 'success',
         timestamp: new Date().toISOString(),
       })
-    } catch (error) {
+    } catch (error: unknown) {
       if (retryCount < this.MAX_RETRIES - 1) {
         this.logger.warn({
           message: 'Solana transfer settlement retry scheduled',
           tradeId,
           retryCount: retryCount + 1,
           maxRetries: this.MAX_RETRIES,
-          error: error.message || error.toString(),
+          error: error instanceof Error ? error.message : String(error),
           operation: 'solana_transfer_settlement',
           nextRetryDelayMs: this.RETRY_DELAY,
           timestamp: new Date().toISOString(),
@@ -151,7 +151,7 @@ export class SolanaTransferSettlementProcessor {
         message: 'Solana transfer settlement failed after maximum retries',
         tradeId,
         maxRetries: this.MAX_RETRIES,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'solana_transfer_settlement',
         status: 'failed',
         timestamp: new Date().toISOString(),
@@ -197,11 +197,11 @@ export class SolanaTransferSettlementProcessor {
       })
 
       return transferResult.hash
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Solana token transfer failed',
         tradeId,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'solana_token_transfer',
         status: 'failed',
         timestamp: new Date().toISOString(),

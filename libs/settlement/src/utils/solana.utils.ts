@@ -132,7 +132,7 @@ export async function sendTransactionWithRetry(
         commitment,
       })
       return txHash
-    } catch (error) {
+    } catch (error: unknown) {
       retryCount += 1
       lastErr = error
       await waitToRetry()

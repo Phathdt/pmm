@@ -119,14 +119,14 @@ export class BtcTransferSettlementProcessor {
         status: 'success',
         timestamp: new Date().toISOString(),
       })
-    } catch (error) {
+    } catch (error: unknown) {
       if (retryCount < this.MAX_RETRIES - 1) {
         this.logger.warn({
           message: 'BTC transfer settlement retry scheduled',
           tradeId,
           retryCount: retryCount + 1,
           maxRetries: this.MAX_RETRIES,
-          error: error.message || error.toString(),
+          error: error instanceof Error ? error.message : String(error),
           operation: 'btc_transfer_settlement',
           nextRetryDelayMs: this.RETRY_DELAY,
           timestamp: new Date().toISOString(),
@@ -151,7 +151,7 @@ export class BtcTransferSettlementProcessor {
         message: 'BTC transfer settlement failed after maximum retries',
         tradeId,
         maxRetries: this.MAX_RETRIES,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'btc_transfer_settlement',
         status: 'failed',
         timestamp: new Date().toISOString(),
@@ -197,11 +197,11 @@ export class BtcTransferSettlementProcessor {
       })
 
       return transferResult.hash
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'BTC token transfer failed',
         tradeId,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'btc_token_transfer',
         status: 'failed',
         timestamp: new Date().toISOString(),

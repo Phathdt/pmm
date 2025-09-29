@@ -41,7 +41,7 @@ export class SolanaMonitorService implements OnModuleInit, OnModuleDestroy {
           await this.processTransfer(transferEvent)
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Error processing transfer settlement events',
         error: error instanceof Error ? error.message : String(error),
@@ -74,11 +74,11 @@ export class SolanaMonitorService implements OnModuleInit, OnModuleDestroy {
         status: 'success',
         timestamp: new Date().toISOString(),
       })
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Failed to process Solana transfer',
         tradeId,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'solana_transfer_process',
         status: 'failed',
         timestamp: new Date().toISOString(),

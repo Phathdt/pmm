@@ -190,10 +190,10 @@ export class TransactionService {
         maxFeePerGas: tx.maxFeePerGas || undefined,
         maxPriorityFeePerGas: tx.maxPriorityFeePerGas || undefined,
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Transaction execution failed',
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         networkId,
         operation: 'execute_transaction',
         status: 'failed',
@@ -392,12 +392,12 @@ export class TransactionService {
         status: 'success',
         timestamp: new Date().toISOString(),
       })
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Token approval failed',
         tokenAddress,
         spenderAddress,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'token_approval_set',
         status: 'failed',
         timestamp: new Date().toISOString(),
@@ -481,7 +481,7 @@ export class TransactionService {
       }
 
       throw new Error('Contract method does not support gas estimation')
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       this.logger.warn({
         message: 'Contract gas estimation failed',
@@ -570,7 +570,7 @@ export class TransactionService {
         timestamp: new Date().toISOString(),
       })
       return gasWithBuffer
-    } catch (error) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       this.logger.warn({
         message: 'Fallback provider gas estimation failed',
@@ -610,10 +610,10 @@ export class TransactionService {
       }
       const estimatedGas = await provider.estimateGas(txData as EthersTransactionRequest)
       return this.applyGasBuffer(estimatedGas, options)
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.warn({
         message: 'Gas estimation failed, using fallback',
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'gas_estimation',
         status: 'failed',
         timestamp: new Date().toISOString(),
@@ -669,10 +669,10 @@ export class TransactionService {
       // For EIP-1559 networks, use gasPrice from feeData as base reference
       // For legacy networks, this will be the network's current gas price
       return feeData.gasPrice || undefined
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.warn({
         message: 'Failed to get base fee from provider',
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'gas_price_estimation',
         timestamp: new Date().toISOString(),
       })
@@ -803,10 +803,10 @@ export class TransactionService {
       }
 
       throw new Error('No gas price data available from provider')
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.warn({
         message: 'Gas price estimation from provider failed',
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'gas_price_estimation',
         status: 'failed',
         timestamp: new Date().toISOString(),
@@ -1007,12 +1007,12 @@ export class TransactionService {
           gasUsed: receipt.gasUsed.toString(),
         },
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Error checking transaction status',
         networkId,
         txHash,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'get_transaction_status',
         timestamp: new Date().toISOString(),
       })
@@ -1022,7 +1022,7 @@ export class TransactionService {
         inMempool: false,
         confirmed: false,
         receipt: null,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
       }
     }
   }
@@ -1052,12 +1052,12 @@ export class TransactionService {
         confirmations,
         gasUsed: receipt.gasUsed.toString(),
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Error getting transaction receipt',
         networkId,
         txHash,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'get_transaction_receipt',
         timestamp: new Date().toISOString(),
       })
@@ -1107,7 +1107,7 @@ export class TransactionService {
         message: 'Error getting account nonce',
         networkId,
         address,
-        error: error instanceof Error ? error.message : error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'get_account_nonce',
         timestamp: new Date().toISOString(),
       })
@@ -1141,11 +1141,11 @@ export class TransactionService {
           gasPrice: feeData.gasPrice?.toString() || '0',
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Error getting gas price',
         networkId,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'get_gas_price',
         timestamp: new Date().toISOString(),
       })

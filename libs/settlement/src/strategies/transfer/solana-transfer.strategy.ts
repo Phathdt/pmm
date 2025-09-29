@@ -74,7 +74,7 @@ export class SolanaTransferStrategy implements ITransferStrategy {
         return false
       }
       return true
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Error checking balance',
         error: error instanceof Error ? error.message : String(error),
@@ -255,7 +255,7 @@ export class SolanaTransferStrategy implements ITransferStrategy {
       })
 
       return { hash: txHash }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Solana payment failed',
         tradeId,

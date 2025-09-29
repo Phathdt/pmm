@@ -21,7 +21,7 @@ export class QueueService implements IQueueService {
         dataSize: serializedData.length,
       })
       return result
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(`Failed to push to queue ${queueName}`, {
         error: error instanceof Error ? error.message : String(error),
         queueName,
@@ -50,7 +50,7 @@ export class QueueService implements IQueueService {
         jobCount: parsedResults.length,
       })
       return parsedResults
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(`Failed to pop from queue ${queueName}`, {
         error: error instanceof Error ? error.message : String(error),
         queueName,
@@ -64,7 +64,7 @@ export class QueueService implements IQueueService {
       const length = await this.redis.llen(queueName)
       this.logger.debug(`Queue ${queueName} length: ${length}`)
       return length
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(`Failed to get queue length for ${queueName}`, {
         error: error instanceof Error ? error.message : String(error),
         queueName,
@@ -77,7 +77,7 @@ export class QueueService implements IQueueService {
     try {
       await this.redis.del(queueName)
       this.logger.log(`Cleared queue ${queueName}`)
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(`Failed to clear queue ${queueName}`, {
         error: error instanceof Error ? error.message : String(error),
         queueName,

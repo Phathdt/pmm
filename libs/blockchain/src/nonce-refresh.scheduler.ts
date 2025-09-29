@@ -33,10 +33,10 @@ export class NonceRefreshScheduler {
         status: 'completed',
         timestamp: new Date().toISOString(),
       })
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Failed to refresh nonces during scheduled job',
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'nonce_refresh_scheduler',
         status: 'failed',
         timestamp: new Date().toISOString(),

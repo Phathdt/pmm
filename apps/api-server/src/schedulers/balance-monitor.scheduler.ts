@@ -54,11 +54,11 @@ export class BalanceMonitorScheduler {
       const publicKey = new PublicKey(this.solAddress)
       const balance = await this.solanaConnection.getBalance(publicKey)
       return balance / 1e9 // Convert lamports to SOL
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Error fetching Solana balance',
         address: this.solAddress,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'solana_balance_fetch',
         status: 'failed',
         timestamp: new Date().toISOString(),
@@ -142,13 +142,13 @@ export class BalanceMonitorScheduler {
         }
 
         throw new Error('Both APIs failed to return valid balance')
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error({
           message: 'Error fetching BTC balance',
           retryCount,
           maxRetries,
           address: this.btcAddress,
-          error: error.message || error.toString(),
+          error: error instanceof Error ? error.message : String(error),
           operation: 'btc_balance_fetch',
           status: 'failed',
           timestamp: new Date().toISOString(),
@@ -215,11 +215,11 @@ export class BalanceMonitorScheduler {
         status: 'completed',
         timestamp: new Date().toISOString(),
       })
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Error checking BTC balance',
         address: this.btcAddress,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'btc_balance_monitor',
         status: 'failed',
         timestamp: new Date().toISOString(),
@@ -264,11 +264,11 @@ export class BalanceMonitorScheduler {
         status: 'completed',
         timestamp: new Date().toISOString(),
       })
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Error checking SOL balance',
         address: this.solAddress,
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'sol_balance_monitor',
         status: 'failed',
         timestamp: new Date().toISOString(),

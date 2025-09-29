@@ -81,10 +81,10 @@ export class TokenRemoteRepository implements ITokenRepository {
       await this.cacheManager.set(this.CACHE_KEY, JSON.stringify(response), this.TTL)
 
       return response
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error({
         message: 'Error fetching tokens from CoinGecko API',
-        error: error.message || error.toString(),
+        error: error instanceof Error ? error.message : String(error),
         operation: 'token_fetch',
         status: 'failed',
         timestamp: new Date().toISOString(),
