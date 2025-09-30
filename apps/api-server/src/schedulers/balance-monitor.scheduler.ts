@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config'
 import { Cron } from '@nestjs/schedule'
 import { NotificationService } from '@optimex-pmm/notification'
 import { ITokenService, TOKEN_SERVICE } from '@optimex-pmm/token'
+import { config } from '@optimex-xyz/market-maker-sdk'
 import { Connection, PublicKey } from '@solana/web3.js'
 
 import axios from 'axios'
@@ -34,7 +35,6 @@ export class BalanceMonitorScheduler {
   private readonly logger = new Logger(BalanceMonitorScheduler.name)
   private readonly MIN_BALANCE_USD = 1000
   private readonly solanaConnection: Connection
-  private readonly btcNetwork: string
   private readonly btcAddress: string
   private readonly solAddress: string
 
@@ -44,7 +44,6 @@ export class BalanceMonitorScheduler {
     private readonly notificationService: NotificationService
   ) {
     this.solanaConnection = new Connection(this.configService.getOrThrow<string>('SOLANA_RPC_URL'))
-    this.btcNetwork = this.configService.getOrThrow<string>('BTC_NETWORK')
     this.btcAddress = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS')
     this.solAddress = this.configService.getOrThrow<string>('PMM_SOLANA_ADDRESS')
   }
@@ -72,8 +71,7 @@ export class BalanceMonitorScheduler {
     const sleepTime = 5000
 
     const getBalanceFromBlockstream = async (): Promise<number> => {
-      const baseUrl =
-        this.btcNetwork === 'mainnet' ? 'https://blockstream.info/api' : 'https://blockstream.info/testnet/api'
+      const baseUrl = config.isTestnet() ? 'https://blockstream.info/testnet4/api' : 'https://blockstream.info/api'
       const response = await axios.get<ExplorerBalanceResponse>(`${baseUrl}/address/${this.btcAddress}`)
       if (response?.data) {
         const confirmedBalance =
@@ -86,7 +84,7 @@ export class BalanceMonitorScheduler {
     }
 
     const getBalanceFromMempool = async (): Promise<number> => {
-      const baseUrl = this.btcNetwork === 'mainnet' ? 'https://mempool.space/api' : 'https://mempool.space/testnet/api'
+      const baseUrl = config.isTestnet() ? 'https://mempool.space/testnet4/api' : 'https://mempool.space/api'
       const response = await axios.get<MempoolBalanceResponse>(`${baseUrl}/address/${this.btcAddress}`)
       if (response?.data) {
         const confirmedBalance =
@@ -105,7 +103,7 @@ export class BalanceMonitorScheduler {
           retryCount,
           maxRetries,
           address: this.btcAddress,
-          network: this.btcNetwork,
+          network: config.isTestnet() ? 'testnet' : 'mainnet',
           operation: 'btc_balance_fetch',
           timestamp: new Date().toISOString(),
         })

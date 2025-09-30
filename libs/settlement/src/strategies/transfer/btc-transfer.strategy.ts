@@ -13,9 +13,9 @@ import * as ecc from 'tiny-secp256k1'
 import { ITransferStrategy, TransferParams, TransferResult } from '../../interfaces'
 
 const BLOCKSTREAM_MAINNET_API = 'https://blockstream.info/api'
-const BLOCKSTREAM_TESTNET_API = 'https://blockstream.info/testnet/api'
+const BLOCKSTREAM_TESTNET_API = 'https://blockstream.info/testnet4/api'
 const MEMPOOL_MAINNET_API = 'https://mempool.space/api'
-const MEMPOOL_TESTNET_API = 'https://mempool.space/testnet/api'
+const MEMPOOL_TESTNET_API = 'https://mempool.space/testnet4/api'
 
 interface UTXO {
   txid: string
