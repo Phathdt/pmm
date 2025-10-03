@@ -16,30 +16,29 @@ export class TradePrismaRepository implements ITradeRepository {
   constructor(private db: DatabaseService) {}
 
   async create(data: CreateTradeData): Promise<TradeEntity> {
-    const createData = {
-      tradeId: data.tradeId,
-      fromTokenId: data.fromTokenId,
-      fromNetworkId: data.fromNetworkId,
-      toTokenId: data.toTokenId,
-      toNetworkId: data.toNetworkId,
-      fromUser: data.fromUser,
-      toUser: data.toUser,
-      amount: data.amount,
-      status: TradeStatus.PENDING,
-      userDepositTx: data.userDepositTx,
-      userDepositVault: data.userDepositVault,
-      tradeDeadline: data.tradeDeadline,
-      scriptDeadline: data.scriptDeadline,
-      isLiquid: data.isLiquid || false,
-      positionId: data.positionId,
-      liquidationId: data.liquidationId,
-      apm: data.apm,
-      validatorSignature: data.validatorSignature,
-      tradeType: data.tradeType || TradeTypeEnum.SWAP,
-    }
-
     const trade = await this.db.trade.create({
-      data: createData,
+      data: {
+        tradeId: data.tradeId,
+        fromTokenId: data.fromTokenId,
+        fromNetworkId: data.fromNetworkId,
+        toTokenId: data.toTokenId,
+        toNetworkId: data.toNetworkId,
+        fromUser: data.fromUser,
+        toUser: data.toUser,
+        amount: data.amount,
+        status: TradeStatus.PENDING,
+        userDepositTx: data.userDepositTx,
+        userDepositVault: data.userDepositVault,
+        tradeDeadline: data.tradeDeadline,
+        scriptDeadline: data.scriptDeadline,
+        isLiquid: data.isLiquid || false,
+        positionId: data.positionId,
+        liquidationId: data.liquidationId,
+        apm: data.apm,
+        validatorSignature: data.validatorSignature,
+        tradeType: data.tradeType || TradeTypeEnum.SWAP,
+        metadata: data.metadata as never,
+      },
     })
 
     return this.mapToEntity(trade)
@@ -111,6 +110,7 @@ export class TradePrismaRepository implements ITradeRepository {
       executedPriceUsd: trade.executedPriceUsd ?? undefined,
       settlementTx: trade.settlementTx ?? undefined,
       error: trade.error ?? undefined,
+      metadata: trade.metadata as Record<string, unknown> | undefined,
       createdAt: trade.createdAt,
       updatedAt: trade.updatedAt,
     }

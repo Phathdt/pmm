@@ -1,5 +1,9 @@
 import { Token } from '@optimex-xyz/market-maker-sdk'
 
+export interface PaymentLiquidMetadata {
+  paymentMetadata?: string
+}
+
 export interface TransferParams {
   toAddress: string
   amount: bigint

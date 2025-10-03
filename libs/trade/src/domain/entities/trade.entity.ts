@@ -42,6 +42,7 @@ export const TradeEntitySchema = z.object({
   executedPriceUsd: z.number().optional(),
   settlementTx: z.string().optional(),
   error: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 })

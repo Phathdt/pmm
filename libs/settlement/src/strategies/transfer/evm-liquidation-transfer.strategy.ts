@@ -4,14 +4,14 @@ import { errorDecoder } from '@optimex-pmm/shared'
 import { ITradeService, TRADE_SERVICE } from '@optimex-pmm/trade'
 import {
   AssetChainContractRole,
-  MorphoLiquidator__factory,
+  MorphoLiquidationGateway__factory,
   OptimexEvmNetwork,
   protocolService,
 } from '@optimex-xyz/market-maker-sdk'
 
 import { DecodedError } from 'ethers-decode-error'
 
-import { ITransferStrategy, TransferParams, TransferResult } from '../../interfaces'
+import { ITransferStrategy, PaymentLiquidMetadata, TransferParams, TransferResult } from '../../interfaces'
 
 @Injectable()
 export class EVMLiquidationTransferStrategy implements ITransferStrategy {
@@ -39,24 +39,26 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
       await this.transactionService.handleTokenApproval(networkId, tokenAddress, liquidAddress, amount)
     }
 
-    if (!trade.apm || !trade.positionId) {
-      throw new Error(`Missing required liquidation data: apm=${trade.apm}, positionId=${trade.positionId}`)
+    if (!trade.metadata || typeof trade.metadata !== 'object') {
+      throw new Error(`Missing payment metadata for trade ${tradeId}`)
     }
 
-    const positionManager = trade.apm
-    const signature = trade.validatorSignature || '0x'
-    const positionId = trade.positionId
-    const isLiquid = trade.isLiquid as boolean
+    const metadata = trade.metadata as PaymentLiquidMetadata
+    if (!metadata.paymentMetadata) {
+      throw new Error(`Missing paymentMetadata in trade metadata for trade ${tradeId}`)
+    }
+
+    const externalCall = metadata.paymentMetadata
 
     const decoder = errorDecoder()
 
     try {
-      // Execute contract method with single call - TypeChain provides type safety
+      // Execute contract method with new payment signature: payment(address token, uint256 amount, bytes calldata externalCall)
       const result = await this.transactionService.executeContractMethod(
-        MorphoLiquidator__factory,
+        MorphoLiquidationGateway__factory,
         liquidAddress,
         'payment',
-        [positionManager, positionId, tradeId, amount, isLiquid, signature],
+        [tokenAddress, amount, externalCall],
         networkId,
         {
           description: `Liquidation payment for trade ${tradeId}`,
@@ -71,8 +73,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
         networkId,
         tokenAddress,
         amount: amount.toString(),
-        positionManager,
-        positionId,
+        externalCall,
         nonce: result.nonce,
         gasLimit: result.gasLimit?.toString(),
         gasPrice: result.gasPrice?.toString(),
@@ -168,7 +169,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
   private async getLiquidationPaymentAddress(networkId: string) {
     const paymentAddress = await protocolService.getAssetChainConfig(
       networkId as OptimexEvmNetwork,
-      AssetChainContractRole.MorphoLiquidator
+      AssetChainContractRole.MorphoLiquidationGateway
     )
     if (!paymentAddress) {
       throw new Error(`Unsupported networkId: ${networkId}`)

@@ -55,17 +55,13 @@ export const GetLiquidationQuoteSchema = z.object({
   fromTokenId: z.string(),
   toTokenId: z.string(),
   amount: z.string(),
-  positionId: z.string(),
-  liquidationId: z.string(),
-  apm: z.string(),
-  isLiquidate: z.string().transform((val) => val === 'true'),
+  paymentMetadata: z.string(),
   fromUserAddress: z.string(),
   toUserAddress: z.string(),
   userDepositTx: z.string(),
   userDepositVault: z.string(),
   tradeDeadline: z.string(),
   scriptDeadline: z.string(),
-  validatorSignature: z.string(),
 })
 
 export class GetLiquidationQuoteDto extends createZodDto(GetLiquidationQuoteSchema) {}

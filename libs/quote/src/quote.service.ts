@@ -74,6 +74,14 @@ export class QuoteService {
       ]).catch((error) => {
         throw new BadRequestException(`Failed to fetch tokens: ${error.message}`)
       })
+
+      if (!fromToken) {
+        throw new BadRequestException(`From token not found: ${dto.fromTokenId}`)
+      }
+      if (!toToken) {
+        throw new BadRequestException(`To token not found: ${dto.toTokenId}`)
+      }
+
       this.validateSolanaRequirement(fromToken, toToken)
 
       await this.tokenService.validateIndicativeAmount({
@@ -124,6 +132,14 @@ export class QuoteService {
       ]).catch((error) => {
         throw new BadRequestException(`Failed to fetch tokens: ${error.message}`)
       })
+
+      if (!fromToken) {
+        throw new BadRequestException(`From token not found: ${dto.fromTokenId}`)
+      }
+      if (!toToken) {
+        throw new BadRequestException(`To token not found: ${dto.toTokenId}`)
+      }
+
       this.validateSolanaRequirement(fromToken, toToken)
 
       await this.tokenService.validateCommitmentAmount({
@@ -194,6 +210,14 @@ export class QuoteService {
       ]).catch((error) => {
         throw new BadRequestException(`Failed to fetch tokens: ${error.message}`)
       })
+
+      if (!fromToken) {
+        throw new BadRequestException(`From token not found: ${dto.fromTokenId}`)
+      }
+      if (!toToken) {
+        throw new BadRequestException(`To token not found: ${dto.toTokenId}`)
+      }
+
       this.validateSolanaRequirement(fromToken, toToken)
 
       await this.tokenService.validateCommitmentAmount({
@@ -225,12 +249,10 @@ export class QuoteService {
           userDepositVault: dto.userDepositVault,
           tradeDeadline: dto.tradeDeadline,
           scriptDeadline: dto.scriptDeadline,
-          isLiquid: dto.isLiquidate,
-          positionId: dto.positionId,
-          liquidationId: dto.liquidationId,
-          apm: dto.apm,
-          validatorSignature: dto.validatorSignature,
           tradeType: TradeTypeEnum.LENDING,
+          metadata: {
+            paymentMetadata: dto.paymentMetadata,
+          },
         })
         .catch((error) => {
           throw new BadRequestException(`Failed to create liquidation trade: ${error.message}`)
