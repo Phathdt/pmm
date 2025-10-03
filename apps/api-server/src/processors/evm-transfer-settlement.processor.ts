@@ -10,7 +10,7 @@ import {
   TransferSettlementEvent,
 } from '@optimex-pmm/settlement'
 import { stringToHex, toObject, toString } from '@optimex-pmm/shared'
-import { ITradeService, TRADE_SERVICE, TradeEntity } from '@optimex-pmm/trade'
+import { ITradeService, Trade, TRADE_SERVICE } from '@optimex-pmm/trade'
 import { ITypes, routerService, tokenService } from '@optimex-xyz/market-maker-sdk'
 
 import { Job, Queue } from 'bull'
@@ -166,7 +166,7 @@ export class EvmTransferSettlementProcessor {
   private async transferToken(
     pmmInfo: { amountOut: bigint },
     trade: ITypes.TradeDataStructOutput,
-    tradeDb: TradeEntity,
+    tradeDb: Trade,
     tradeId: string
   ): Promise<TransferResult> {
     const amount = pmmInfo.amountOut
@@ -195,7 +195,6 @@ export class EvmTransferSettlementProcessor {
         amount,
         token: toToken,
         tradeId,
-        isLiquid: tradeDb.isLiquid,
       })
 
       return transferResult

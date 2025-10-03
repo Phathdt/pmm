@@ -15,7 +15,7 @@ export enum TradeStatus {
   FAILED = 'FAILED',
 }
 
-export const TradeEntitySchema = z.object({
+export const TradeSchema = z.object({
   id: z.number(),
   tradeId: z.string(),
   fromTokenId: z.string(),
@@ -30,16 +30,10 @@ export const TradeEntitySchema = z.object({
   userDepositVault: z.string().optional(),
   tradeDeadline: z.string().optional(),
   scriptDeadline: z.string().optional(),
-  isLiquid: z.boolean().optional(),
-  positionId: z.string().optional(),
-  liquidationId: z.string().optional(),
-  apm: z.string().optional(),
-  validatorSignature: z.string().optional(),
   tradeType: z.enum(TradeTypeEnum).optional(),
   indicativeQuote: z.string().optional(),
   commitmentQuote: z.string().optional(),
   settlementQuote: z.string().optional(),
-  executedPriceUsd: z.number().optional(),
   settlementTx: z.string().optional(),
   error: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
@@ -47,4 +41,4 @@ export const TradeEntitySchema = z.object({
   updatedAt: z.date(),
 })
 
-export type TradeEntity = z.infer<typeof TradeEntitySchema>
+export type Trade = z.infer<typeof TradeSchema>

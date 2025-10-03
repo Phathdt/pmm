@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { DatabaseService } from '@optimex-pmm/database'
-import { Trade } from '@prisma/client'
+import { Trade as TradePrisma } from '@prisma/client'
 
 import {
   CreateTradeData,
   ITradeRepository,
-  TradeEntity,
+  Trade,
   TradeStatus,
   TradeTypeEnum,
   UpdateTradeQuoteData,
@@ -13,10 +13,10 @@ import {
 
 @Injectable()
 export class TradePrismaRepository implements ITradeRepository {
-  constructor(private db: DatabaseService) {}
+  constructor(private readonly db: DatabaseService) {}
 
-  async create(data: CreateTradeData): Promise<TradeEntity> {
-    const trade = await this.db.trade.create({
+  async create(data: CreateTradeData): Promise<void> {
+    await this.db.trade.create({
       data: {
         tradeId: data.tradeId,
         fromTokenId: data.fromTokenId,
@@ -31,49 +31,42 @@ export class TradePrismaRepository implements ITradeRepository {
         userDepositVault: data.userDepositVault,
         tradeDeadline: data.tradeDeadline,
         scriptDeadline: data.scriptDeadline,
-        isLiquid: data.isLiquid || false,
-        positionId: data.positionId,
-        liquidationId: data.liquidationId,
-        apm: data.apm,
-        validatorSignature: data.validatorSignature,
         tradeType: data.tradeType || TradeTypeEnum.SWAP,
         metadata: data.metadata as never,
       },
     })
-
-    return this.mapToEntity(trade)
   }
 
-  async findById(tradeId: string): Promise<TradeEntity | null> {
+  async findById(tradeId: string): Promise<Trade> {
     const trade = await this.db.trade.findUnique({
       where: { tradeId },
     })
 
-    return trade ? this.mapToEntity(trade) : null
+    if (!trade) {
+      throw new NotFoundException(`Trade with ID '${tradeId}' not found`)
+    }
+
+    return this.toEntity(trade)
   }
 
-  async updateQuote(tradeId: string, data: UpdateTradeQuoteData): Promise<TradeEntity> {
-    const trade = await this.db.trade.update({
+  async updateQuote(tradeId: string, data: UpdateTradeQuoteData): Promise<void> {
+    await this.db.trade.update({
       where: { tradeId },
       data: {
         ...data,
         status: TradeStatus.QUOTE_PROVIDED,
       },
     })
-
-    return this.mapToEntity(trade)
   }
 
-  async updateStatus(tradeId: string, status: TradeStatus, error?: string): Promise<TradeEntity> {
-    const trade = await this.db.trade.update({
+  async updateStatus(tradeId: string, status: TradeStatus, error?: string): Promise<void> {
+    await this.db.trade.update({
       where: { tradeId },
       data: {
         status,
         ...(error && { error }),
       },
     })
-
-    return this.mapToEntity(trade)
   }
 
   async delete(tradeId: string): Promise<void> {
@@ -82,37 +75,31 @@ export class TradePrismaRepository implements ITradeRepository {
     })
   }
 
-  private mapToEntity(trade: Trade): TradeEntity {
+  private toEntity(data: TradePrisma): Trade {
     return {
-      id: trade.id,
-      tradeId: trade.tradeId,
-      fromTokenId: trade.fromTokenId,
-      fromNetworkId: trade.fromNetworkId,
-      toTokenId: trade.toTokenId,
-      toNetworkId: trade.toNetworkId,
-      fromUser: trade.fromUser,
-      toUser: trade.toUser,
-      amount: trade.amount,
-      status: trade.status as TradeStatus,
-      userDepositTx: trade.userDepositTx ?? undefined,
-      userDepositVault: trade.userDepositVault ?? undefined,
-      tradeDeadline: trade.tradeDeadline ?? undefined,
-      scriptDeadline: trade.scriptDeadline ?? undefined,
-      isLiquid: trade.isLiquid,
-      positionId: trade.positionId ?? undefined,
-      liquidationId: trade.liquidationId ?? undefined,
-      apm: trade.apm ?? undefined,
-      validatorSignature: trade.validatorSignature ?? undefined,
-      tradeType: trade.tradeType as TradeTypeEnum,
-      indicativeQuote: trade.indicativeQuote ?? undefined,
-      commitmentQuote: trade.commitmentQuote ?? undefined,
-      settlementQuote: trade.settlementQuote ?? undefined,
-      executedPriceUsd: trade.executedPriceUsd ?? undefined,
-      settlementTx: trade.settlementTx ?? undefined,
-      error: trade.error ?? undefined,
-      metadata: trade.metadata as Record<string, unknown> | undefined,
-      createdAt: trade.createdAt,
-      updatedAt: trade.updatedAt,
+      id: data.id,
+      tradeId: data.tradeId,
+      fromTokenId: data.fromTokenId,
+      fromNetworkId: data.fromNetworkId,
+      toTokenId: data.toTokenId,
+      toNetworkId: data.toNetworkId,
+      fromUser: data.fromUser,
+      toUser: data.toUser,
+      amount: data.amount,
+      status: data.status as TradeStatus,
+      userDepositTx: data.userDepositTx ?? undefined,
+      userDepositVault: data.userDepositVault ?? undefined,
+      tradeDeadline: data.tradeDeadline ?? undefined,
+      scriptDeadline: data.scriptDeadline ?? undefined,
+      tradeType: data.tradeType as TradeTypeEnum,
+      indicativeQuote: data.indicativeQuote ?? undefined,
+      commitmentQuote: data.commitmentQuote ?? undefined,
+      settlementQuote: data.settlementQuote ?? undefined,
+      settlementTx: data.settlementTx ?? undefined,
+      error: data.error ?? undefined,
+      metadata: data.metadata as Record<string, unknown> | undefined,
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
     }
   }
 }

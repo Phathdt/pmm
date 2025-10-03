@@ -121,162 +121,131 @@ export class QuoteService {
   }
 
   async getCommitmentQuote(dto: GetCommitmentQuoteDto): Promise<CommitmentQuoteResponse> {
-    try {
-      const session = await this.sessionRepo.findById(dto.sessionId)
-      if (!session) {
-        throw new BadRequestException('Session expired during processing')
-      }
-      const [fromToken, toToken] = await Promise.all([
-        this.tokenService.getTokenByTokenId(dto.fromTokenId),
-        this.tokenService.getTokenByTokenId(dto.toTokenId),
-      ]).catch((error) => {
-        throw new BadRequestException(`Failed to fetch tokens: ${error.message}`)
-      })
+    const session = await this.sessionRepo.findById(dto.sessionId)
+    if (!session) {
+      throw new BadRequestException('Session expired during processing')
+    }
+    const [fromToken, toToken] = await Promise.all([
+      this.tokenService.getTokenByTokenId(dto.fromTokenId),
+      this.tokenService.getTokenByTokenId(dto.toTokenId),
+    ]).catch((error) => {
+      throw new BadRequestException(`Failed to fetch tokens: ${error.message}`)
+    })
 
-      if (!fromToken) {
-        throw new BadRequestException(`From token not found: ${dto.fromTokenId}`)
-      }
-      if (!toToken) {
-        throw new BadRequestException(`To token not found: ${dto.toTokenId}`)
-      }
+    if (!fromToken) {
+      throw new BadRequestException(`From token not found: ${dto.fromTokenId}`)
+    }
+    if (!toToken) {
+      throw new BadRequestException(`To token not found: ${dto.toTokenId}`)
+    }
 
-      this.validateSolanaRequirement(fromToken, toToken)
+    this.validateSolanaRequirement(fromToken, toToken)
 
-      await this.tokenService.validateCommitmentAmount({
-        amount: dto.amount,
-        tokenId: dto.fromTokenId,
-        validationType: 'commitment',
-      })
+    await this.tokenService.validateCommitmentAmount({
+      amount: dto.amount,
+      tokenId: dto.fromTokenId,
+      validationType: 'commitment',
+    })
 
-      await this.tradeService.deleteTrade(dto.tradeId)
+    await this.tradeService.deleteTrade(dto.tradeId)
 
-      const quote = await this.tokenService.calculateBestQuote({
-        amountIn: dto.amount,
-        fromTokenId: dto.fromTokenId,
-        toTokenId: dto.toTokenId,
-        isCommitment: true,
-      })
+    const quote = await this.tokenService.calculateBestQuote({
+      amountIn: dto.amount,
+      fromTokenId: dto.fromTokenId,
+      toTokenId: dto.toTokenId,
+      isCommitment: true,
+    })
 
-      const trade = await this.tradeService
-        .createTrade({
-          tradeId: dto.tradeId,
-          fromTokenId: dto.fromTokenId,
-          toTokenId: dto.toTokenId,
-          fromUser: dto.fromUserAddress,
-          toUser: dto.toUserAddress,
-          amount: dto.amount,
-          fromNetworkId: fromToken.networkId,
-          toNetworkId: toToken.networkId,
-          userDepositTx: dto.userDepositTx,
-          userDepositVault: dto.userDepositVault,
-          tradeDeadline: dto.tradeDeadline,
-          scriptDeadline: dto.scriptDeadline,
-          tradeType: TradeTypeEnum.SWAP,
-        })
-        .catch((error) => {
-          throw new BadRequestException(`Failed to create trade: ${error.message}`)
-        })
-      await this.tradeService
-        .updateTradeQuote(trade.tradeId, {
-          commitmentQuote: quote,
-        })
-        .catch((error) => {
-          throw new BadRequestException(`Failed to update trade quote: ${error.message}`)
-        })
-      return {
-        tradeId: dto.tradeId,
-        commitmentQuote: quote,
-        error: '',
-      }
-    } catch (error: unknown) {
-      if (error instanceof HttpException) {
-        throw error
-      }
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      throw new BadRequestException(errorMessage)
+    await this.tradeService.createTrade({
+      tradeId: dto.tradeId,
+      fromTokenId: dto.fromTokenId,
+      toTokenId: dto.toTokenId,
+      fromUser: dto.fromUserAddress,
+      toUser: dto.toUserAddress,
+      amount: dto.amount,
+      fromNetworkId: fromToken.networkId,
+      toNetworkId: toToken.networkId,
+      userDepositTx: dto.userDepositTx,
+      userDepositVault: dto.userDepositVault,
+      tradeDeadline: dto.tradeDeadline,
+      scriptDeadline: dto.scriptDeadline,
+      tradeType: TradeTypeEnum.SWAP,
+    })
+
+    await this.tradeService.updateTradeQuote(dto.tradeId, {
+      commitmentQuote: quote,
+    })
+    return {
+      tradeId: dto.tradeId,
+      commitmentQuote: quote,
+      error: '',
     }
   }
 
   async getLiquidationQuote(dto: GetLiquidationQuoteDto): Promise<LiquidationQuoteResponse> {
-    try {
-      const session = await this.sessionRepo.findById(dto.sessionId)
-      if (!session) {
-        throw new BadRequestException('Session expired during processing')
-      }
+    const session = await this.sessionRepo.findById(dto.sessionId)
+    if (!session) {
+      throw new BadRequestException('Session expired during processing')
+    }
 
-      const [fromToken, toToken] = await Promise.all([
-        this.tokenService.getTokenByTokenId(dto.fromTokenId),
-        this.tokenService.getTokenByTokenId(dto.toTokenId),
-      ]).catch((error) => {
-        throw new BadRequestException(`Failed to fetch tokens: ${error.message}`)
-      })
+    const [fromToken, toToken] = await Promise.all([
+      this.tokenService.getTokenByTokenId(dto.fromTokenId),
+      this.tokenService.getTokenByTokenId(dto.toTokenId),
+    ]).catch((error) => {
+      throw new BadRequestException(`Failed to fetch tokens: ${error.message}`)
+    })
 
-      if (!fromToken) {
-        throw new BadRequestException(`From token not found: ${dto.fromTokenId}`)
-      }
-      if (!toToken) {
-        throw new BadRequestException(`To token not found: ${dto.toTokenId}`)
-      }
+    if (!fromToken) {
+      throw new BadRequestException(`From token not found: ${dto.fromTokenId}`)
+    }
+    if (!toToken) {
+      throw new BadRequestException(`To token not found: ${dto.toTokenId}`)
+    }
 
-      this.validateSolanaRequirement(fromToken, toToken)
+    this.validateSolanaRequirement(fromToken, toToken)
 
-      await this.tokenService.validateCommitmentAmount({
-        amount: dto.amount,
-        tokenId: dto.fromTokenId,
-        validationType: 'commitment',
-      })
+    await this.tokenService.validateCommitmentAmount({
+      amount: dto.amount,
+      tokenId: dto.fromTokenId,
+      validationType: 'commitment',
+    })
 
-      await this.tradeService.deleteTrade(dto.tradeId)
+    await this.tradeService.deleteTrade(dto.tradeId)
 
-      const quote = await this.tokenService.calculateBestQuote({
-        amountIn: dto.amount,
-        fromTokenId: dto.fromTokenId,
-        toTokenId: dto.toTokenId,
-        isCommitment: true,
-      })
+    const quote = await this.tokenService.calculateBestQuote({
+      amountIn: dto.amount,
+      fromTokenId: dto.fromTokenId,
+      toTokenId: dto.toTokenId,
+      isCommitment: true,
+    })
 
-      const trade = await this.tradeService
-        .createTrade({
-          tradeId: dto.tradeId,
-          fromTokenId: dto.fromTokenId,
-          toTokenId: dto.toTokenId,
-          fromUser: dto.fromUserAddress,
-          toUser: dto.toUserAddress,
-          amount: dto.amount,
-          fromNetworkId: fromToken.networkId,
-          toNetworkId: toToken.networkId,
-          userDepositTx: dto.userDepositTx,
-          userDepositVault: dto.userDepositVault,
-          tradeDeadline: dto.tradeDeadline,
-          scriptDeadline: dto.scriptDeadline,
-          tradeType: TradeTypeEnum.LENDING,
-          metadata: {
-            paymentMetadata: dto.paymentMetadata,
-          },
-        })
-        .catch((error) => {
-          throw new BadRequestException(`Failed to create liquidation trade: ${error.message}`)
-        })
+    await this.tradeService.createTrade({
+      tradeId: dto.tradeId,
+      fromTokenId: dto.fromTokenId,
+      toTokenId: dto.toTokenId,
+      fromUser: dto.fromUserAddress,
+      toUser: dto.toUserAddress,
+      amount: dto.amount,
+      fromNetworkId: fromToken.networkId,
+      toNetworkId: toToken.networkId,
+      userDepositTx: dto.userDepositTx,
+      userDepositVault: dto.userDepositVault,
+      tradeDeadline: dto.tradeDeadline,
+      scriptDeadline: dto.scriptDeadline,
+      tradeType: TradeTypeEnum.LENDING,
+      metadata: {
+        paymentMetadata: dto.paymentMetadata,
+      },
+    })
 
-      await this.tradeService
-        .updateTradeQuote(trade.tradeId, {
-          commitmentQuote: quote,
-        })
-        .catch((error) => {
-          throw new BadRequestException(`Failed to update liquidation trade quote: ${error.message}`)
-        })
+    await this.tradeService.updateTradeQuote(dto.tradeId, {
+      commitmentQuote: quote,
+    })
 
-      return {
-        tradeId: dto.tradeId,
-        liquidationQuote: quote,
-        error: '',
-      }
-    } catch (error: unknown) {
-      if (error instanceof HttpException) {
-        throw error
-      }
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      throw new BadRequestException(errorMessage)
+    return {
+      tradeId: dto.tradeId,
+      liquidationQuote: quote,
+      error: '',
     }
   }
 }

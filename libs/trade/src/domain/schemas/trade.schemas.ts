@@ -16,11 +16,6 @@ export const CreateTradeDataSchema = z.object({
   userDepositVault: z.string(),
   tradeDeadline: z.string(),
   scriptDeadline: z.string(),
-  isLiquid: z.boolean().optional(),
-  positionId: z.string().optional(),
-  liquidationId: z.string().optional(),
-  apm: z.string().optional(),
-  validatorSignature: z.string().optional(),
   tradeType: z.enum(TradeTypeEnum).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 })

@@ -9,7 +9,6 @@ export interface TransferParams {
   amount: bigint
   token: Token
   tradeId: string
-  isLiquid: boolean
 }
 
 export interface TransferResult {

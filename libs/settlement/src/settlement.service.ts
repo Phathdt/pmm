@@ -1,4 +1,4 @@
-import { BadRequestException, HttpException, Inject, Injectable } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { QueueService } from '@optimex-pmm/queue'
 import { isSameAddress, stringToHex } from '@optimex-pmm/shared'
@@ -59,126 +59,102 @@ export class SettlementService {
   }
 
   async getSettlementSignature(dto: GetSettlementSignatureDto, trade: Trade): Promise<SettlementSignatureResponseDto> {
-    try {
-      const { tradeId } = trade
+    const { tradeId } = trade
 
-      const [presigns, tradeData] = await Promise.all([
-        this.routerService.getSettlementPresigns(tradeId),
-        this.routerService.getTradeData(tradeId),
-      ])
+    const [presigns, tradeData] = await Promise.all([
+      this.routerService.getSettlementPresigns(tradeId),
+      this.routerService.getTradeData(tradeId),
+    ])
 
-      const { toChain, fromChain } = tradeData.tradeInfo
-      const fromToken = await this.tokenService.getToken(l2Decode(fromChain[1]), l2Decode(fromChain[2]))
-      const pmmAddress = this.getPmmAddressByNetworkType(fromToken)
+    const { toChain, fromChain } = tradeData.tradeInfo
+    const fromToken = await this.tokenService.getToken(l2Decode(fromChain[1]), l2Decode(fromChain[2]))
+    const pmmAddress = this.getPmmAddressByNetworkType(fromToken)
 
-      const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800)
+    const deadline = BigInt(Math.floor(Date.now() / 1000) + 1800)
 
-      const pmmPresign = presigns.find((t) => t.pmmId === this.pmmId)
-      if (!pmmPresign) {
-        throw new BadRequestException('pmmPresign not found')
-      }
+    const pmmPresign = presigns.find((t) => t.pmmId === this.pmmId)
+    if (!pmmPresign) {
+      throw new BadRequestException('pmmPresign not found')
+    }
 
-      if (!isSameAddress(l2Decode(pmmPresign.pmmRecvAddress), pmmAddress)) {
-        throw new BadRequestException('pmmRecvAddress not match')
-      }
+    if (!isSameAddress(l2Decode(pmmPresign.pmmRecvAddress), pmmAddress)) {
+      throw new BadRequestException('pmmRecvAddress not match')
+    }
 
-      const amountOut = BigInt(dto.committedQuote)
+    const amountOut = BigInt(dto.committedQuote)
 
-      const commitInfoHash = getCommitInfoHash(
-        this.pmmId,
-        l2Encode(pmmAddress),
-        toChain[1],
-        toChain[2],
-        amountOut,
-        deadline
-      )
+    const commitInfoHash = getCommitInfoHash(
+      this.pmmId,
+      l2Encode(pmmAddress),
+      toChain[1],
+      toChain[2],
+      amountOut,
+      deadline
+    )
 
-      const signerAddress = await this.routerService.getSigner()
+    const signerAddress = await this.routerService.getSigner()
 
-      const domain = await signerService.getDomain()
+    const domain = await signerService.getDomain()
 
-      const signature = await getSignature(
-        this.pmmWallet,
-        this.provider,
-        signerAddress,
-        tradeId,
-        commitInfoHash,
-        SignatureType.VerifyingContract,
-        domain
-      )
+    const signature = await getSignature(
+      this.pmmWallet,
+      this.provider,
+      signerAddress,
+      tradeId,
+      commitInfoHash,
+      SignatureType.VerifyingContract,
+      domain
+    )
 
-      await this.tradeService.updateTradeStatus(tradeId, TradeStatus.COMMITTED)
+    await this.tradeService.updateTradeStatus(tradeId, TradeStatus.COMMITTED)
 
-      return {
-        tradeId: tradeId,
-        signature,
-        deadline: Number(deadline),
-        error: '',
-      }
-    } catch (error: unknown) {
-      if (error instanceof HttpException) {
-        throw error
-      }
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      throw new BadRequestException(errorMessage)
+    return {
+      tradeId: tradeId,
+      signature,
+      deadline: Number(deadline),
+      error: '',
     }
   }
 
   async ackSettlement(dto: AckSettlementDto): Promise<AckSettlementResponseDto> {
-    try {
-      // Update trade status based on chosen status
-      const newStatus = dto.chosen ? TradeStatus.SELECTED : TradeStatus.FAILED
+    // Update trade status based on chosen status
+    const newStatus = dto.chosen ? TradeStatus.SELECTED : TradeStatus.FAILED
 
-      await this.tradeService.updateTradeStatus(
-        dto.tradeId,
-        newStatus,
-        dto.chosen ? undefined : 'PMM not chosen for settlement'
-      )
+    await this.tradeService.updateTradeStatus(
+      dto.tradeId,
+      newStatus,
+      dto.chosen ? undefined : 'PMM not chosen for settlement'
+    )
 
-      return {
-        tradeId: dto.tradeId,
-        status: 'acknowledged',
-        error: '',
-      }
-    } catch (error: unknown) {
-      if (error instanceof HttpException) {
-        throw error
-      }
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      throw new BadRequestException(errorMessage)
+    return {
+      tradeId: dto.tradeId,
+      status: 'acknowledged',
+      error: '',
     }
   }
 
   async signalPayment(dto: SignalPaymentDto, trade: Trade): Promise<SignalPaymentResponseDto> {
-    try {
-      if (trade.status !== TradeStatus.SELECTED) {
-        throw new BadRequestException(`Invalid trade status: ${trade.status}`)
-      }
+    if (trade.status !== TradeStatus.SELECTED) {
+      throw new BadRequestException(`Invalid trade status: ${trade.status}`)
+    }
 
-      const eventData = {
-        tradeId: dto.tradeId,
-      } as TransferSettlementEvent
+    const eventData = {
+      tradeId: dto.tradeId,
+    } as TransferSettlementEvent
 
-      // Get the token to determine which platform queue to use
-      const token = await this.tokenService.getTokenByTokenId(trade.toTokenId)
-      const queueName = this.getQueueNameByNetworkType(token.networkType.toUpperCase())
+    // Get the token to determine which platform queue to use
+    const token = await this.tokenService.getTokenByTokenId(trade.toTokenId)
+    const queueName = this.getQueueNameByNetworkType(token.networkType.toUpperCase())
 
-      await this.queueService.pushToQueue(queueName, eventData)
+    await this.queueService.pushToQueue(queueName, eventData)
 
-      // You might want to store the protocol fee amount or handle it in your business logic
-      await this.tradeService.updateTradeStatus(dto.tradeId, TradeStatus.SETTLING)
+    // You might want to store the protocol fee amount or handle it in your business logic
+    await this.tradeService.updateTradeStatus(dto.tradeId, TradeStatus.SETTLING)
 
-      return {
-        tradeId: dto.tradeId,
-        status: 'acknowledged',
-        error: '',
-      }
-    } catch (error: unknown) {
-      if (error instanceof HttpException) {
-        throw error
-      }
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      throw new BadRequestException(errorMessage)
+    return {
+      tradeId: dto.tradeId,
+      status: 'acknowledged',
+      error: '',
     }
   }
 
