@@ -665,9 +665,15 @@ export class TransactionService {
    */
   private async getBaseFeePerGas(provider: ethers.Provider): Promise<bigint | undefined> {
     try {
+      const block = await provider.getBlock('latest')
+
+      if (block?.baseFeePerGas) {
+        // EIP-1559 network - have base fee
+        return block.baseFeePerGas
+      }
+
+      // Legacy network
       const feeData = await provider.getFeeData()
-      // For EIP-1559 networks, use gasPrice from feeData as base reference
-      // For legacy networks, this will be the network's current gas price
       return feeData.gasPrice || undefined
     } catch (error: unknown) {
       this.logger.warn({
