@@ -710,6 +710,7 @@ export class TransactionService {
   /**
    * Get optimal gas price for the network
    * Supports both legacy and EIP-1559 transactions with multiplier-based protection
+   * Calculates maxFeePerGas from base fee instead of using provider's estimate for better cost control
    * @param wallet NonceManager instance with provider
    * @param options Transaction options with gas price preferences
    * @returns Gas price configuration object
@@ -727,7 +728,7 @@ export class TransactionService {
       throw new Error('Provider not available for gas price estimation')
     }
 
-    // Get base fee for multiplier-based protection
+    // Get base fee for multiplier-based protection and calculation
     const baseFeePerGas = await this.getBaseFeePerGas(provider)
 
     // Step 1: Check if EIP-1559 values provided explicitly
@@ -737,7 +738,7 @@ export class TransactionService {
         maxFeePerGas: options.maxFeePerGas?.toString(),
         maxPriorityFeePerGas: options.maxPriorityFeePerGas?.toString(),
         operation: 'gas_price_estimation',
-        gasType: 'EIP-1559',
+        gasType: 'EIP-1559-provided',
         timestamp: new Date().toISOString(),
       })
       const bufferedMaxFee = this.applyGasPriceBuffer(options.maxFeePerGas, options.gasPriceBufferPercentage)
@@ -754,7 +755,7 @@ export class TransactionService {
         message: 'Using provided legacy gas price',
         gasPrice: options.gasPrice?.toString(),
         operation: 'gas_price_estimation',
-        gasType: 'legacy',
+        gasType: 'legacy-provided',
         timestamp: new Date().toISOString(),
       })
       const bufferedPrice = this.applyGasPriceBuffer(options.gasPrice, options.gasPriceBufferPercentage)
@@ -764,8 +765,7 @@ export class TransactionService {
       }
     }
 
-    // Step 3: Fetch from provider
-
+    // Step 3: Fetch from provider and calculate optimal gas price
     try {
       this.logger.log({
         message: 'Fetching gas price from provider',
@@ -774,14 +774,42 @@ export class TransactionService {
       })
       const feeData = await provider.getFeeData()
 
-      // Prefer EIP-1559 if supported
-      if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
+      // Prefer EIP-1559 if supported and base fee is available
+      // Calculate maxFeePerGas from base fee instead of using provider's estimate
+      if (feeData.maxPriorityFeePerGas && baseFeePerGas) {
+        // Calculate maxFeePerGas as 2x base fee for reasonable buffer
+        // This prevents using provider's inflated estimates (which can be 2000x+ higher)
+        const calculatedMaxFee = baseFeePerGas * BigInt(2)
+
         this.logger.log({
-          message: 'Using EIP-1559 gas price from provider',
+          message: 'Calculated EIP-1559 gas price from base fee',
+          baseFeePerGas: baseFeePerGas.toString(),
+          calculatedMaxFee: calculatedMaxFee.toString(),
+          providerMaxFeePerGas: feeData.maxFeePerGas?.toString(), // Log for comparison
+          maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toString(),
+          operation: 'gas_price_estimation',
+          gasType: 'EIP-1559-calculated',
+          timestamp: new Date().toISOString(),
+        })
+
+        // Apply buffer to calculated max fee
+        const bufferedMaxFee = this.applyGasPriceBuffer(calculatedMaxFee, options.gasPriceBufferPercentage)
+
+        return {
+          maxFeePerGas: await this.enforceMaxGasPrice(bufferedMaxFee, options, baseFeePerGas),
+          maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+        }
+      }
+
+      // Fallback: Use provider's EIP-1559 estimate if base fee unavailable
+      // This should rarely happen on modern networks
+      if (feeData.maxFeePerGas && feeData.maxPriorityFeePerGas) {
+        this.logger.warn({
+          message: 'Using provider EIP-1559 gas price (base fee unavailable)',
           maxFeePerGas: feeData.maxFeePerGas?.toString(),
           maxPriorityFeePerGas: feeData.maxPriorityFeePerGas?.toString(),
           operation: 'gas_price_estimation',
-          gasType: 'EIP-1559',
+          gasType: 'EIP-1559-provider',
           timestamp: new Date().toISOString(),
         })
         const bufferedMaxFee = this.applyGasPriceBuffer(feeData.maxFeePerGas, options.gasPriceBufferPercentage)
@@ -792,7 +820,7 @@ export class TransactionService {
         }
       }
 
-      // Fallback to legacy gas price
+      // Fallback to legacy gas price for non-EIP-1559 networks
       if (feeData.gasPrice) {
         this.logger.log({
           message: 'Using legacy gas price from provider',
