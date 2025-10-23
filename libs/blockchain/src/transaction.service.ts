@@ -742,10 +742,25 @@ export class TransactionService {
         timestamp: new Date().toISOString(),
       })
       const bufferedMaxFee = this.applyGasPriceBuffer(options.maxFeePerGas, options.gasPriceBufferPercentage)
+      const finalMaxFeePerGas = await this.enforceMaxGasPrice(bufferedMaxFee, options, baseFeePerGas)
+
+      // CRITICAL: Ensure maxPriorityFeePerGas <= maxFeePerGas (EIP-1559 requirement)
+      let finalPriorityFee = options.maxPriorityFeePerGas
+      if (finalPriorityFee > finalMaxFeePerGas) {
+        this.logger.warn({
+          message: 'Priority fee exceeds max fee, capping to max fee',
+          originalPriorityFee: finalPriorityFee.toString(),
+          maxFeePerGas: finalMaxFeePerGas.toString(),
+          cappedPriorityFee: finalMaxFeePerGas.toString(),
+          operation: 'gas_price_estimation',
+          timestamp: new Date().toISOString(),
+        })
+        finalPriorityFee = finalMaxFeePerGas
+      }
 
       return {
-        maxFeePerGas: await this.enforceMaxGasPrice(bufferedMaxFee, options, baseFeePerGas),
-        maxPriorityFeePerGas: options.maxPriorityFeePerGas, // Usually don't buffer priority fee
+        maxFeePerGas: finalMaxFeePerGas,
+        maxPriorityFeePerGas: finalPriorityFee,
       }
     }
 
@@ -794,10 +809,25 @@ export class TransactionService {
 
         // Apply buffer to calculated max fee
         const bufferedMaxFee = this.applyGasPriceBuffer(calculatedMaxFee, options.gasPriceBufferPercentage)
+        const finalMaxFeePerGas = await this.enforceMaxGasPrice(bufferedMaxFee, options, baseFeePerGas)
+
+        // CRITICAL: Ensure maxPriorityFeePerGas <= maxFeePerGas (EIP-1559 requirement)
+        let finalPriorityFee = feeData.maxPriorityFeePerGas
+        if (finalPriorityFee > finalMaxFeePerGas) {
+          this.logger.warn({
+            message: 'Priority fee exceeds max fee, capping to max fee',
+            originalPriorityFee: finalPriorityFee.toString(),
+            maxFeePerGas: finalMaxFeePerGas.toString(),
+            cappedPriorityFee: finalMaxFeePerGas.toString(),
+            operation: 'gas_price_estimation',
+            timestamp: new Date().toISOString(),
+          })
+          finalPriorityFee = finalMaxFeePerGas
+        }
 
         return {
-          maxFeePerGas: await this.enforceMaxGasPrice(bufferedMaxFee, options, baseFeePerGas),
-          maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+          maxFeePerGas: finalMaxFeePerGas,
+          maxPriorityFeePerGas: finalPriorityFee,
         }
       }
 
@@ -813,10 +843,25 @@ export class TransactionService {
           timestamp: new Date().toISOString(),
         })
         const bufferedMaxFee = this.applyGasPriceBuffer(feeData.maxFeePerGas, options.gasPriceBufferPercentage)
+        const finalMaxFeePerGas = await this.enforceMaxGasPrice(bufferedMaxFee, options, baseFeePerGas)
+
+        // CRITICAL: Ensure maxPriorityFeePerGas <= maxFeePerGas (EIP-1559 requirement)
+        let finalPriorityFee = feeData.maxPriorityFeePerGas
+        if (finalPriorityFee > finalMaxFeePerGas) {
+          this.logger.warn({
+            message: 'Priority fee exceeds max fee, capping to max fee',
+            originalPriorityFee: finalPriorityFee.toString(),
+            maxFeePerGas: finalMaxFeePerGas.toString(),
+            cappedPriorityFee: finalMaxFeePerGas.toString(),
+            operation: 'gas_price_estimation',
+            timestamp: new Date().toISOString(),
+          })
+          finalPriorityFee = finalMaxFeePerGas
+        }
 
         return {
-          maxFeePerGas: await this.enforceMaxGasPrice(bufferedMaxFee, options, baseFeePerGas),
-          maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+          maxFeePerGas: finalMaxFeePerGas,
+          maxPriorityFeePerGas: finalPriorityFee,
         }
       }
 
