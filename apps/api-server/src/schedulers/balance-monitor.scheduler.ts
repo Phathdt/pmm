@@ -33,7 +33,7 @@ interface MempoolBalanceResponse {
 @Injectable()
 export class BalanceMonitorScheduler {
   private readonly logger = new Logger(BalanceMonitorScheduler.name)
-  private readonly MIN_BALANCE_USD = 1000
+  private readonly MIN_BALANCE_USD: number
   private readonly solanaConnection: Connection
   private readonly btcAddress: string
   private readonly solAddress: string
@@ -46,6 +46,7 @@ export class BalanceMonitorScheduler {
     this.solanaConnection = new Connection(this.configService.getOrThrow<string>('SOLANA_RPC_URL'))
     this.btcAddress = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS')
     this.solAddress = this.configService.getOrThrow<string>('PMM_SOLANA_ADDRESS')
+    this.MIN_BALANCE_USD = this.configService.get<number>('MIN_BALANCE_USD', 1000)
   }
 
   private async getSolanaBalance(): Promise<number> {
