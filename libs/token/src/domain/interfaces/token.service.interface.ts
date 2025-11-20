@@ -1,6 +1,5 @@
 import { Token } from '@optimex-xyz/market-maker-sdk'
 
-import { TokenPrice } from '../entities'
 import { TokenQuoteCalculationData, TokenValidationData } from '../schemas'
 
 export interface ITokenService {
@@ -8,5 +7,5 @@ export interface ITokenService {
   validateCommitmentAmount(validationData: TokenValidationData): Promise<void>
   calculateBestQuote(calculationData: TokenQuoteCalculationData): Promise<string>
   getTokenByTokenId(tokenId: string): Promise<Token | null>
-  getTokenPrice(symbol: string): Promise<TokenPrice>
+  getTokenPrice(symbol: string): Promise<number>
 }

@@ -1,14 +1,5 @@
 import { z } from 'zod'
 
-export const TokenPriceSchema = z.object({
-  id: z.string(),
-  symbol: z.string(),
-  name: z.string(),
-  image: z.string(),
-  currentPrice: z.number(),
-  marketCap: z.number(),
-})
-
 export const CoinGeckoTokenSchema = z.object({
   id: z.string(),
   symbol: z.string(),
@@ -44,5 +35,10 @@ export const CoinGeckoTokenSchema = z.object({
   lastUpdated: z.string(),
 })
 
-export type TokenPrice = z.infer<typeof TokenPriceSchema>
+export const BinancePriceTickerSchema = z.object({
+  symbol: z.string(),
+  price: z.string(),
+})
+
 export type CoinGeckoToken = z.infer<typeof CoinGeckoTokenSchema>
+export type BinancePriceTicker = z.infer<typeof BinancePriceTickerSchema>

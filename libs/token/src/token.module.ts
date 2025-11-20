@@ -5,9 +5,17 @@ import { ConfigModule, ConfigService } from '@nestjs/config'
 import { ReqModule } from '@optimex-pmm/req'
 
 import { TokenService } from './application'
-import { TOKEN_REPOSITORY, TOKEN_SERVICE, TokenRemoteRepository } from './infras'
+import {
+  BinancePriceProvider,
+  CoinGeckoPriceProvider,
+  TOKEN_REPOSITORY,
+  TOKEN_SERVICE,
+  TokenRemoteRepository,
+} from './infras'
 
 export const providers = [
+  BinancePriceProvider,
+  CoinGeckoPriceProvider,
   {
     provide: TOKEN_REPOSITORY,
     useClass: TokenRemoteRepository,
@@ -20,13 +28,27 @@ export const providers = [
 
 @Module({
   imports: [
+    // CoinGecko API Configuration
     ReqModule.registerAsync({
       imports: [ConfigModule],
       useFactory: () => ({
         baseUrl: 'https://api.coingecko.com/api/v3',
+        shouldConvertCase: true,
+        timeout: 2500, // 2.5s timeout per provider (leave 500ms margin for global 3s timeout)
       }),
       inject: [ConfigService],
       serviceKey: 'COINGECKO_REQ_SERVICE',
+    }),
+    // Binance API Configuration
+    ReqModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: () => ({
+        baseUrl: 'https://api.binance.com/api/v3',
+        shouldConvertCase: false, // Binance uses uppercase, no snake_case conversion needed
+        timeout: 2500, // 2.5s timeout per provider (leave 500ms margin for global 3s timeout)
+      }),
+      inject: [ConfigService],
+      serviceKey: 'BINANCE_REQ_SERVICE',
     }),
     CacheModule.registerAsync({
       imports: [ConfigModule],

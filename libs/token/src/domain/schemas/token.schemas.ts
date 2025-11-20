@@ -15,9 +15,9 @@ export const TokenValidationDataSchema = z.object({
 })
 
 export const CoinGeckoApiParamsSchema = z.object({
-  vs_currency: z.string().default('usd'),
+  vsCurrency: z.string().default('usd'),
   order: z.string().default('market_cap_desc'),
-  per_page: z.number().default(100),
+  perPage: z.number().default(100),
   page: z.number().default(1),
   sparkline: z.boolean().default(false),
 })

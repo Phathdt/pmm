@@ -185,7 +185,7 @@ export class BalanceMonitorScheduler {
     try {
       const [btcPrice, btcBalance] = await Promise.all([this.tokenService.getTokenPrice('BTC'), this.getBtcBalance()])
 
-      const btcValue = btcBalance * btcPrice.currentPrice
+      const btcValue = btcBalance * btcPrice
 
       if (btcValue < this.MIN_BALANCE_USD) {
         const message = `⚠️ BTC Balance Alert\n\nBalance: $${btcValue.toFixed(2)} (${btcBalance} BTC)\nAddress: ${this.btcAddress}\n\nBalance is below minimum threshold of $${this.MIN_BALANCE_USD}`
@@ -195,7 +195,7 @@ export class BalanceMonitorScheduler {
           currentBalanceUSD: btcValue.toFixed(2),
           minimumThresholdUSD: this.MIN_BALANCE_USD,
           address: this.btcAddress,
-          btcPrice: btcPrice.currentPrice,
+          btcPrice: btcPrice,
           operation: 'btc_balance_monitor',
           status: 'below_threshold',
           timestamp: new Date().toISOString(),
@@ -209,7 +209,7 @@ export class BalanceMonitorScheduler {
         currentBalanceUSD: btcValue.toFixed(2),
         minimumThresholdUSD: this.MIN_BALANCE_USD,
         address: this.btcAddress,
-        btcPrice: btcPrice.currentPrice,
+        btcPrice: btcPrice,
         operation: 'btc_balance_monitor',
         status: 'completed',
         timestamp: new Date().toISOString(),
@@ -234,7 +234,7 @@ export class BalanceMonitorScheduler {
         this.getSolanaBalance(),
       ])
 
-      const solValue = solBalance * solPrice.currentPrice
+      const solValue = solBalance * solPrice
 
       if (solValue < this.MIN_BALANCE_USD) {
         const message = `⚠️ SOL Balance Alert\n\nBalance: $${solValue.toFixed(2)} (${solBalance} SOL)\nAddress: ${this.solAddress}\n\nBalance is below minimum threshold of $${this.MIN_BALANCE_USD}`
@@ -244,7 +244,7 @@ export class BalanceMonitorScheduler {
           currentBalanceUSD: solValue.toFixed(2),
           minimumThresholdUSD: this.MIN_BALANCE_USD,
           address: this.solAddress,
-          solPrice: solPrice.currentPrice,
+          solPrice: solPrice,
           operation: 'sol_balance_monitor',
           status: 'below_threshold',
           timestamp: new Date().toISOString(),
@@ -258,7 +258,7 @@ export class BalanceMonitorScheduler {
         currentBalanceUSD: solValue.toFixed(2),
         minimumThresholdUSD: this.MIN_BALANCE_USD,
         address: this.solAddress,
-        solPrice: solPrice.currentPrice,
+        solPrice: solPrice,
         operation: 'sol_balance_monitor',
         status: 'completed',
         timestamp: new Date().toISOString(),
