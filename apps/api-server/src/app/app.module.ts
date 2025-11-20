@@ -16,6 +16,7 @@ import { TradeModule } from '@optimex-pmm/trade'
 import { PrismaModule, PrismaServiceOptions } from 'nestjs-prisma'
 
 import { AppController } from './app.controller'
+import { AppService } from './app.service'
 
 import { QuoteController, SettlementController } from '../controllers'
 import { TradeExistsGuard } from '../guards'
@@ -88,7 +89,7 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
     SettlementModule,
   ],
   controllers: [AppController, ...controllers],
-  providers: [...processors, ...schedulers, ...monitors, TradeExistsGuard],
+  providers: [AppService, ...processors, ...schedulers, ...monitors, TradeExistsGuard],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

@@ -51,3 +51,30 @@ export const SignalPaymentResponseSchema = z.object({
 })
 
 export class SignalPaymentResponseDto extends createZodDto(SignalPaymentResponseSchema) {}
+
+export const PmmInfoResponseSchema = z.object({
+  pmmId: z.string(),
+  pmmEncodeId: z.string(),
+  operatorAddress: z.string(),
+  evmReceiverAddress: z.string(),
+  btcReceiverAddress: z.string(),
+  solanaReceiverAddress: z.string(),
+  evmSenderAddress: z.string(),
+  btcSenderAddress: z.string(),
+  solanaSenderAddress: z.string(),
+  contracts: z.object({
+    router: z.string(),
+    evm: z.record(
+      z.string(),
+      z.object({
+        payment: z.string(),
+        liquidation: z.string(),
+      })
+    ),
+    solana: z.object({
+      programId: z.string(),
+    }),
+  }),
+})
+
+export class PmmInfoResponseDto extends createZodDto(PmmInfoResponseSchema) {}

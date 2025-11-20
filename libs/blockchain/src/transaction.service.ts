@@ -90,9 +90,9 @@ type ExtractContract<T> = T extends { connect: (address: string, runner: ethers.
  */
 @Injectable()
 export class TransactionService {
-  private readonly DEFAULT_GAS_BUFFER_PERCENTAGE = 50 // 50% buffer for gas limit
-  private readonly DEFAULT_MIN_GAS_BUFFER = 50000
-  private readonly DEFAULT_GAS_PRICE_BUFFER_PERCENTAGE = 30 // 30% buffer for gas price
+  private readonly DEFAULT_GAS_BUFFER_PERCENTAGE = 20 // 20% buffer for gas limit (Ethereum/Sepolia have reliable estimation)
+  private readonly DEFAULT_MIN_GAS_BUFFER = 21000 // Minimum gas for a simple transfer
+  private readonly DEFAULT_GAS_PRICE_BUFFER_PERCENTAGE = 15 // 15% buffer for gas price (reduced for stable networks)
   private readonly DEFAULT_MAX_GAS_PRICE_MULTIPLIER = 3 // Max 3x base fee
   private TESTING_STUCK_TRANSACTIONS = false
   private readonly logger = new Logger(TransactionService.name)
