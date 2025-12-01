@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
+import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { PrismaClient } from '@prisma/client'
 
 type QueryType = 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE'
@@ -21,10 +22,10 @@ const COLORS = {
 @Injectable()
 export class DatabaseService extends PrismaClient implements OnModuleInit {
   private readonly logger = new Logger(DatabaseService.name)
-  private readonly enableColors = process.env['ENABLE_JSON_LOG'] === 'false'
+  private readonly enableColors: boolean
 
-  constructor() {
-    const logLevel = process.env['LOG_LEVEL'] || 'info'
+  constructor(configService: CustomConfigService) {
+    const logLevel = configService.log.level || 'info'
     const prismaLogLevels = DatabaseService.mapLogLevelToPrisma(logLevel)
 
     // Convert log levels to event emitters for $on support
@@ -36,6 +37,8 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
     super({
       log: logConfig,
     })
+
+    this.enableColors = !configService.log.enableJsonFormat
   }
 
   /**

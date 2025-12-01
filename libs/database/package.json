@@ -13,6 +13,7 @@
   "dependencies": {
     "@nestjs/common": "^11.1.9",
     "@nestjs/core": "^11.1.9",
+    "@optimex-pmm/custom-config": "*",
     "@prisma/client": "6.7.0",
     "nestjs-prisma": "^0.26.0",
     "reflect-metadata": "^0.2.2",

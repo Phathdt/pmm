@@ -63,6 +63,16 @@ import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { TradeModule, TRADE_SERVICE } from '@optimex-pmm/trade'
 ```
 
+**Workspace Dependencies**: When adding internal package dependencies in `package.json`, use `"*"` (not `workspace:*`):
+```json
+{
+  "dependencies": {
+    "@optimex-pmm/custom-config": "*",
+    "@optimex-pmm/shared": "*"
+  }
+}
+```
+
 **DDD in Trade Module**: The `trade` lib follows Domain-Driven Design:
 - `domain/entities/` - Trade entity and value objects
 - `domain/interfaces/` - Repository and service interfaces
