@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { HttpService } from '@nestjs/axios'
 import { Injectable } from '@nestjs/common'
@@ -7,7 +6,7 @@ import { convertToCamelCase, convertToSnakeCase } from '@optimex-pmm/shared'
 import { AxiosRequestConfig } from 'axios'
 import { lastValueFrom } from 'rxjs'
 
-import { ReqModuleConfig } from './req.config'
+import type { ReqModuleConfig } from './req.config'
 import { ReqLoggingInterceptor } from './req.interceptor'
 
 export interface ReqOptions extends Omit<AxiosRequestConfig, 'url'> {

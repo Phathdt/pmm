@@ -1,0 +1,24 @@
+{
+  "name": "@optimex-pmm/notification",
+  "version": "1.0.0",
+  "private": true,
+  "main": "../../dist/libs/notification/index.js",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "rolldown -c",
+    "dev": "rolldown -c --watch",
+    "lint": "eslint src --fix",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.9",
+    "@nestjs/core": "^11.1.9",
+    "@optimex-pmm/custom-config": "*",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "~22.19.1",
+    "typescript": "~5.9.3"
+  }
+}

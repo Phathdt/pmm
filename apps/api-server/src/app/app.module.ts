@@ -3,8 +3,9 @@ import { ExpressAdapter } from '@bull-board/express'
 import { BullBoardModule } from '@bull-board/nestjs'
 import { BullModule } from '@nestjs/bull'
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
+import { APP_INTERCEPTOR } from '@nestjs/core'
 import { ScheduleModule } from '@nestjs/schedule'
+import { CustomConfigModule, CustomConfigService } from '@optimex-pmm/custom-config'
 import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
 import { DatabaseService } from '@optimex-pmm/database'
 import { QueueModule } from '@optimex-pmm/queue'
@@ -20,6 +21,7 @@ import { AppService } from './app.service'
 
 import { QuoteController, SettlementController } from '../controllers'
 import { TradeExistsGuard } from '../guards'
+import { ResponseInterceptor, TraceIdInterceptor } from '../interceptors'
 import { IpWhitelistMiddleware } from '../middlewares'
 import { BtcMonitorService, EvmMonitorService, SolanaMonitorService } from '../monitors'
 import {
@@ -48,32 +50,27 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      load: [],
-      envFilePath: ['.env'],
-    }),
-    CustomLoggerModule, // Add this early in the imports array
+    CustomConfigModule,
+    CustomLoggerModule,
     PrismaModule.forRootAsync({
       isGlobal: true,
-      imports: [ConfigModule],
-      useFactory(configService: ConfigService): PrismaServiceOptions {
-        const logLevel = configService.getOrThrow('LOG_LEVEL')
+      imports: [CustomConfigModule],
+      useFactory(configService: CustomConfigService): PrismaServiceOptions {
         return {
           prismaOptions: {
-            log: DatabaseService.mapLogLevelToPrisma(logLevel),
-            datasourceUrl: configService.getOrThrow('DATABASE_URL'),
+            log: DatabaseService.mapLogLevelToPrisma(configService.log.level),
+            datasourceUrl: configService.database.url,
           },
         }
       },
-      inject: [ConfigService],
+      inject: [CustomConfigService],
     }),
     BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        redis: configService.getOrThrow('REDIS_URL'),
+      imports: [CustomConfigModule],
+      useFactory: async (configService: CustomConfigService) => ({
+        redis: configService.redis.url,
       }),
-      inject: [ConfigService],
+      inject: [CustomConfigService],
     }),
     BullBoardModule.forRoot({
       route: '/queues',
@@ -89,7 +86,21 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
     SettlementModule,
   ],
   controllers: [AppController, ...controllers],
-  providers: [AppService, ...processors, ...schedulers, ...monitors, TradeExistsGuard],
+  providers: [
+    AppService,
+    ...processors,
+    ...schedulers,
+    ...monitors,
+    TradeExistsGuard,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TraceIdInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: ResponseInterceptor,
+    },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

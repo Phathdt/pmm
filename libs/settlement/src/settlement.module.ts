@@ -1,49 +1,65 @@
 import KeyvRedis from '@keyv/redis'
 import { CacheModule } from '@nestjs/cache-manager'
 import { Module } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
 import { BlockchainModule } from '@optimex-pmm/blockchain'
+import { CustomConfigModule, CustomConfigService } from '@optimex-pmm/custom-config'
+import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
 import { NotificationModule } from '@optimex-pmm/notification'
 import { QueueModule } from '@optimex-pmm/queue'
 import { TokenModule } from '@optimex-pmm/token'
 import { TradeModule } from '@optimex-pmm/trade'
 
-import { TransferFactory } from './factories'
-import { SettlementService } from './settlement.service'
+import { SettlementService } from './application'
 import {
   BTCTransferStrategy,
   EVMLiquidationTransferStrategy,
   EVMTransferStrategy,
+  SETTLEMENT_SERVICE,
   SolanaTransferStrategy,
-} from './strategies'
+  TRANSFER_FACTORY,
+  TransferFactory,
+} from './infras'
+
+export const providers = [
+  // Strategies (concrete implementations)
+  EVMTransferStrategy,
+  BTCTransferStrategy,
+  SolanaTransferStrategy,
+  EVMLiquidationTransferStrategy,
+
+  // Factory
+  {
+    provide: TRANSFER_FACTORY,
+    useClass: TransferFactory,
+  },
+
+  // Service
+  {
+    provide: SETTLEMENT_SERVICE,
+    useClass: SettlementService,
+  },
+]
 
 @Module({
   imports: [
     CacheModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => {
+      imports: [CustomConfigModule],
+      useFactory: async (configService: CustomConfigService) => {
         return {
           ttl: 0,
-          stores: [new KeyvRedis(configService.getOrThrow<string>('REDIS_URL'))],
+          stores: [new KeyvRedis(configService.redis.url)],
         }
       },
-      inject: [ConfigService],
+      inject: [CustomConfigService],
     }),
+    CustomLoggerModule,
     QueueModule,
     BlockchainModule,
     TradeModule,
     TokenModule,
     NotificationModule,
   ],
-  providers: [
-    SettlementService,
-
-    TransferFactory,
-    BTCTransferStrategy,
-    EVMTransferStrategy,
-    SolanaTransferStrategy,
-    EVMLiquidationTransferStrategy,
-  ],
-  exports: [TransferFactory, SettlementService],
+  providers: [...providers],
+  exports: [TRANSFER_FACTORY, SETTLEMENT_SERVICE],
 })
 export class SettlementModule {}

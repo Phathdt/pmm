@@ -7,8 +7,7 @@ import { Cache } from 'cache-manager'
 import { TokenRemoteRepository } from './token-remote.repository'
 
 import { PriceProvider } from '../../domain'
-import { BinancePriceProvider } from '../providers/binance-price.provider'
-import { CoinGeckoPriceProvider } from '../providers/coingecko-price.provider'
+import { BinancePriceProvider, CoinGeckoPriceProvider } from '../providers'
 
 describe('TokenRemoteRepository', () => {
   let repository: TokenRemoteRepository

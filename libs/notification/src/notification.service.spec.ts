@@ -1,11 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 
-import { NotificationService } from './notification.service'
-import { TelegramService } from './telegram'
+import { NotificationService } from './application'
+import { ITelegramProvider } from './domain'
+import { TELEGRAM_PROVIDER } from './infras'
 
 describe('NotificationService', () => {
   let service: NotificationService
-  let telegramService: jest.Mocked<TelegramService>
+  let telegramService: jest.Mocked<ITelegramProvider>
 
   beforeEach(async () => {
     const mockTelegramService = {
@@ -15,18 +17,34 @@ describe('NotificationService', () => {
       providerName: 'telegram',
     }
 
+    const mockLogger = {
+      with: jest.fn().mockReturnThis(),
+      log: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+      debug: jest.fn(),
+      verbose: jest.fn(),
+      info: jest.fn(),
+      fatal: jest.fn(),
+      trace: jest.fn(),
+    }
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         NotificationService,
         {
-          provide: TelegramService,
+          provide: TELEGRAM_PROVIDER,
           useValue: mockTelegramService,
+        },
+        {
+          provide: EnhancedLogger,
+          useValue: mockLogger,
         },
       ],
     }).compile()
 
     service = module.get<NotificationService>(NotificationService)
-    telegramService = module.get(TelegramService)
+    telegramService = module.get(TELEGRAM_PROVIDER)
   })
 
   it('should be defined', () => {

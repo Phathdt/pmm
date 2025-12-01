@@ -1,25 +1,17 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
+import { Inject, Injectable } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
-import { NotificationService } from '@optimex-pmm/notification'
+import { CustomConfigService } from '@optimex-pmm/custom-config'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
+import { INotificationService, NOTIFICATION_SERVICE } from '@optimex-pmm/notification'
 import { ITokenService, TOKEN_SERVICE } from '@optimex-pmm/token'
 import { config } from '@optimex-xyz/market-maker-sdk'
 import { Connection, PublicKey } from '@solana/web3.js'
 
 import axios from 'axios'
 
-interface ExplorerBalanceResponse {
-  chain_stats: {
-    funded_txo_sum: number
-    spent_txo_sum: number
-  }
-  mempool_stats: {
-    funded_txo_sum: number
-    spent_txo_sum: number
-  }
-}
+import { BaseScheduler } from './base.scheduler'
 
-interface MempoolBalanceResponse {
+interface BtcBalanceApiResponse {
   chain_stats: {
     funded_txo_sum: number
     spent_txo_sum: number
@@ -31,8 +23,8 @@ interface MempoolBalanceResponse {
 }
 
 @Injectable()
-export class BalanceMonitorScheduler {
-  private readonly logger = new Logger(BalanceMonitorScheduler.name)
+export class BalanceMonitorScheduler extends BaseScheduler {
+  protected readonly logger: EnhancedLogger
   private readonly MIN_BALANCE_USD: number
   private readonly solanaConnection: Connection
   private readonly btcAddress: string
@@ -40,13 +32,16 @@ export class BalanceMonitorScheduler {
 
   constructor(
     @Inject(TOKEN_SERVICE) private readonly tokenService: ITokenService,
-    private readonly configService: ConfigService,
-    private readonly notificationService: NotificationService
+    private readonly configService: CustomConfigService,
+    @Inject(NOTIFICATION_SERVICE) private readonly notificationService: INotificationService,
+    logger: EnhancedLogger
   ) {
-    this.solanaConnection = new Connection(this.configService.getOrThrow<string>('SOLANA_RPC_URL'))
-    this.btcAddress = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS')
-    this.solAddress = this.configService.getOrThrow<string>('PMM_SOLANA_ADDRESS')
-    this.MIN_BALANCE_USD = this.configService.get<number>('MIN_BALANCE_USD', 1000)
+    super()
+    this.logger = logger.with({ context: BalanceMonitorScheduler.name })
+    this.solanaConnection = new Connection(this.configService.rpc.solanaUrl)
+    this.btcAddress = this.configService.pmm.btc.address
+    this.solAddress = this.configService.pmm.solana.address
+    this.MIN_BALANCE_USD = this.configService.trade.minBalanceUsd
   }
 
   private async getSolanaBalance(): Promise<number> {
@@ -73,7 +68,7 @@ export class BalanceMonitorScheduler {
 
     const getBalanceFromBlockstream = async (): Promise<number> => {
       const baseUrl = config.isTestnet() ? 'https://blockstream.info/testnet4/api' : 'https://blockstream.info/api'
-      const response = await axios.get<ExplorerBalanceResponse>(`${baseUrl}/address/${this.btcAddress}`)
+      const response = await axios.get<BtcBalanceApiResponse>(`${baseUrl}/address/${this.btcAddress}`)
       if (response?.data) {
         const confirmedBalance =
           response.data.chain_stats?.funded_txo_sum - response.data.chain_stats?.spent_txo_sum || 0
@@ -86,7 +81,7 @@ export class BalanceMonitorScheduler {
 
     const getBalanceFromMempool = async (): Promise<number> => {
       const baseUrl = config.isTestnet() ? 'https://mempool.space/testnet4/api' : 'https://mempool.space/api'
-      const response = await axios.get<MempoolBalanceResponse>(`${baseUrl}/address/${this.btcAddress}`)
+      const response = await axios.get<BtcBalanceApiResponse>(`${baseUrl}/address/${this.btcAddress}`)
       if (response?.data) {
         const confirmedBalance =
           response.data.chain_stats?.funded_txo_sum - response.data.chain_stats?.spent_txo_sum || 0
@@ -182,7 +177,7 @@ export class BalanceMonitorScheduler {
 
   @Cron('*/5 * * * *')
   async checkBTCBalance(): Promise<void> {
-    try {
+    return this.executeWithTraceId('checkBTCBalance', async () => {
       const [btcPrice, btcBalance] = await Promise.all([this.tokenService.getTokenPrice('BTC'), this.getBtcBalance()])
 
       const btcValue = btcBalance * btcPrice
@@ -214,21 +209,12 @@ export class BalanceMonitorScheduler {
         status: 'completed',
         timestamp: new Date().toISOString(),
       })
-    } catch (error: unknown) {
-      this.logger.error({
-        message: 'Error checking BTC balance',
-        address: this.btcAddress,
-        error: error instanceof Error ? error.message : String(error),
-        operation: 'btc_balance_monitor',
-        status: 'failed',
-        timestamp: new Date().toISOString(),
-      })
-    }
+    })
   }
 
   @Cron('*/5 * * * *')
   async checkSOLBalance(): Promise<void> {
-    try {
+    return this.executeWithTraceId('checkSOLBalance', async () => {
       const [solPrice, solBalance] = await Promise.all([
         this.tokenService.getTokenPrice('SOL'),
         this.getSolanaBalance(),
@@ -263,15 +249,6 @@ export class BalanceMonitorScheduler {
         status: 'completed',
         timestamp: new Date().toISOString(),
       })
-    } catch (error: unknown) {
-      this.logger.error({
-        message: 'Error checking SOL balance',
-        address: this.solAddress,
-        error: error instanceof Error ? error.message : String(error),
-        operation: 'sol_balance_monitor',
-        status: 'failed',
-        timestamp: new Date().toISOString(),
-      })
-    }
+    })
   }
 }

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { HttpModule, HttpService } from '@nestjs/axios'
 import { DynamicModule, Module, Provider } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
+import { CustomConfigService } from '@optimex-pmm/custom-config'
 
 import { defaultReqConfig, REQ_CONFIG_KEY, ReqModuleConfig } from './req.config'
 import { ReqLoggingInterceptor } from './req.interceptor'
@@ -37,7 +37,7 @@ export class ReqModule {
           useFactory: (httpService: HttpService, loggingInterceptor: ReqLoggingInterceptor) => {
             return new ReqService(finalConfig, httpService, loggingInterceptor)
           },
-          inject: [HttpService, ReqLoggingInterceptor, ConfigService],
+          inject: [HttpService, ReqLoggingInterceptor, CustomConfigService],
         },
       ],
       exports: [serviceKey],
@@ -87,7 +87,7 @@ export class ReqModule {
           ) => {
             return new ReqService(config, httpService, loggingInterceptor)
           },
-          inject: [REQ_CONFIG_KEY, HttpService, ReqLoggingInterceptor, ConfigService],
+          inject: [REQ_CONFIG_KEY, HttpService, ReqLoggingInterceptor, CustomConfigService],
         },
       ],
       exports: [serviceKey],

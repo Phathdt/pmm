@@ -1,5 +1,6 @@
 import { InjectRedis } from '@nestjs-modules/ioredis'
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 import { toObject, toString } from '@optimex-pmm/shared'
 
 import Redis from 'ioredis'
@@ -8,21 +9,28 @@ import { IQueueService } from '../../domain'
 
 @Injectable()
 export class QueueService implements IQueueService {
-  private readonly logger = new Logger(QueueService.name)
+  private readonly logger: EnhancedLogger
 
-  constructor(@InjectRedis() private readonly redis: Redis) {}
+  constructor(
+    @InjectRedis() private readonly redis: Redis,
+    logger: EnhancedLogger
+  ) {
+    this.logger = logger.with({ context: QueueService.name })
+  }
 
   async pushToQueue(queueName: string, data: unknown): Promise<number> {
     try {
       const serializedData = toString(data)
       const result = await this.redis.lpush(queueName, serializedData)
-      this.logger.debug(`Pushed job to queue ${queueName}`, {
+      this.logger.debug({
+        message: `Pushed job to queue ${queueName}`,
         queueName,
         dataSize: serializedData.length,
       })
       return result
     } catch (error: unknown) {
-      this.logger.error(`Failed to push to queue ${queueName}`, {
+      this.logger.error({
+        message: `Failed to push to queue ${queueName}`,
         error: error instanceof Error ? error.message : String(error),
         queueName,
       })
@@ -45,13 +53,15 @@ export class QueueService implements IQueueService {
         .filter((item) => item !== null)
         .map((item) => toObject(item as string))
 
-      this.logger.debug(`Popped ${parsedResults.length} jobs from queue ${queueName}`, {
+      this.logger.debug({
+        message: `Popped ${parsedResults.length} jobs from queue ${queueName}`,
         queueName,
         jobCount: parsedResults.length,
       })
       return parsedResults
     } catch (error: unknown) {
-      this.logger.error(`Failed to pop from queue ${queueName}`, {
+      this.logger.error({
+        message: `Failed to pop from queue ${queueName}`,
         error: error instanceof Error ? error.message : String(error),
         queueName,
       })
@@ -62,10 +72,15 @@ export class QueueService implements IQueueService {
   async getQueueLength(queueName: string): Promise<number> {
     try {
       const length = await this.redis.llen(queueName)
-      this.logger.debug(`Queue ${queueName} length: ${length}`)
+      this.logger.debug({
+        message: `Queue ${queueName} length: ${length}`,
+        queueName,
+        length,
+      })
       return length
     } catch (error: unknown) {
-      this.logger.error(`Failed to get queue length for ${queueName}`, {
+      this.logger.error({
+        message: `Failed to get queue length for ${queueName}`,
         error: error instanceof Error ? error.message : String(error),
         queueName,
       })
@@ -76,9 +91,13 @@ export class QueueService implements IQueueService {
   async clearQueue(queueName: string): Promise<void> {
     try {
       await this.redis.del(queueName)
-      this.logger.log(`Cleared queue ${queueName}`)
+      this.logger.log({
+        message: `Cleared queue ${queueName}`,
+        queueName,
+      })
     } catch (error: unknown) {
-      this.logger.error(`Failed to clear queue ${queueName}`, {
+      this.logger.error({
+        message: `Failed to clear queue ${queueName}`,
         error: error instanceof Error ? error.message : String(error),
         queueName,
       })

@@ -1,16 +1,9 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "files": [],
-  "include": [],
-  "references": [
-    {
-      "path": "./tsconfig.app.json"
-    },
-    {
-      "path": "./tsconfig.spec.json"
-    }
-  ],
+  "extends": "../../tsconfig.dev.json",
   "compilerOptions": {
-    "esModuleInterop": true
-  }
+    "outDir": "../../dist/apps/api-server",
+    "noEmit": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
 }

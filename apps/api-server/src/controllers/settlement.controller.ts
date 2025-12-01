@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common'
+import { Controller, Get, Inject, Post, Req, UseGuards } from '@nestjs/common'
 import {
   AckSettlementDto,
   GetSettlementSignatureDto,
-  SettlementService,
+  ISettlementService,
+  SETTLEMENT_SERVICE,
   SignalPaymentDto,
   SignalPaymentResponseDto,
 } from '@optimex-pmm/settlement'
@@ -11,7 +12,7 @@ import { Trade } from '@prisma/client'
 
 import { Request } from 'express'
 
-import { TradeExistsGuard } from '../guards/trade.guard'
+import { TradeExistsGuard } from '../guards'
 
 interface RequestWithTrade extends Request {
   trade: Trade
@@ -19,7 +20,7 @@ interface RequestWithTrade extends Request {
 
 @Controller()
 export class SettlementController {
-  constructor(private readonly settlementService: SettlementService) {}
+  constructor(@Inject(SETTLEMENT_SERVICE) private readonly settlementService: ISettlementService) {}
 
   @Get('settlement-signature')
   @UseGuards(TradeExistsGuard)

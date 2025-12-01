@@ -1,0 +1,26 @@
+{
+  "name": "@optimex-pmm/queue",
+  "version": "1.0.0",
+  "private": true,
+  "main": "../../dist/libs/queue/index.js",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "rolldown -c",
+    "dev": "rolldown -c --watch",
+    "lint": "eslint src --fix",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@optimex-pmm/shared": "*",
+    "@nestjs/bull": "^11.0.4",
+    "@nestjs/common": "^11.1.9",
+    "@nestjs/core": "^11.1.9",
+    "bull": "^4.16.5",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "~22.19.1",
+    "typescript": "~5.9.3"
+  }
+}

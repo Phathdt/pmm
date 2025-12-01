@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
+import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { optimexSolProgram, PmmInfoResponseDto } from '@optimex-pmm/settlement'
 import { stringToHex } from '@optimex-pmm/shared'
 import { AssetChainContractRole, config, OptimexEvmNetwork, protocolService } from '@optimex-xyz/market-maker-sdk'
@@ -24,21 +24,21 @@ export class AppService {
   private readonly btcSenderAddress: string
   private readonly solanaSenderAddress: string
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(private readonly configService: CustomConfigService) {
     // Initialize ECC library for Bitcoin
     bitcoin.initEccLib(ecc)
 
     // Initialize PMM identifiers
-    this.pmmId = this.configService.getOrThrow<string>('PMM_ID')
+    this.pmmId = this.configService.pmm.id
     this.pmmEncodeId = stringToHex(this.pmmId)
 
     // Derive operator address from PMM private key
     this.operatorAddress = this.deriveOperatorAddress()
 
     // Load configured receiver addresses
-    this.evmReceiverAddress = this.configService.getOrThrow<string>('PMM_EVM_ADDRESS')
-    this.btcReceiverAddress = this.configService.getOrThrow<string>('PMM_BTC_ADDRESS')
-    this.solanaReceiverAddress = this.configService.getOrThrow<string>('PMM_SOLANA_ADDRESS')
+    this.evmReceiverAddress = this.configService.pmm.evm.address
+    this.btcReceiverAddress = this.configService.pmm.btc.address
+    this.solanaReceiverAddress = this.configService.pmm.solana.address
 
     // Derive sender addresses from private keys
     this.evmSenderAddress = this.deriveEvmSenderAddress()
@@ -98,20 +98,20 @@ export class AppService {
   }
 
   private deriveOperatorAddress(): string {
-    const pmmPrivateKey = this.configService.getOrThrow<string>('PMM_PRIVATE_KEY')
+    const pmmPrivateKey = this.configService.pmm.privateKey
     const wallet = new ethers.Wallet(pmmPrivateKey)
     return wallet.address
   }
 
   private deriveEvmSenderAddress(): string {
-    const evmPrivateKey = this.configService.getOrThrow<string>('PMM_EVM_PRIVATE_KEY')
+    const evmPrivateKey = this.configService.pmm.evm.privateKey
     const evmWallet = new ethers.Wallet(evmPrivateKey)
     return evmWallet.address
   }
 
   private deriveBtcSenderAddress(): string {
     const ECPair = ECPairFactory(ecc)
-    const btcPrivateKey = this.configService.getOrThrow<string>('PMM_BTC_PRIVATE_KEY')
+    const btcPrivateKey = this.configService.pmm.btc.privateKey
     const btcNetwork = config.isTestnet() ? bitcoin.networks.testnet : bitcoin.networks.bitcoin
 
     let btcKeyPair: ReturnType<typeof ECPair.fromPrivateKey>
@@ -127,7 +127,7 @@ export class AppService {
       try {
         const tempKeyPair = ECPair.fromWIF(btcPrivateKey, oppositeNetwork)
         // Decode successful → convert to correct network
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
         btcKeyPair = ECPair.fromPrivateKey(tempKeyPair.privateKey!, { network: btcNetwork })
         this.logger.warn(
           `WIF is for ${config.isTestnet() ? 'mainnet' : 'testnet'}, converted to ${config.isTestnet() ? 'testnet' : 'mainnet'}`
@@ -146,7 +146,7 @@ export class AppService {
   }
 
   private deriveSolanaSenderAddress(): string {
-    const solanaPrivateKey = this.configService.getOrThrow<string>('PMM_SOLANA_PRIVATE_KEY')
+    const solanaPrivateKey = this.configService.pmm.solana.privateKey
     const solanaPrivateKeyBytes = bs58.decode(solanaPrivateKey)
     const solanaKeypair = Keypair.fromSecretKey(solanaPrivateKeyBytes)
     return solanaKeypair.publicKey.toBase58()

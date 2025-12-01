@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common'
 
 import {
-  CreateTradeData,
-  ITradeRepository,
-  ITradeService,
-  Trade,
   TradeStatus,
-  UpdateTradeQuoteData,
+  type CreateTradeData,
+  type ITradeRepository,
+  type ITradeService,
+  type Trade,
+  type UpdateTradeQuoteData,
 } from '../../domain'
 import { TRADE_REPOSITORY } from '../../infras'
 

@@ -27,8 +27,14 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
     const logLevel = process.env['LOG_LEVEL'] || 'info'
     const prismaLogLevels = DatabaseService.mapLogLevelToPrisma(logLevel)
 
+    // Convert log levels to event emitters for $on support
+    const logConfig = prismaLogLevels.map((level) => ({
+      emit: 'event' as const,
+      level,
+    }))
+
     super({
-      log: prismaLogLevels,
+      log: logConfig,
     })
   }
 
@@ -63,7 +69,7 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
     await this.$connect()
 
     // Enhanced SQL query logging
-    this.$on('query', (e: any) => {
+    ;(this as any).$on('query', (e: any) => {
       const queryType = e.query.split(' ')[0].toUpperCase() as QueryType
       const formattedQuery = this.formatQuery(e.query)
       const parsedParams = this.parseParams(e.params)

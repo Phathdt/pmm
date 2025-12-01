@@ -3,7 +3,12 @@ import { Inject, Injectable, Logger } from '@nestjs/common'
 import { AxiosHeaders, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { v7 as uuidv7 } from 'uuid'
 
-import { REQ_CONFIG_KEY, ReqModuleConfig } from './req.config'
+import { REQ_CONFIG_KEY, type ReqModuleConfig } from './req.config'
+
+// Extend InternalAxiosRequestConfig to include traceId
+interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
+  traceId?: string
+}
 
 @Injectable()
 export class ReqLoggingInterceptor {
@@ -35,7 +40,7 @@ export class ReqLoggingInterceptor {
     this.requestTimes.set(traceId, Date.now())
 
     // Add trace ID to config
-    config['traceId'] = traceId
+    ;(config as ExtendedAxiosRequestConfig).traceId = traceId
 
     // Handle headers properly
     if (!config.headers) {
@@ -62,8 +67,8 @@ export class ReqLoggingInterceptor {
   onResponse(response: AxiosResponse): AxiosResponse {
     if (!this.config.enableLogging) return response
 
-    const traceId = response.config['traceId']
-    const startTime = this.requestTimes.get(traceId)
+    const traceId = (response.config as ExtendedAxiosRequestConfig).traceId
+    const startTime = traceId ? this.requestTimes.get(traceId) : undefined
     const duration = startTime ? Date.now() - startTime : 0
 
     this.logger.log({
@@ -77,7 +82,7 @@ export class ReqLoggingInterceptor {
       body: response.data,
     })
 
-    this.requestTimes.delete(traceId)
+    if (traceId) this.requestTimes.delete(traceId)
 
     // Add traceId to response data if it's an object
     if (typeof response.data === 'object' && response.data !== null) {
@@ -96,7 +101,7 @@ export class ReqLoggingInterceptor {
       message?: string
     }
     const traceId = axiosError.config?.traceId
-    const startTime = this.requestTimes.get(traceId)
+    const startTime = traceId ? this.requestTimes.get(traceId) : undefined
     const duration = startTime ? Date.now() - startTime : 0
 
     this.logger.error({
@@ -109,7 +114,7 @@ export class ReqLoggingInterceptor {
       response: axiosError.response?.data,
     })
 
-    this.requestTimes.delete(traceId)
+    if (traceId) this.requestTimes.delete(traceId)
 
     // Add traceId to error response if it exists
     if (axiosError.response?.data && typeof axiosError.response.data === 'object') {

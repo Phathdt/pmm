@@ -1,10 +1,16 @@
-import { Controller, Get } from '@nestjs/common'
-import { GetCommitmentQuoteDto, GetIndicativeQuoteDto, GetLiquidationQuoteDto, QuoteService } from '@optimex-pmm/quote'
+import { Controller, Get, Inject } from '@nestjs/common'
+import {
+  GetCommitmentQuoteDto,
+  GetIndicativeQuoteDto,
+  GetLiquidationQuoteDto,
+  IQuoteService,
+  QUOTE_SERVICE,
+} from '@optimex-pmm/quote'
 import { TransformedQuery } from '@optimex-pmm/shared'
 
 @Controller()
 export class QuoteController {
-  constructor(private readonly quoteService: QuoteService) {}
+  constructor(@Inject(QUOTE_SERVICE) private readonly quoteService: IQuoteService) {}
 
   @Get('indicative-quote')
   getIndicativeQuote(@TransformedQuery() query: GetIndicativeQuoteDto) {

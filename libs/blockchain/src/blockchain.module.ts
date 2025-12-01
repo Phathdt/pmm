@@ -1,14 +1,26 @@
 import { Module } from '@nestjs/common'
-import { ConfigModule } from '@nestjs/config'
+import { CustomConfigModule } from '@optimex-pmm/custom-config'
+import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
 
-import { NonceManagerService } from './nonce-manager.service'
-import { NonceRefreshScheduler } from './nonce-refresh.scheduler'
-import { TransactionService } from './transaction.service'
+import { NonceManagerService, TransactionService } from './application'
+import { NONCE_MANAGER_SERVICE, NonceRefreshScheduler, TRANSACTION_SERVICE } from './infras'
+
+export const providers = [
+  {
+    provide: NONCE_MANAGER_SERVICE,
+    useClass: NonceManagerService,
+  },
+  {
+    provide: TRANSACTION_SERVICE,
+    useClass: TransactionService,
+  },
+  NonceRefreshScheduler,
+]
 
 @Module({
-  imports: [ConfigModule],
+  imports: [CustomConfigModule, CustomLoggerModule],
   controllers: [],
-  providers: [NonceManagerService, NonceRefreshScheduler, TransactionService],
-  exports: [NonceManagerService, TransactionService],
+  providers: [...providers],
+  exports: [NONCE_MANAGER_SERVICE, TRANSACTION_SERVICE],
 })
 export class BlockchainModule {}

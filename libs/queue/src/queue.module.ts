@@ -1,6 +1,7 @@
 import { RedisModule } from '@nestjs-modules/ioredis'
 import { Module } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
+import { CustomConfigModule, CustomConfigService } from '@optimex-pmm/custom-config'
+import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
 
 import { QueueService } from './application'
 import { QUEUE_SERVICE_TOKEN } from './infras'
@@ -8,13 +9,14 @@ import { QUEUE_SERVICE_TOKEN } from './infras'
 @Module({
   imports: [
     RedisModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
+      imports: [CustomConfigModule],
+      useFactory: (configService: CustomConfigService) => ({
         type: 'single',
-        url: configService.get<string>('REDIS_URL'),
+        url: configService.redis.url,
       }),
-      inject: [ConfigService],
+      inject: [CustomConfigService],
     }),
+    CustomLoggerModule,
   ],
   providers: [
     {

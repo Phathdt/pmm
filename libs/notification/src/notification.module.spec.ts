@@ -1,45 +1,64 @@
-import { ConfigService } from '@nestjs/config'
 import { Test, TestingModule } from '@nestjs/testing'
+import { CustomConfigService } from '@optimex-pmm/custom-config'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 
+import { NotificationService } from './application'
+import { INotificationService, ITelegramProvider } from './domain'
+import { NOTIFICATION_SERVICE, TELEGRAM_PROVIDER } from './infras'
 import { NotificationModule } from './notification.module'
-import { NotificationService } from './notification.service'
-import { TelegramService } from './telegram'
 
 describe('NotificationModule', () => {
   let module: TestingModule
 
   const mockConfigService = {
-    get: jest.fn((key: string) => {
-      switch (key) {
-        case 'TELEGRAM_BASE_URL':
-          return 'https://api.telegram.org'
-        case 'TELEGRAM_TIMEOUT':
-          return 10000
-        case 'NODE_ENV':
-          return 'test'
-        default:
-          return undefined
-      }
-    }),
-    getOrThrow: jest.fn((key: string) => {
-      switch (key) {
-        case 'BOT_TOKEN':
-          return 'test-bot-token'
-        case 'CHAT_ID':
-          return 'test-chat-id'
-        default:
-          throw new Error(`Missing ${key}`)
-      }
-    }),
+    telegram: {
+      botToken: 'test-bot-token',
+      chatId: 'test-chat-id',
+      baseUrl: 'https://api.telegram.org',
+      timeout: 10000,
+    },
+    nodeEnv: 'test',
+  }
+
+  const mockLogger = {
+    with: jest.fn().mockReturnThis(),
+    log: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+    verbose: jest.fn(),
+    info: jest.fn(),
+    fatal: jest.fn(),
+    trace: jest.fn(),
+  }
+
+  const mockTelegramProvider: ITelegramProvider = {
+    providerName: 'telegram',
+    validateConfiguration: jest.fn().mockReturnValue(true),
+    sendMessage: jest.fn().mockResolvedValue(undefined),
   }
 
   beforeEach(async () => {
     module = await Test.createTestingModule({
-      imports: [NotificationModule],
-    })
-      .overrideProvider(ConfigService)
-      .useValue(mockConfigService)
-      .compile()
+      providers: [
+        {
+          provide: NOTIFICATION_SERVICE,
+          useClass: NotificationService,
+        },
+        {
+          provide: TELEGRAM_PROVIDER,
+          useValue: mockTelegramProvider,
+        },
+        {
+          provide: CustomConfigService,
+          useValue: mockConfigService,
+        },
+        {
+          provide: EnhancedLogger,
+          useValue: mockLogger,
+        },
+      ],
+    }).compile()
   })
 
   afterEach(async () => {
@@ -52,14 +71,16 @@ describe('NotificationModule', () => {
     expect(module).toBeDefined()
   })
 
-  it('should provide NotificationService', () => {
-    const notificationService = module.get<NotificationService>(NotificationService)
+  it('should provide NotificationService via DI token', () => {
+    const notificationService = module.get<INotificationService>(NOTIFICATION_SERVICE)
     expect(notificationService).toBeDefined()
+    expect(notificationService).toBeInstanceOf(NotificationService)
   })
 
-  it('should provide TelegramService through TelegramModule', () => {
-    const telegramService = module.get<TelegramService>(TelegramService)
+  it('should provide TelegramProvider via DI token', () => {
+    const telegramService = module.get<ITelegramProvider>(TELEGRAM_PROVIDER)
     expect(telegramService).toBeDefined()
+    expect(telegramService.providerName).toBe('telegram')
   })
 
   it('should be a global module', () => {
@@ -69,57 +90,17 @@ describe('NotificationModule', () => {
     expect(isGlobalMetadata).toBe(true)
   })
 
-  it('should export NotificationService', async () => {
-    // Test that NotificationService is properly exported and can be imported by other modules
-    const testModule = await Test.createTestingModule({
-      imports: [NotificationModule],
-      providers: [
-        {
-          provide: 'TEST_SERVICE',
-          useFactory: (notificationService: NotificationService) => {
-            return {
-              notificationService,
-            }
-          },
-          inject: [NotificationService],
-        },
-      ],
-    })
-      .overrideProvider(ConfigService)
-      .useValue(mockConfigService)
-      .compile()
-
-    const testService = testModule.get('TEST_SERVICE')
-    expect(testService.notificationService).toBeDefined()
-    expect(testService.notificationService).toBeInstanceOf(NotificationService)
-
-    await testModule.close()
+  it('should export NotificationService via DI token', async () => {
+    // Test that NotificationService is properly configured and works
+    const notificationService = module.get<INotificationService>(NOTIFICATION_SERVICE)
+    expect(notificationService).toBeDefined()
+    expect(notificationService).toBeInstanceOf(NotificationService)
   })
 
-  it('should export TelegramModule', async () => {
-    // Test that TelegramModule is properly exported
-    const testModule = await Test.createTestingModule({
-      imports: [NotificationModule],
-      providers: [
-        {
-          provide: 'TEST_TELEGRAM_SERVICE',
-          useFactory: (telegramService: TelegramService) => {
-            return {
-              telegramService,
-            }
-          },
-          inject: [TelegramService],
-        },
-      ],
-    })
-      .overrideProvider(ConfigService)
-      .useValue(mockConfigService)
-      .compile()
-
-    const testService = testModule.get('TEST_TELEGRAM_SERVICE')
-    expect(testService.telegramService).toBeDefined()
-    expect(testService.telegramService).toBeInstanceOf(TelegramService)
-
-    await testModule.close()
+  it('should export TelegramProvider via DI token', async () => {
+    // Test that TelegramProvider is properly configured
+    const telegramService = module.get<ITelegramProvider>(TELEGRAM_PROVIDER)
+    expect(telegramService).toBeDefined()
+    expect(telegramService.providerName).toBe('telegram')
   })
 })

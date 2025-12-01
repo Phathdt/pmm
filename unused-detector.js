@@ -37,7 +37,6 @@ class UnusedDetector {
       'jest.config.js',
       'jest.config.ts',
       'jest.config.json',
-      'nx.json',
       'project.json',
       'workspace.json',
       'tsconfig.json',

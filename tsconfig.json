@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@optimex-pmm/blockchain": ["dist/libs/blockchain/index"],
+      "@optimex-pmm/custom-config": ["dist/libs/custom-config/index"],
+      "@optimex-pmm/custom-logger": ["dist/libs/custom-logger/index"],
+      "@optimex-pmm/database": ["dist/libs/database/index"],
+      "@optimex-pmm/notification": ["dist/libs/notification/index"],
+      "@optimex-pmm/queue": ["dist/libs/queue/index"],
+      "@optimex-pmm/quote": ["dist/libs/quote/index"],
+      "@optimex-pmm/req": ["dist/libs/req/index"],
+      "@optimex-pmm/settlement": ["dist/libs/settlement/index"],
+      "@optimex-pmm/shared": ["dist/libs/shared/index"],
+      "@optimex-pmm/token": ["dist/libs/token/index"],
+      "@optimex-pmm/trade": ["dist/libs/trade/index"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "build", "coverage"]
+}

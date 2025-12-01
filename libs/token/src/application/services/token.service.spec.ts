@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { Test, TestingModule } from '@nestjs/testing'
+import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { Token, tokenService } from '@optimex-xyz/market-maker-sdk'
 
 import { ethers } from 'ethers'
@@ -20,15 +20,15 @@ jest.mock('@optimex-xyz/market-maker-sdk', () => ({
 describe('TokenService', () => {
   let service: TokenService
   let tokenRepository: jest.Mocked<ITokenRepository>
-  let configService: jest.Mocked<ConfigService>
+  let configService: jest.Mocked<CustomConfigService>
 
   // Test configuration values
   const TEST_CONFIG = {
-    MIN_TRADE: '100',
-    SOFT_CAP: '10000',
-    HARD_CAP: '50000',
-    COMMITMENT_BPS: '9000',
-    INDICATIVE_BPS: '9000',
+    min: 100,
+    softCap: 10000,
+    hardCap: 50000,
+    commitmentBps: 9000,
+    indicativeBps: 9000,
   }
 
   // Test token data
@@ -82,19 +82,14 @@ describe('TokenService', () => {
 
     // Create mock config service
     configService = {
-      getOrThrow: jest.fn((key: string, defaultValue?: string) => {
-        if (defaultValue !== undefined && !(key in TEST_CONFIG)) {
-          return defaultValue
-        }
-        return TEST_CONFIG[key as keyof typeof TEST_CONFIG] || defaultValue
-      }),
-    } as any
+      trade: TEST_CONFIG,
+    } as unknown as jest.Mocked<CustomConfigService>
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TokenService,
         { provide: TOKEN_REPOSITORY, useValue: tokenRepository },
-        { provide: ConfigService, useValue: configService },
+        { provide: CustomConfigService, useValue: configService },
       ],
     }).compile()
 
@@ -106,38 +101,33 @@ describe('TokenService', () => {
   })
 
   describe('Constructor & Configuration', () => {
-    it('should load configuration values from ConfigService', () => {
-      // Create a new instance to check config calls
+    it('should load configuration values from CustomConfigService', () => {
+      // Create a new instance to check config access
       const mockConfig = {
-        getOrThrow: jest.fn((key: string, defaultValue?: string) => {
-          if (defaultValue !== undefined && !(key in TEST_CONFIG)) {
-            return defaultValue
-          }
-          return TEST_CONFIG[key as keyof typeof TEST_CONFIG] || defaultValue
-        }),
-      } as any
+        trade: TEST_CONFIG,
+      } as unknown as CustomConfigService
 
-      new TokenService(tokenRepository, mockConfig)
+      const testService = new TokenService(tokenRepository, mockConfig)
 
-      expect(mockConfig.getOrThrow).toHaveBeenCalledWith('MIN_TRADE')
-      expect(mockConfig.getOrThrow).toHaveBeenCalledWith('SOFT_CAP')
-      expect(mockConfig.getOrThrow).toHaveBeenCalledWith('HARD_CAP')
-      expect(mockConfig.getOrThrow).toHaveBeenCalledWith('COMMITMENT_BPS', '9000')
-      expect(mockConfig.getOrThrow).toHaveBeenCalledWith('INDICATIVE_BPS', '9000')
+      expect((testService as any).MIN_TRADE).toBe(TEST_CONFIG.min)
+      expect((testService as any).SOFT_CAP).toBe(TEST_CONFIG.softCap)
+      expect((testService as any).HARD_CAP).toBe(TEST_CONFIG.hardCap)
+      expect((testService as any).COMMITMENT_BPS).toBe(TEST_CONFIG.commitmentBps)
+      expect((testService as any).INDICATIVE_BPS).toBe(TEST_CONFIG.indicativeBps)
     })
 
-    it('should set MIN_TRADE, SOFT_CAP, HARD_CAP from env', () => {
+    it('should set MIN_TRADE, SOFT_CAP, HARD_CAP from config', () => {
       expect((service as any).MIN_TRADE).toBe(100)
       expect((service as any).SOFT_CAP).toBe(10000)
       expect((service as any).HARD_CAP).toBe(50000)
     })
 
-    it('should use default values for COMMITMENT_BPS (9000) and INDICATIVE_BPS (9000)', () => {
+    it('should set COMMITMENT_BPS and INDICATIVE_BPS from config', () => {
       expect((service as any).COMMITMENT_BPS).toBe(9000)
       expect((service as any).INDICATIVE_BPS).toBe(9000)
     })
 
-    it('should convert string config values to numbers', () => {
+    it('should have numeric config values', () => {
       expect(typeof (service as any).MIN_TRADE).toBe('number')
       expect(typeof (service as any).SOFT_CAP).toBe('number')
       expect(typeof (service as any).HARD_CAP).toBe('number')

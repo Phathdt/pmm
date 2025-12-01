@@ -1,29 +1,40 @@
 import KeyvRedis from '@keyv/redis'
 import { CacheModule } from '@nestjs/cache-manager'
 import { Module } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
+import { CustomConfigModule, CustomConfigService } from '@optimex-pmm/custom-config'
 import { TokenModule } from '@optimex-pmm/token'
 import { TradeModule } from '@optimex-pmm/trade'
 
-import { QuoteSessionRepository } from './quote-session.repository'
-import { QuoteService } from './quote.service'
+import { QuoteService } from './application'
+import { QUOTE_SERVICE, QUOTE_SESSION_REPOSITORY, QuoteSessionCacheRepository } from './infras'
+
+export const providers = [
+  {
+    provide: QUOTE_SESSION_REPOSITORY,
+    useClass: QuoteSessionCacheRepository,
+  },
+  {
+    provide: QUOTE_SERVICE,
+    useClass: QuoteService,
+  },
+]
 
 @Module({
   imports: [
     CacheModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => {
+      imports: [CustomConfigModule],
+      useFactory: async (configService: CustomConfigService) => {
         return {
-          ttl: configService.get<number>('QUOTE_SESSION_TIMEOUT') || 24 * 60 * 60 * 1000,
-          stores: [new KeyvRedis(configService.getOrThrow<string>('REDIS_URL'))],
+          ttl: configService.quote.sessionTimeout,
+          stores: [new KeyvRedis(configService.redis.url)],
         }
       },
-      inject: [ConfigService],
+      inject: [CustomConfigService],
     }),
     TokenModule,
     TradeModule,
   ],
-  providers: [QuoteService, QuoteSessionRepository],
-  exports: [QuoteService],
+  providers: [...providers],
+  exports: [QUOTE_SERVICE],
 })
 export class QuoteModule {}

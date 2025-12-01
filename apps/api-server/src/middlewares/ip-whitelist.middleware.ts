@@ -1,5 +1,5 @@
 import { Injectable, Logger, NestMiddleware } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
+import { CustomConfigService } from '@optimex-pmm/custom-config'
 
 import { NextFunction, Request, Response } from 'express'
 
@@ -9,14 +9,11 @@ export class IpWhitelistMiddleware implements NestMiddleware {
   private readonly enabled: boolean
   private readonly logger = new Logger(IpWhitelistMiddleware.name)
 
-  constructor(configService: ConfigService) {
-    const whitelistString = configService.get<string>('IP_WHITELIST', '')
-    this.whitelistedIps = whitelistString
-      .split(',')
-      .map((ip) => ip.trim())
-      .filter((ip) => ip.length > 0)
+  constructor(configService: CustomConfigService) {
+    const whitelistArray = configService.ipWhitelist.list
+    this.whitelistedIps = whitelistArray.map((ip: string) => ip.trim()).filter((ip: string) => ip.length > 0)
 
-    this.enabled = configService.get<string>('ENABLE_IP_WHITELIST', 'false').toLowerCase() === 'true'
+    this.enabled = configService.ipWhitelist.enabled
   }
 
   use(req: Request, res: Response, next: NextFunction) {

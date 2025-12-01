@@ -1,0 +1,58 @@
+host:
+  port: 3000
+
+database:
+  url: replace_me
+
+redis:
+  url: redis://pmm-redis-master.database.svc.cluster.local:6379
+
+log:
+  level: info
+  enable_json_format: true
+
+rpc:
+  optimex_url: https://rpc-bitfi-p00c4t1rul.t.conduit.xyz/74z8H9BUSwCaxzXY1WjzBhvLzWgAJNcv9
+  eth_url: https://ethereum-rpc.publicnode.com
+  eth_sepolia_url: https://thrumming-indulgent-surf.ethereum-sepolia.quiknode.pro/dafc693845a71d0c4f855c943e3577a6f941550a
+  solana_url: https://crimson-black-knowledge.solana-devnet.quiknode.pro/16676d96b4dd00d426242f2eb4979d4918f69f08
+
+pmm:
+  id: optimex-pmm-testnet
+  private_key: replace_me
+  evm:
+    private_key: replace_me
+    address: "0x78Bdc100555672a193359bd3e9CD68F23015A051"
+  btc:
+    private_key: replace_me
+    address: tb1pjat237hutlc4efv4vsd5usw92gm8xxzxxgujpadh90kqv3ac6kgshtjk5d
+    max_fee_rate: 5
+  solana:
+    private_key: replace_me
+    address: BuGWUha7mFXFQYpWtWenMnseL452vLUoYXXVWPZEuK3Q
+
+trade:
+  min: 1
+  max: 300
+  soft_cap: 1900
+  hard_cap: 10000
+  commitment_bps: 9000
+  indicative_bps: 9000
+  only_solana: false
+  min_balance_usd: 1000
+
+quote:
+  session_timeout: 86400000
+
+ip_whitelist:
+  enabled: false
+  list:
+    - 35.247.159.218
+    - 127.0.0.1
+    - "::1"
+
+telegram:
+  bot_token: replace_me
+  chat_id: "-1002461934613"
+  base_url: https://api.telegram.org
+  timeout: 10000

@@ -1,10 +1,22 @@
-export default {
+import type { Config } from 'jest'
+
+const config: Config = {
   displayName: 'custom-logger',
-  preset: '../../jest.preset.js',
   testEnvironment: 'node',
+  rootDir: '.',
+  roots: ['<rootDir>/src'],
+  moduleFileExtensions: ['ts', 'js', 'json'],
   transform: {
-    '^.+\\.[tj]s$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.spec.json' }],
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        tsconfig: '<rootDir>/tsconfig.json',
+      },
+    ],
   },
-  moduleFileExtensions: ['ts', 'js', 'html'],
+  testMatch: ['**/*.spec.ts', '**/*.test.ts'],
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.spec.ts', '!src/index.ts'],
   coverageDirectory: '../../coverage/libs/custom-logger',
 }
+
+export default config

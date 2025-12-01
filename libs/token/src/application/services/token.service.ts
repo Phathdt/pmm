@@ -1,10 +1,10 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
+import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { Token, tokenService } from '@optimex-xyz/market-maker-sdk'
 
 import { ethers } from 'ethers'
 
-import { ITokenRepository, ITokenService, TokenQuoteCalculationData, TokenValidationData } from '../../domain'
+import type { ITokenRepository, ITokenService, TokenQuoteCalculationData, TokenValidationData } from '../../domain'
 import { TOKEN_REPOSITORY } from '../../infras'
 
 @Injectable()
@@ -17,13 +17,13 @@ export class TokenService implements ITokenService {
 
   constructor(
     @Inject(TOKEN_REPOSITORY) private readonly tokenRepository: ITokenRepository,
-    private readonly configService: ConfigService
+    private readonly configService: CustomConfigService
   ) {
-    this.MIN_TRADE = Number(this.configService.getOrThrow<string>('MIN_TRADE'))
-    this.SOFT_CAP = Number(this.configService.getOrThrow<string>('SOFT_CAP'))
-    this.HARD_CAP = Number(this.configService.getOrThrow<string>('HARD_CAP'))
-    this.COMMITMENT_BPS = Number(this.configService.getOrThrow<string>('COMMITMENT_BPS', '9000'))
-    this.INDICATIVE_BPS = Number(this.configService.getOrThrow<string>('INDICATIVE_BPS', '9000'))
+    this.MIN_TRADE = this.configService.trade.min
+    this.SOFT_CAP = this.configService.trade.softCap
+    this.HARD_CAP = this.configService.trade.hardCap
+    this.COMMITMENT_BPS = this.configService.trade.commitmentBps
+    this.INDICATIVE_BPS = this.configService.trade.indicativeBps
   }
 
   /**

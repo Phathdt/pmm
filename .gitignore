@@ -38,12 +38,23 @@ testem.log
 .DS_Store
 Thumbs.db
 
-.nx/cache
-.nx/workspace-data
-/.env
-/repomix-output.txt
+# Turborepo
+.turbo
+
+# Environment
+.env
+.env.*
+!.env.example
+
+config/local.yaml*
+
+# Logs
+logs.txt
+*.log
 
 # claude code agent sessions
 /plans
 .claude_sessions
 .serena/cache
+
+repomix-output*

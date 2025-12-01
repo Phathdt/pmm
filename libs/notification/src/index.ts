@@ -1,5 +1,5 @@
 export * from './notification.module'
-export * from './notification.service'
 
-export * from './interfaces'
-export * from './telegram'
+export * from './application'
+export * from './domain'
+export * from './infras'

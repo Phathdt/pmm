@@ -1,7 +1,7 @@
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 
-import { ITokenPriceProvider, ITokenRepository, PriceProvider } from '../../domain'
+import { PriceProvider, type ITokenPriceProvider, type ITokenRepository } from '../../domain'
 import { normalizeSymbol } from '../../utils'
 import { BinancePriceProvider, CoinGeckoPriceProvider } from '../providers'
 

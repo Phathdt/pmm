@@ -1,0 +1,55 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "daemon": false,
+  "globalDependencies": ["**/.env.*local", ".env"],
+  "tasks": {
+    "@apps/api-server#build": {
+      "dependsOn": ["^build"],
+      "outputs": ["../../dist/apps/api-server/**"],
+      "outputLogs": "errors-only",
+      "env": ["NODE_ENV"]
+    },
+    "@apps/api-server#build:prod": {
+      "dependsOn": ["@apps/api-server#typecheck", "@apps/api-server#build"],
+      "outputs": ["../../dist/apps/api-server/**"],
+      "outputLogs": "errors-only",
+      "env": ["NODE_ENV"]
+    },
+    "build": {
+      "outputs": ["../../dist/**"],
+      "outputLogs": "errors-only",
+      "env": ["NODE_ENV"]
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": [],
+      "env": ["CI", "NODE_ENV"]
+    },
+    "lint": {
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "db:generate": {
+      "cache": false,
+      "outputs": ["node_modules/.prisma/**"]
+    },
+    "db:push": {
+      "cache": false
+    },
+    "db:migrate": {
+      "cache": false
+    },
+    "clean": {
+      "cache": false
+    }
+  },
+  "globalEnv": ["DATABASE_URL", "NODE_ENV", "PORT", "REDIS_URL", "SOLANA_RPC_URL", "ETHEREUM_RPC_URL", "PRIVATE_KEY"]
+}

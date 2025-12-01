@@ -1,11 +1,13 @@
 import { InjectQueue, Process, Processor } from '@nestjs/bull'
-import { Inject, Logger } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
+import { Inject } from '@nestjs/common'
+import { CustomConfigService } from '@optimex-pmm/custom-config'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 import {
+  ITransferFactory,
   l2Decode,
   SETTLEMENT_QUEUE,
   SubmitSettlementEvent,
-  TransferFactory,
+  TRANSFER_FACTORY,
   TransferSettlementEvent,
 } from '@optimex-pmm/settlement'
 import { stringToHex, toObject, toString } from '@optimex-pmm/shared'
@@ -14,8 +16,10 @@ import { ITypes, routerService, tokenService } from '@optimex-xyz/market-maker-s
 
 import { Job, Queue } from 'bull'
 
+import { BaseProcessor } from './base.processor'
+
 @Processor(SETTLEMENT_QUEUE.BTC_TRANSFER.NAME)
-export class BtcTransferSettlementProcessor {
+export class BtcTransferSettlementProcessor extends BaseProcessor {
   private pmmId: string
   private readonly MAX_RETRIES = 60
   private readonly RETRY_DELAY = 60000
@@ -23,142 +27,147 @@ export class BtcTransferSettlementProcessor {
   private routerService = routerService
   private tokenRepo = tokenService
 
-  private readonly logger = new Logger(BtcTransferSettlementProcessor.name)
+  protected readonly logger: EnhancedLogger
 
   constructor(
     @InjectQueue(SETTLEMENT_QUEUE.SUBMIT.NAME) private submitSettlementQueue: Queue,
     @InjectQueue(SETTLEMENT_QUEUE.BTC_TRANSFER.NAME) private transferSettlementQueue: Queue,
     @Inject(TRADE_SERVICE) private tradeService: ITradeService,
-    private configService: ConfigService,
-    private transferFactory: TransferFactory
+    private configService: CustomConfigService,
+    @Inject(TRANSFER_FACTORY) private transferFactory: ITransferFactory,
+    logger: EnhancedLogger
   ) {
-    this.pmmId = stringToHex(this.configService.getOrThrow<string>('PMM_ID'))
+    super()
+    this.logger = logger.with({ context: BtcTransferSettlementProcessor.name })
+    this.pmmId = stringToHex(this.configService.pmm.id)
   }
 
   @Process(SETTLEMENT_QUEUE.BTC_TRANSFER.JOBS.PROCESS)
   async transfer(job: Job<string>) {
-    const { tradeId, retryCount = 0 } = toObject(job.data) as TransferSettlementEvent & { retryCount?: number }
-
-    this.logger.log({
-      message: 'Processing BTC transfer settlement retry',
-      tradeId,
-      retryCount,
-      maxRetries: this.MAX_RETRIES,
-      operation: 'btc_transfer_settlement',
-      timestamp: new Date().toISOString(),
-    })
-
-    try {
-      const pMMSelection = await this.routerService.getPMMSelection(tradeId)
-
-      const { pmmInfo } = pMMSelection
-
-      if (pmmInfo.selectedPMMId !== this.pmmId) {
-        this.logger.error({
-          message: 'Trade does not belong to this PMM',
-          tradeId,
-          pmmId: this.pmmId,
-          operation: 'btc_transfer_settlement',
-          error: 'trade_pmm_mismatch',
-          timestamp: new Date().toISOString(),
-        })
-        return
-      }
-
-      const trade: ITypes.TradeDataStructOutput = await this.routerService.getTradeData(tradeId)
-
-      const tradeDb = await this.tradeService.findTradeById(tradeId)
-
-      if (!tradeDb) {
-        this.logger.error({
-          message: 'Trade not found in database',
-          tradeId,
-          operation: 'btc_transfer_settlement',
-          error: 'trade_not_found',
-          timestamp: new Date().toISOString(),
-        })
-        return
-      }
-
-      // Check if trade deadline has passed
-      const now = Math.floor(Date.now() / 1000)
-      if (tradeDb.tradeDeadline && parseInt(tradeDb.tradeDeadline) < now) {
-        this.logger.error({
-          message: 'Trade has expired',
-          tradeId,
-          tradeDeadline: tradeDb.tradeDeadline,
-          currentTime: now,
-          operation: 'btc_transfer_settlement',
-          error: 'trade_expired',
-          timestamp: new Date().toISOString(),
-        })
-        return
-      }
-
-      const paymentTxId = await this.transferToken(pmmInfo, trade, tradeDb, tradeId)
-
-      const eventData = {
-        tradeId: tradeId,
-        paymentTxId,
-      } as SubmitSettlementEvent
-
-      await this.submitSettlementQueue.add(SETTLEMENT_QUEUE.SUBMIT.JOBS.PROCESS, toString(eventData), {
-        removeOnComplete: {
-          age: 24 * 3600,
-        },
-        removeOnFail: {
-          age: 24 * 3600,
-        },
-      })
+    return this.executeWithTraceId(job, async (job) => {
+      const { tradeId, retryCount = 0 } = toObject(job.data) as TransferSettlementEvent & { retryCount?: number }
 
       this.logger.log({
-        message: 'BTC transfer settlement completed successfully',
+        message: 'Processing BTC transfer settlement retry',
         tradeId,
-        paymentTxId,
+        retryCount,
+        maxRetries: this.MAX_RETRIES,
         operation: 'btc_transfer_settlement',
-        status: 'success',
         timestamp: new Date().toISOString(),
       })
-    } catch (error: unknown) {
-      if (retryCount < this.MAX_RETRIES - 1) {
-        this.logger.warn({
-          message: 'BTC transfer settlement retry scheduled',
+
+      try {
+        const pMMSelection = await this.routerService.getPMMSelection(tradeId)
+
+        const { pmmInfo } = pMMSelection
+
+        if (pmmInfo.selectedPMMId !== this.pmmId) {
+          this.logger.error({
+            message: 'Trade does not belong to this PMM',
+            tradeId,
+            pmmId: this.pmmId,
+            operation: 'btc_transfer_settlement',
+            error: 'trade_pmm_mismatch',
+            timestamp: new Date().toISOString(),
+          })
+          return
+        }
+
+        const trade: ITypes.TradeDataStructOutput = await this.routerService.getTradeData(tradeId)
+
+        const tradeDb = await this.tradeService.findTradeById(tradeId)
+
+        if (!tradeDb) {
+          this.logger.error({
+            message: 'Trade not found in database',
+            tradeId,
+            operation: 'btc_transfer_settlement',
+            error: 'trade_not_found',
+            timestamp: new Date().toISOString(),
+          })
+          return
+        }
+
+        // Check if trade deadline has passed
+        const now = Math.floor(Date.now() / 1000)
+        if (tradeDb.tradeDeadline && parseInt(tradeDb.tradeDeadline) < now) {
+          this.logger.error({
+            message: 'Trade has expired',
+            tradeId,
+            tradeDeadline: tradeDb.tradeDeadline,
+            currentTime: now,
+            operation: 'btc_transfer_settlement',
+            error: 'trade_expired',
+            timestamp: new Date().toISOString(),
+          })
+          return
+        }
+
+        const paymentTxId = await this.transferToken(pmmInfo, trade, tradeDb, tradeId)
+
+        const eventData = {
+          tradeId: tradeId,
+          paymentTxId,
+        } as SubmitSettlementEvent
+
+        await this.submitSettlementQueue.add(SETTLEMENT_QUEUE.SUBMIT.JOBS.PROCESS, toString(eventData), {
+          removeOnComplete: {
+            age: 24 * 3600,
+          },
+          removeOnFail: {
+            age: 24 * 3600,
+          },
+        })
+
+        this.logger.log({
+          message: 'BTC transfer settlement completed successfully',
           tradeId,
-          retryCount: retryCount + 1,
+          paymentTxId,
+          operation: 'btc_transfer_settlement',
+          status: 'success',
+          timestamp: new Date().toISOString(),
+        })
+      } catch (error: unknown) {
+        if (retryCount < this.MAX_RETRIES - 1) {
+          this.logger.warn({
+            message: 'BTC transfer settlement retry scheduled',
+            tradeId,
+            retryCount: retryCount + 1,
+            maxRetries: this.MAX_RETRIES,
+            error: error instanceof Error ? error.message : String(error),
+            operation: 'btc_transfer_settlement',
+            nextRetryDelayMs: this.RETRY_DELAY,
+            timestamp: new Date().toISOString(),
+          })
+
+          await this.transferSettlementQueue.add(
+            SETTLEMENT_QUEUE.BTC_TRANSFER.JOBS.PROCESS,
+            toString({ tradeId, retryCount: retryCount + 1 }),
+            {
+              delay: this.RETRY_DELAY,
+              removeOnComplete: {
+                age: 24 * 3600,
+              },
+              removeOnFail: {
+                age: 24 * 3600,
+              },
+            }
+          )
+          return
+        }
+        this.logger.error({
+          message: 'BTC transfer settlement failed after maximum retries',
+          tradeId,
           maxRetries: this.MAX_RETRIES,
           error: error instanceof Error ? error.message : String(error),
           operation: 'btc_transfer_settlement',
-          nextRetryDelayMs: this.RETRY_DELAY,
+          status: 'failed',
           timestamp: new Date().toISOString(),
         })
 
-        await this.transferSettlementQueue.add(
-          SETTLEMENT_QUEUE.BTC_TRANSFER.JOBS.PROCESS,
-          toString({ tradeId, retryCount: retryCount + 1 }),
-          {
-            delay: this.RETRY_DELAY,
-            removeOnComplete: {
-              age: 24 * 3600,
-            },
-            removeOnFail: {
-              age: 24 * 3600,
-            },
-          }
-        )
-        return
+        throw error
       }
-      this.logger.error({
-        message: 'BTC transfer settlement failed after maximum retries',
-        tradeId,
-        maxRetries: this.MAX_RETRIES,
-        error: error instanceof Error ? error.message : String(error),
-        operation: 'btc_transfer_settlement',
-        status: 'failed',
-        timestamp: new Date().toISOString(),
-      })
-
-      throw error
-    }
+    })
   }
 
   private async transferToken(
@@ -187,7 +196,7 @@ export class BtcTransferSettlementProcessor {
     const toToken = await this.tokenRepo.getToken(networkId, toTokenAddress)
 
     try {
-      const strategy = this.transferFactory.getStrategy(toToken.networkType.toUpperCase(), tradeDb.tradeType)
+      const strategy = this.transferFactory.getStrategy(toToken.networkType.toUpperCase(), tradeDb.tradeType!)
       const transferResult = await strategy.transfer({
         toAddress: toUserAddress,
         amount,

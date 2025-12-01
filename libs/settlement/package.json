@@ -1,0 +1,36 @@
+{
+  "name": "@optimex-pmm/settlement",
+  "version": "1.0.0",
+  "private": true,
+  "main": "../../dist/libs/settlement/index.js",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "rolldown -c",
+    "dev": "rolldown -c --watch",
+    "lint": "eslint src --fix",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@optimex-pmm/blockchain": "*",
+    "@optimex-pmm/notification": "*",
+    "@optimex-pmm/queue": "*",
+    "@optimex-pmm/shared": "*",
+    "@optimex-pmm/token": "*",
+    "@optimex-pmm/trade": "*",
+    "@nestjs/bull": "^11.0.4",
+    "@nestjs/common": "^11.1.9",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.9",
+    "bitcoinjs-lib": "^7.0.0",
+    "bs58": "^6.0.0",
+    "bull": "^4.16.5",
+    "ecpair": "^3.0.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "tiny-secp256k1": "^2.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "~22.19.1",
+    "typescript": "~5.9.3"
+  }
+}

@@ -1,27 +1,32 @@
-import { Module } from '@nestjs/common'
+import { IncomingMessage, ServerResponse } from 'http'
+import { Global, Module } from '@nestjs/common'
+import { CustomConfigModule, CustomConfigService } from '@optimex-pmm/custom-config'
 
+import { ClsModule, ClsService } from 'nestjs-cls'
 import { LoggerModule } from 'nestjs-pino'
-/* eslint-disable @typescript-eslint/no-unused-vars, unused-imports/no-unused-imports */
-// @ts-expect-error - keeping import for future use
-import pretty from 'pino-pretty'
+import { v7 as uuidv7 } from 'uuid'
 
-/* eslint-enable @typescript-eslint/no-unused-vars, unused-imports/no-unused-imports */
+import { EnhancedLogger } from './enhanced-logger.service'
 
-interface ExtendedRequest {
-  traceId?: string
-  userId?: string
-  sessionId?: string
-  headers: Record<string, string | string[] | undefined>
-  socket?: { remoteAddress?: string }
-  connection?: { remoteAddress?: string }
-}
-
+@Global()
 @Module({
   imports: [
-    LoggerModule.forRoot({
-      pinoHttp: {
-        transport:
-          process.env['ENABLE_JSON_LOG'] !== 'false'
+    ClsModule.forRoot({
+      global: true,
+      middleware: {
+        mount: true,
+        generateId: true,
+        idGenerator: (req) => {
+          return (req.headers['x-trace-id'] as string) || uuidv7()
+        },
+      },
+    }),
+    LoggerModule.forRootAsync({
+      imports: [CustomConfigModule],
+      inject: [CustomConfigService, ClsService],
+      useFactory: (configService: CustomConfigService, cls: ClsService) => ({
+        pinoHttp: {
+          transport: configService.log.enableJsonFormat
             ? undefined
             : {
                 target: 'pino-pretty',
@@ -30,48 +35,55 @@ interface ExtendedRequest {
                   colorize: true,
                 },
               },
-        level: ['trace', 'debug', 'info', 'warn', 'error', 'fatal'].includes(process.env['LOG_LEVEL'] || '')
-          ? process.env['LOG_LEVEL'] || ''
-          : 'info',
-        timestamp: () => `,"time":"${new Date().toISOString()}"`,
-        formatters: {
-          level: (label) => {
-            return { level: label }
+          level: ['trace', 'debug', 'info', 'warn', 'error', 'fatal'].includes(configService.log.level)
+            ? configService.log.level
+            : 'info',
+          timestamp: () => `,"time":"${new Date().toISOString()}"`,
+          formatters: {
+            level: (label: string) => {
+              return { level: label }
+            },
+          },
+          serializers: {
+            req: (
+              req: IncomingMessage & {
+                id?: string
+                query?: Record<string, unknown>
+                params?: Record<string, unknown>
+              }
+            ) => ({
+              id: (req as unknown as Record<string, unknown>).id,
+              method: req.method,
+              url: req.url,
+              query: (req as unknown as Record<string, unknown>).query,
+              params: (req as unknown as Record<string, unknown>).params,
+              headers: {
+                host: req.headers.host,
+              },
+              remoteAddress: req.socket?.remoteAddress,
+              remotePort: req.socket?.remotePort,
+            }),
+            res: (res: ServerResponse) => ({
+              statusCode: res.statusCode,
+              headers: res.getHeaders ? res.getHeaders() : {},
+            }),
+          },
+          customProps: (req: IncomingMessage, _res: ServerResponse) => {
+            const traceId = cls.getId() || String((req as unknown as Record<string, unknown>).id || '')
+            const connection = (req as unknown as Record<string, { remoteAddress?: string }>).connection
+            return {
+              traceId,
+              userAgent: req.headers['user-agent'],
+              ip: req.socket?.remoteAddress || connection?.remoteAddress,
+              timestamp: new Date().toISOString(),
+            }
           },
         },
-        serializers: {
-          req: (req) => ({
-            id: req.id,
-            method: req.method,
-            url: req.url,
-            query: req.query,
-            params: req.params,
-            headers: {
-              host: req.headers.host,
-            },
-            remoteAddress: req.remoteAddress,
-            remotePort: req.remotePort,
-          }),
-          res: (res) => ({
-            statusCode: res.statusCode,
-            headers: res.getHeaders ? res.getHeaders() : {},
-          }),
-        },
-        customProps: (req: ExtendedRequest) => {
-          return {
-            traceId: req.traceId,
-            userId: req.userId,
-            sessionId: req.sessionId,
-            userAgent: req.headers['user-agent'],
-            ip: req.socket?.remoteAddress || req.connection?.remoteAddress,
-            timestamp: new Date().toISOString(),
-          }
-        },
-      },
+      }),
     }),
   ],
   controllers: [],
-  providers: [],
-  exports: [],
+  providers: [EnhancedLogger],
+  exports: [EnhancedLogger],
 })
 export class CustomLoggerModule {}

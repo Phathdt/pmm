@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@optimex-pmm/blockchain": ["libs/blockchain/src/index"],
+      "@optimex-pmm/custom-config": ["libs/custom-config/src/index"],
+      "@optimex-pmm/custom-logger": ["libs/custom-logger/src/index"],
+      "@optimex-pmm/database": ["libs/database/src/index"],
+      "@optimex-pmm/notification": ["libs/notification/src/index"],
+      "@optimex-pmm/queue": ["libs/queue/src/index"],
+      "@optimex-pmm/quote": ["libs/quote/src/index"],
+      "@optimex-pmm/req": ["libs/req/src/index"],
+      "@optimex-pmm/settlement": ["libs/settlement/src/index"],
+      "@optimex-pmm/shared": ["libs/shared/src/index"],
+      "@optimex-pmm/token": ["libs/token/src/index"],
+      "@optimex-pmm/trade": ["libs/trade/src/index"]
+    }
+  }
+}

@@ -13,12 +13,19 @@ services:
       POSTGRES_PASSWORD: 123123123
       POSTGRES_DB: bitfi-pmm
 
-  # api-server:
-  #   build:
-  #     dockerfile: ./apps/api-server/Dockerfile
-  #   environment:
-  #     APP_PORT: ${APP_PORT}
-  #     ENABLE_JSON_LOG: 'true'  # Use JSON in containerized environments
-  #     LOG_LEVEL: 'info'
-  #   ports:
-  #     - '3000:3000'
+  api-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - redis-db
+      - postgres-db
+    env_file:
+      - .env
+    environment:
+      DATABASE__URL: postgresql://postgres:123123123@postgres-db:5432/bitfi-pmm
+      REDIS__URL: redis://redis-db:6379
+    volumes:
+      - ./config:/app/config:ro
+    ports:
+      - '3000:3000'

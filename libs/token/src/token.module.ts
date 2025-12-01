@@ -1,7 +1,7 @@
 import KeyvRedis from '@keyv/redis'
 import { CacheModule } from '@nestjs/cache-manager'
 import { Module } from '@nestjs/common'
-import { ConfigModule, ConfigService } from '@nestjs/config'
+import { CustomConfigModule, CustomConfigService } from '@optimex-pmm/custom-config'
 import { ReqModule } from '@optimex-pmm/req'
 
 import { TokenService } from './application'
@@ -30,34 +30,34 @@ export const providers = [
   imports: [
     // CoinGecko API Configuration
     ReqModule.registerAsync({
-      imports: [ConfigModule],
+      imports: [CustomConfigModule],
       useFactory: () => ({
         baseUrl: 'https://api.coingecko.com/api/v3',
         shouldConvertCase: true,
         timeout: 2500, // 2.5s timeout per provider (leave 500ms margin for global 3s timeout)
       }),
-      inject: [ConfigService],
+      inject: [CustomConfigService],
       serviceKey: 'COINGECKO_REQ_SERVICE',
     }),
     // Binance API Configuration
     ReqModule.registerAsync({
-      imports: [ConfigModule],
+      imports: [CustomConfigModule],
       useFactory: () => ({
         baseUrl: 'https://api.binance.com/api/v3',
         shouldConvertCase: false, // Binance uses uppercase, no snake_case conversion needed
         timeout: 2500, // 2.5s timeout per provider (leave 500ms margin for global 3s timeout)
       }),
-      inject: [ConfigService],
+      inject: [CustomConfigService],
       serviceKey: 'BINANCE_REQ_SERVICE',
     }),
     CacheModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => {
+      imports: [CustomConfigModule],
+      useFactory: async (configService: CustomConfigService) => {
         return {
-          stores: [new KeyvRedis(configService.getOrThrow<string>('REDIS_URL'))],
+          stores: [new KeyvRedis(configService.redis.url)],
         }
       },
-      inject: [ConfigService],
+      inject: [CustomConfigService],
     }),
   ],
   providers: [...providers],

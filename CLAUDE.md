@@ -4,217 +4,120 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Optimex PMM (Portfolio Market Maker) is a NestJS-based trading system that implements a multi-phase trade settlement protocol for cross-chain token swaps. The system handles quote discovery, commitment, settlement agreements, PMM selection, and payment execution across different blockchain networks.
+Optimex PMM (Private Market Maker) is a NestJS-based trading settlement system that handles multi-chain cryptocurrency trades. It processes quotes, manages settlements, and executes transfers across EVM chains, Bitcoin, and Solana.
+
+## Common Commands
+
+```bash
+# Development
+yarn dev                    # Start api-server in development mode (uses nodemon)
+yarn build                  # Build all packages via Turbo
+yarn lint                   # Lint all packages
+yarn typecheck              # TypeScript type checking
+yarn format                 # Format code with Prettier
+
+# Testing
+yarn test                   # Run all tests
+yarn test:ci                # Run lib tests with coverage (CI mode)
+yarn turbo run test --filter=@optimex-pmm/trade  # Run tests for a specific lib
+
+# Database
+yarn db:generate            # Generate Prisma client
+yarn db:push                # Push schema changes to database
+yarn db:migrate             # Run migrations in development
+yarn db:migrate:deploy      # Deploy migrations to production
+yarn db:studio              # Open Prisma Studio
+
+# Docker
+docker compose up -d redis-db postgres-db  # Start local databases
+docker compose up api-server               # Run full stack
+```
 
 ## Architecture
 
-### Monorepo Structure
-- **NX Workspace**: Uses NX for build orchestration, testing, and code organization
-- **Single Application**: `apps/api-server` - Main NestJS API server
-- **Modular Libraries**: Domain-specific modules in `libs/` directory
+### Turbo Monorepo Structure
 
-### Core Libraries
-- `blockchain` - Transaction management, nonce handling, blockchain interaction
-- `custom-logger` - Centralized logging with Pino
-- `database` - Prisma database layer
-- `notification` - Event notification system  
-- `quote` - Quote generation and management
-- `settlement` - Trade settlement processing with Bull queues
-- `token` - Token management and validation
-- `trade` - Core trade logic and state management
-- `transfer` - Cross-chain transfer operations
-
-### Technology Stack
-- **Backend**: NestJS with TypeScript
-- **Database**: PostgreSQL with Prisma ORM
-- **Queue System**: Bull/Redis for background job processing
-- **Validation**: Zod schemas with nestjs-zod
-- **Logging**: Pino with nestjs-pino
-- **Blockchain**: Solana Web3.js, Ethereum (ethers), Bitcoin (bitcoinjs-lib)
-- **Monitoring**: Bull Board for queue monitoring at `/queues`
-
-## Development Commands
-
-### Core Operations
-```bash
-# Start development server
-yarn start
-
-# Build the application
-yarn build
-
-# Format code with Prettier
-yarn format
-
-# Type checking
-yarn typecheck
-
-# Lint and fix issues (includes typecheck)
-yarn lint
-
-# Run tests
-yarn test
-yarn test:watch
-yarn test:coverage
-yarn test:ci
+```
+apps/
+  api-server/        # Main NestJS API application
+libs/
+  blockchain/        # EVM nonce management and transaction services
+  custom-config/     # YAML-based configuration with env override support
+  custom-logger/     # Pino-based logging
+  database/          # Prisma database module
+  notification/      # Telegram notifications
+  queue/             # Bull queue abstractions
+  quote/             # Quote generation and session management
+  req/               # HTTP request utilities
+  settlement/        # Multi-chain settlement strategies (EVM, BTC, Solana)
+  shared/            # Common utilities and types
+  token/             # Token configuration and management
+  trade/             # Trade entity with DDD structure (domain/application/infras)
 ```
 
-### Database Operations
-```bash
-# Generate Prisma client
-yarn prisma:generate
+### Key Patterns
 
-# Generate Prisma client in watch mode
-yarn prisma:generate:watch
-
-# Run database migrations (development)
-yarn migrate:dev
-
-# Create migration without applying
-yarn migrate:dev:create
-
-# Reset database with migrations
-yarn migrate:reset
-
-# Deploy migrations to production
-yarn migrate:deploy
-
-# Check migration status
-yarn migrate:status
-
-# Resolve migration issues
-yarn migrate:resolve
-
-# Open Prisma Studio
-yarn prisma:studio
+**Library Imports**: Use `@optimex-pmm/` prefix for library imports:
+```typescript
+import { CustomConfigService } from '@optimex-pmm/custom-config'
+import { TradeModule, TRADE_SERVICE } from '@optimex-pmm/trade'
 ```
 
-### Code Quality & Unused Code Detection
+**DDD in Trade Module**: The `trade` lib follows Domain-Driven Design:
+- `domain/entities/` - Trade entity and value objects
+- `domain/interfaces/` - Repository and service interfaces
+- `domain/schemas/` - Zod validation schemas
+- `application/services/` - Business logic implementation
+- `infras/repositories/` - Prisma repository implementation
+- `infras/di/` - Dependency injection tokens
+
+**Configuration**: YAML files in `/config` (local.yaml, staging.yaml, production.yaml) with environment variable override support using `__` delimiter:
 ```bash
-# Generate barrel exports for all modules
-yarn ctix
+DATABASE__URL=postgresql://...   # Overrides config.database.url
+```
+Set `APP_ENV` to switch configs (local, staging, production).
 
-# Check for unused code (general)
-yarn check:unused
-yarn check:unused:ci
+**Settlement Strategy Pattern**: Multi-chain transfers use strategy pattern:
+- `TransferFactory` selects the appropriate strategy based on network
+- `EVMTransferStrategy`, `BTCTransferStrategy`, `SolanaTransferStrategy`
+- Strategies implement `ITransferStrategy` interface
 
-# Check for unused methods in libs/ (focused detection)
-yarn check:unused-methods
-yarn check:unused-methods:ci
+**Queue Processing**: Bull queues with dedicated processors:
+- `evm_transfer_settlement_queue` - EVM chain transfers
+- `btc_transfer_settlement_queue` - Bitcoin transfers
+- `solana_transfer_settlement_queue` - Solana transfers
+- `submit_settlement_queue` - Settlement submission
+
+### API Flow
+
+The PMM handles a 5-phase trade lifecycle:
+1. **Quote Discovery** - `GET /indicative-quote` returns initial pricing
+2. **Commitment** - `GET /commitment-quote` validates deposit, calculates final quote
+3. **Settlement Agreement** - `GET /settlement-signature` signs settlement terms
+4. **PMM Selection** - `POST /ack-settlement` acknowledges selection
+5. **Payment Execution** - `POST /signal-payment` triggers blockchain transfer
+
+### Blockchain Monitors
+
+Background services that poll for chain-specific events:
+- `EvmMonitorService` - Monitors EVM chain transactions
+- `BtcMonitorService` - Monitors Bitcoin transactions
+- `SolanaMonitorService` - Monitors Solana transactions
+
+## Testing
+
+Tests use Jest with ts-jest. Each lib has its own `jest.config.ts`.
+
+```bash
+# Run single test file
+yarn turbo run test --filter=@optimex-pmm/trade -- path/to/test.spec.ts
+
+# Run with watch mode (in lib directory)
+cd libs/trade && npx jest --watch
 ```
 
-### NX Commands
-```bash
-# Alternative ways to run commands via NX
-nx serve api-server    # Same as yarn start
-nx build api-server    # Same as yarn build
-nx test <lib-name>     # Test specific library
-nx lint <lib-name>     # Lint specific library
-```
+## Database
 
-## Key Architectural Patterns
+PostgreSQL with Prisma ORM. Schema at `/prisma/schema.prisma`.
 
-### Domain-Driven Design
-Each library represents a bounded context with clear responsibilities. Cross-cutting concerns like logging and database access are provided through shared modules.
-
-### Queue-Based Processing
-Settlement operations use Bull queues for reliable background processing:
-- `SETTLEMENT_TRANSFER_QUEUE` - Handles transfer operations
-- `SETTLEMENT_SUBMIT_QUEUE` - Manages transaction submissions
-
-### Database Schema
-The core `Trade` entity tracks the complete trade lifecycle through these states:
-- PENDING → QUOTE_PROVIDED → COMMITTED → SETTLING → COMPLETED
-- Alternative paths: SELECTED, FAILED
-
-### Configuration Management
-Environment-based configuration using NestJS ConfigModule with type-safe access to:
-- Database URLs, Redis connections
-- Blockchain RPC endpoints  
-- Logging levels and monitoring settings
-
-### Application Layer Organization
-The API server follows a structured layered architecture:
-- **Controllers** (`apps/api-server/src/controllers/`) - HTTP endpoints and request handling
-- **Guards** (`apps/api-server/src/guards/`) - Route protection and validation (e.g., TradeExistsGuard)
-- **Middlewares** (`apps/api-server/src/middlewares/`) - Request processing (IP whitelisting)
-- **Monitors** (`apps/api-server/src/monitors/`) - Blockchain monitoring services
-- **Processors** (`apps/api-server/src/processors/`) - Bull queue job processors
-- **Schedulers** (`apps/api-server/src/schedulers/`) - Cron jobs and periodic tasks
-
-### Security & Middleware
-- IP whitelist middleware for quote and settlement endpoints
-- Environment-based secrets management
-- Blockchain transaction security with nonce management
-- TradeExistsGuard for validating trade existence before operations
-
-## Testing Strategy
-
-- **Unit Tests**: Jest with coverage requirements, tests alongside source files with `.spec.ts` suffix
-- **Integration Tests**: Database and queue integration testing
-- **E2E Tests**: Full API endpoint testing (excluded: `apps/api-server-e2e`)
-- **Coverage**: Required for CI/CD pipelines with `yarn test:ci`
-
-## Code Quality & Linting
-
-### ESLint Configuration
-- Uses modern flat config format with NX ESLint plugin
-- **Strict Rules**: `@typescript-eslint/no-explicit-any` is enforced as error
-- **Unused Imports**: Automatically removes unused imports via `eslint-plugin-unused-imports`
-- **Module Boundaries**: NX enforces library dependency constraints
-
-### Unused Code Detection
-- **Automated Detection**: Custom scripts detect unused methods and exports
-- **CI Integration**: Unused code detection runs in CI pipeline with `--exit-code` flag
-- **Focused Analysis**: Separate detectors for general unused code and library method analysis
-- **Architecture-Aware**: Understands NestJS patterns like dependency injection and decorators
-
-### Prettier Configuration
-- **Print Width**: 120 characters
-- **Quotes**: Single quotes, no semicolons
-- **Import Sorting**: Uses `@ianvs/prettier-plugin-sort-imports` with specific order
-
-## Local Development Setup
-
-### Prerequisites
-```bash
-# Start required services
-docker-compose up redis-db postgres-db
-
-# Setup database
-yarn migrate:dev
-yarn prisma:generate
-```
-
-### Monitoring & Debugging
-- **Queue Dashboard**: `http://localhost:3000/queues` (Bull Board)
-- **API Documentation**: `http://localhost:3000/api` (Swagger)
-- **Database GUI**: `yarn prisma:studio`
-- **Structured Logging**: JSON format via Pino
-
-## Trade Flow Implementation
-
-The system implements a 5-phase trade protocol:
-1. **Quote Discovery**: Indicative pricing via `/indicative-quote`
-2. **Commitment**: Deposit validation and final pricing via `/commitment-quote`  
-3. **Settlement Agreement**: Cryptographic settlement signatures via `/settlement-signature`
-4. **PMM Selection**: Acknowledgment of selection status via `/ack-settlement`
-5. **Payment Execution**: Transaction submission and completion via `/signal-payment`
-
-## Library Architecture Principles
-
-### Domain-Driven Design Implementation
-Each library in `libs/` follows a consistent internal structure:
-- **Domain Layer** (`domain/`) - Core business logic, entities, and interfaces
-  - `entities/` - Business entities and enums
-  - `interfaces/` - Repository and service contracts
-  - `schemas/` - Zod validation schemas
-- **Application Layer** (`application/`) - Use cases and application services
-- **Infrastructure Layer** (`infras/`) - External concerns (database, APIs)
-  - `repositories/` - Data access implementations
-  - `di/` - Dependency injection configuration
-
-### Cross-Library Communication
-- Libraries communicate through well-defined interfaces exported in `index.ts`
-- Dependency injection tokens (e.g., `TRADE_SERVICE`, `TRADE_REPOSITORY`) enable loose coupling
-- The application layer aggregates multiple libraries via NestJS modules
+The main entity is `Trade` which tracks the full trade lifecycle with status progression and multi-chain metadata.

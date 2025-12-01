@@ -6,6 +6,7 @@
 import { Logger } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { SnakeToCamelInterceptor } from '@optimex-pmm/shared'
 import { Environment, sdk } from '@optimex-xyz/market-maker-sdk'
 
@@ -13,12 +14,7 @@ import { LoggerErrorInterceptor, Logger as PinoLogger } from 'nestjs-pino'
 import { ZodValidationPipe } from 'nestjs-zod'
 
 import { AppModule } from './app'
-import {
-  ResponseExceptionFilter,
-  ResponseLoggerInterceptor,
-  TraceIdInterceptor,
-  ZodValidationExceptionFilter,
-} from './interceptors'
+import { ResponseExceptionFilter, ResponseLoggerInterceptor, ZodValidationExceptionFilter } from './interceptors'
 
 sdk.setEnvironment(process.env.ENV as Environment)
 
@@ -28,13 +24,16 @@ async function bootstrap() {
     cors: true,
   })
 
+  const configService = app.get(CustomConfigService)
+
   app.useGlobalPipes(new ZodValidationPipe())
 
   app.useGlobalFilters(new ResponseExceptionFilter(), new ZodValidationExceptionFilter())
+  // TraceIdInterceptor and ResponseInterceptor are registered via APP_INTERCEPTOR in app.module.ts
+  // to enable proper dependency injection of ClsService
   app.useGlobalInterceptors(
     new ResponseLoggerInterceptor(),
     new LoggerErrorInterceptor(),
-    new TraceIdInterceptor(),
     new SnakeToCamelInterceptor()
   )
 
@@ -49,9 +48,9 @@ async function bootstrap() {
   const documentFactory = () => SwaggerModule.createDocument(app, config)
   SwaggerModule.setup('api', app, documentFactory)
 
-  const port = process.env.PORT || 3000
+  const port = configService.host.port
   await app.listen(port)
-  Logger.log(`🚀 Application is running on: http://localhost:${port}`)
+  Logger.log(`Application is running on: http://localhost:${port}`)
 }
 
 bootstrap()

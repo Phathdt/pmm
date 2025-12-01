@@ -1,0 +1,57 @@
+host:
+  port: 3000
+
+database:
+  url: replace_me
+
+redis:
+  url: redis://pmm.redis.production.internal:6379
+
+log:
+  level: info
+  enable_json_format: true
+
+rpc:
+  optimex_url: https://rpc.optimex.xyz/HyCMLKAiqNYpeeYd8hhupugKxfZ5NHYxg
+  eth_url: https://ethereum-rpc.publicnode.com
+  eth_sepolia_url: replace_me
+  solana_url: https://crimson-black-knowledge.solana-mainnet.quiknode.pro/16676d96b4dd00d426242f2eb4979d4918f69f08
+
+pmm:
+  id: optimex-pmm
+  private_key: replace_me
+  evm:
+    private_key: replace_me
+    address: replace_me
+  btc:
+    private_key: replace_me
+    address: replace_me
+    max_fee_rate: 5
+  solana:
+    private_key: replace_me
+    address: replace_me
+
+trade:
+  min: 1
+  max: 300
+  soft_cap: 15
+  hard_cap: 100
+  commitment_bps: 9980
+  indicative_bps: 9950
+  only_solana: true
+  min_balance_usd: 500
+
+quote:
+  session_timeout: 86400000
+
+ip_whitelist:
+  enabled: false
+  list:
+    - 127.0.0.1
+    - "::1"
+
+telegram:
+  bot_token: replace_me
+  chat_id: replace_me
+  base_url: https://api.telegram.org
+  timeout: 10000

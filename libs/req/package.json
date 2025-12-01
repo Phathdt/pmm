@@ -1,0 +1,28 @@
+{
+  "name": "@optimex-pmm/req",
+  "version": "1.0.0",
+  "private": true,
+  "main": "../../dist/libs/req/index.js",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "rolldown -c",
+    "dev": "rolldown -c --watch",
+    "lint": "eslint src --fix",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@optimex-pmm/shared": "*",
+    "@nestjs/axios": "^4.0.1",
+    "@nestjs/common": "^11.1.9",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.1.9",
+    "axios": "^1.13.2",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "~22.19.1",
+    "typescript": "~5.9.3"
+  }
+}
