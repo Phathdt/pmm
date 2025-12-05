@@ -6,6 +6,7 @@ import {
   type ITradeRepository,
   type ITradeService,
   type Trade,
+  type UpdateStatusOptions,
   type UpdateTradeQuoteData,
 } from '../../domain'
 import { TRADE_REPOSITORY } from '../../infras'
@@ -30,7 +31,15 @@ export class TradeService implements ITradeService {
     return this.tradeRepository.updateQuote(tradeId, data)
   }
 
-  async updateTradeStatus(tradeId: string, status: TradeStatus, error?: string): Promise<void> {
-    return this.tradeRepository.updateStatus(tradeId, status, error)
+  async updateTradeStatus(tradeId: string, status: TradeStatus, options?: UpdateStatusOptions): Promise<void> {
+    return this.tradeRepository.updateStatus(tradeId, status, options)
+  }
+
+  async findSettlingTrades(): Promise<Trade[]> {
+    return this.tradeRepository.findSettlingTrades()
+  }
+
+  async findBtcLiquidationTrades(): Promise<Trade[]> {
+    return this.tradeRepository.findBtcLiquidationTrades()
   }
 }

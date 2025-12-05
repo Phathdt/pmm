@@ -1,8 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+/**
+ * Check if value is a plain object (not null, undefined, array, or other types)
+ */
+function isPlainObject(value: any): boolean {
+  return value !== null && value !== undefined && value.constructor === Object
+}
+
 export function convertToCamelCase(obj: any): any {
   if (Array.isArray(obj)) {
     return obj.map((v) => convertToCamelCase(v))
-  } else if (obj !== null && obj.constructor === Object) {
+  } else if (isPlainObject(obj)) {
     return Object.keys(obj).reduce(
       (result, key) => ({
         ...result,
@@ -17,7 +25,7 @@ export function convertToCamelCase(obj: any): any {
 export function convertToSnakeCase(obj: any): any {
   if (Array.isArray(obj)) {
     return obj.map((v) => convertToSnakeCase(v))
-  } else if (obj !== null && obj.constructor === Object) {
+  } else if (isPlainObject(obj)) {
     return Object.keys(obj).reduce(
       (result, key) => ({
         ...result,

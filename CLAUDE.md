@@ -131,3 +131,168 @@ cd libs/trade && npx jest --watch
 PostgreSQL with Prisma ORM. Schema at `/prisma/schema.prisma`.
 
 The main entity is `Trade` which tracks the full trade lifecycle with status progression and multi-chain metadata.
+
+## Creating a New Library Module
+
+Follow these steps to create a new library module that integrates with the monorepo:
+
+### Step 1: Create Directory Structure
+
+```bash
+mkdir -p libs/<module-name>/src
+```
+
+### Step 2: Create package.json
+
+Create `libs/<module-name>/package.json`:
+
+```json
+{
+  "name": "@optimex-pmm/<module-name>",
+  "version": "1.0.0",
+  "private": true,
+  "main": "../../dist/libs/<module-name>/index.js",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "rolldown -c",
+    "dev": "rolldown -c --watch",
+    "lint": "eslint src --fix",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.9",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "~22.19.1",
+    "typescript": "~5.9.3"
+  }
+}
+```
+
+### Step 3: Create tsconfig.json
+
+Create `libs/<module-name>/tsconfig.json`:
+
+```json
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/libs/<module-name>",
+    "rootDir": "src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+}
+```
+
+### Step 4: Create rolldown.config.mjs
+
+Create `libs/<module-name>/rolldown.config.mjs`:
+
+```javascript
+import { defineConfig } from 'rolldown'
+
+export default defineConfig({
+  input: 'src/index.ts',
+  output: {
+    dir: '../../dist/libs/<module-name>',
+    format: 'cjs',
+    sourcemap: true,
+    entryFileNames: '[name].js',
+  },
+  external: [/^@/, /^[a-z]/],
+  tsconfig: '../../tsconfig.json',
+})
+```
+
+### Step 5: Create jest.config.ts (optional, for testing)
+
+Create `libs/<module-name>/jest.config.ts`:
+
+```typescript
+import type { Config } from 'jest'
+
+const config: Config = {
+  displayName: '<module-name>',
+  testEnvironment: 'node',
+  rootDir: '.',
+  roots: ['<rootDir>/src'],
+  moduleFileExtensions: ['ts', 'js', 'json'],
+  transform: {
+    '^.+\\.ts$': [
+      'ts-jest',
+      {
+        tsconfig: '<rootDir>/tsconfig.json',
+      },
+    ],
+  },
+  testMatch: ['**/*.spec.ts', '**/*.test.ts'],
+  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.spec.ts', '!src/index.ts'],
+  coverageDirectory: '../../coverage/libs/<module-name>',
+}
+
+export default config
+```
+
+### Step 6: Create Source Files
+
+Create `libs/<module-name>/src/index.ts` to export your module:
+
+```typescript
+export * from './<module-name>.module'
+export * from './<module-name>.service'
+// Export other files as needed
+```
+
+### Step 7: Update Dockerfile
+
+Add the package.json COPY command in `Dockerfile` (around line 13-27):
+
+```dockerfile
+COPY libs/<module-name>/package.json ./libs/<module-name>/
+```
+
+### Step 8: Sync Dependencies
+
+Run the dependency sync script to detect and add dependencies:
+
+```bash
+yarn sync:deps --module <module-name>
+```
+
+### Step 9: Add to Consumer Package
+
+If the module is used by `api-server` or other apps/libs, add it to their `package.json`:
+
+```json
+{
+  "dependencies": {
+    "@optimex-pmm/<module-name>": "*"
+  }
+}
+```
+
+Or run `yarn sync:deps` to auto-detect imports:
+
+```bash
+yarn sync:deps --module api-server
+```
+
+### Step 10: Install Dependencies and Build
+
+```bash
+yarn install
+yarn build:prod
+```
+
+### Verification Checklist
+
+- [ ] `libs/<module-name>/package.json` exists with correct name `@optimex-pmm/<module-name>`
+- [ ] `libs/<module-name>/tsconfig.json` extends root tsconfig
+- [ ] `libs/<module-name>/rolldown.config.mjs` outputs to correct dist path
+- [ ] `libs/<module-name>/src/index.ts` exports module contents
+- [ ] `Dockerfile` includes COPY for the new package.json
+- [ ] Consumer packages have the dependency in their package.json
+- [ ] `yarn build:prod` builds successfully with the new module in `dist/libs/<module-name>/`

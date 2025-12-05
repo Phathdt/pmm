@@ -11,16 +11,18 @@
     "test": "jest --passWithNoTests"
   },
   "dependencies": {
+    "@optimex-pmm/custom-config": "*",
+    "@optimex-pmm/custom-logger": "*",
     "@optimex-pmm/shared": "*",
-    "@nestjs/bull": "^11.0.4",
+    "@nestjs-modules/ioredis": "^2.0.2",
     "@nestjs/common": "^11.1.9",
     "@nestjs/core": "^11.1.9",
-    "bull": "^4.16.5",
+    "ioredis": "^5.8.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@types/node": "~22.19.1",
+    "@types/node": "~24.10.1",
     "typescript": "~5.9.3"
   }
 }

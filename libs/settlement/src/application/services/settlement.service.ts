@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common'
+import { deriveP2TRAddress } from '@optimex-pmm/bitcoin'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { QueueService } from '@optimex-pmm/queue'
 import { isSameAddress, stringToHex } from '@optimex-pmm/shared'
@@ -49,7 +50,7 @@ export class SettlementService implements ISettlementService {
     const pmmPrivateKey = this.configService.pmm.privateKey
 
     this.EVM_ADDRESS = this.configService.pmm.evm.address
-    this.BTC_ADDRESS = this.configService.pmm.btc.address
+    this.BTC_ADDRESS = deriveP2TRAddress({ privateKeyWIF: this.configService.pmm.btc.privateKey }).address
     this.PMM_SOLANA_ADDRESS = this.configService.pmm.solana.address
 
     this.pmmId = stringToHex(this.configService.pmm.id)
@@ -123,7 +124,7 @@ export class SettlementService implements ISettlementService {
     await this.tradeService.updateTradeStatus(
       dto.tradeId,
       newStatus,
-      dto.chosen ? undefined : 'PMM not chosen for settlement'
+      dto.chosen ? undefined : { error: 'PMM not chosen for settlement' }
     )
 
     return {

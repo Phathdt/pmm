@@ -1,69 +1,25 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Inject, Injectable } from '@nestjs/common'
+import { BITCOIN_SERVICE, deriveP2TRAddress, IBitcoinService } from '@optimex-pmm/bitcoin'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 import { INotificationService, NOTIFICATION_SERVICE } from '@optimex-pmm/notification'
-import { BTC, BTC_TESTNET } from '@optimex-pmm/shared'
-import { getTradeIdsHash, Token } from '@optimex-xyz/market-maker-sdk'
-
-import axios from 'axios'
-import * as bitcoin from 'bitcoinjs-lib'
-import { ECPairFactory } from 'ecpair'
-import * as ecc from 'tiny-secp256k1'
+import { getTradeIdsHash } from '@optimex-xyz/market-maker-sdk'
 
 import { ITransferStrategy, TransferParams, TransferResult } from '../../../domain'
-
-const BLOCKSTREAM_MAINNET_API = 'https://blockstream.info/api'
-const BLOCKSTREAM_TESTNET_API = 'https://blockstream.info/testnet4/api'
-const MEMPOOL_MAINNET_API = 'https://mempool.space/api'
-const MEMPOOL_TESTNET_API = 'https://mempool.space/testnet4/api'
-
-interface UTXO {
-  txid: string
-  vout: number
-  value: number
-  status: {
-    confirmed: boolean
-    block_height: number
-    block_hash: string
-    block_time: number
-  }
-}
 
 @Injectable()
 export class BTCTransferStrategy implements ITransferStrategy {
   private readonly logger: EnhancedLogger
-  private readonly privateKey: string
   private readonly btcAddress: string
-  private readonly ECPair = ECPairFactory(ecc)
-  private maxFeeRate: number
-  private readonly TIMEOUT = 5000 // 5 seconds
-
-  private readonly networkMap = new Map<string, bitcoin.Network>([
-    [BTC_TESTNET, bitcoin.networks.testnet],
-    [BTC, bitcoin.networks.bitcoin],
-  ])
-
-  private readonly blockstreamApiMap = new Map<bitcoin.Network, string>([
-    [bitcoin.networks.bitcoin, BLOCKSTREAM_MAINNET_API],
-    [bitcoin.networks.testnet, BLOCKSTREAM_TESTNET_API],
-  ])
-
-  private readonly mempoolApiMap = new Map<bitcoin.Network, string>([
-    [bitcoin.networks.bitcoin, MEMPOOL_MAINNET_API],
-    [bitcoin.networks.testnet, MEMPOOL_TESTNET_API],
-  ])
 
   constructor(
+    @Inject(BITCOIN_SERVICE) private readonly bitcoinService: IBitcoinService,
     private configService: CustomConfigService,
     @Inject(NOTIFICATION_SERVICE) private readonly notificationService: INotificationService,
     logger: EnhancedLogger
   ) {
     this.logger = logger.with({ context: BTCTransferStrategy.name })
-    this.maxFeeRate = this.configService.pmm.btc.maxFeeRate
-    this.privateKey = this.configService.pmm.btc.privateKey
-    this.btcAddress = this.configService.pmm.btc.address
-    bitcoin.initEccLib(ecc)
+    this.btcAddress = deriveP2TRAddress({ privateKeyWIF: this.configService.pmm.btc.privateKey }).address
   }
 
   async transfer(params: TransferParams): Promise<TransferResult> {
@@ -83,26 +39,35 @@ export class BTCTransferStrategy implements ITransferStrategy {
       })
 
       // Check balance before proceeding
-      const hasSufficientBalance = await this.checkBalance(amount, token.networkId)
+      const hasSufficientBalance = await this.checkBalance(amount)
       if (!hasSufficientBalance) {
         throw new Error('Insufficient balance for transfer')
       }
 
-      const txId = await this.sendBTC(this.privateKey, toAddress, amount, token.networkId, token, [tradeId])
+      // Generate OP_RETURN data from tradeId hash (without 0x prefix)
+      const tradeIdsHash = getTradeIdsHash([tradeId])
+      const opReturnData = tradeIdsHash.slice(2) // Remove 0x prefix
+
+      const result = await this.bitcoinService.sendBtc({
+        toAddress,
+        amount: amount,
+        opReturnData,
+      })
 
       this.logger.log({
         message: 'BTC transfer completed successfully',
         tradeId,
-        txId,
+        txId: result.txId,
         toAddress,
         amount: amount.toString(),
+        feeSats: result.feeSats.toString(),
         networkId: token.networkId,
         operation: 'btc_transfer',
         status: 'success',
         timestamp: new Date().toISOString(),
       })
 
-      return { hash: txId }
+      return { hash: result.txId }
     } catch (error: unknown) {
       this.logger.error({
         message: 'BTC transfer failed',
@@ -119,488 +84,40 @@ export class BTCTransferStrategy implements ITransferStrategy {
     }
   }
 
-  private createPayment(publicKey: Uint8Array, network: bitcoin.Network) {
-    const p2tr = bitcoin.payments.p2tr({
-      internalPubkey: Buffer.from(publicKey.slice(1, 33)),
-      network,
-    })
-
-    return {
-      payment: p2tr,
-      keypair: this.ECPair.fromWIF(this.privateKey, network),
-    }
-  }
-
-  private calculateTxSize(inputCount: number, outputCount: number): number {
-    const baseTxSize = 10 // version, locktime, etc.
-    const inputSize = 107 // outpoint (41) + sequence (1) + witness (65)
-    const p2trOutputSize = 42 // value (8) + script (34)
-    const opReturnOutputSize = 41 // value (8) + OP_RETURN (1) + data (32)
-
-    return baseTxSize + inputSize * inputCount + p2trOutputSize * outputCount + opReturnOutputSize
-  }
-
-  private async sendBTC(
-    privateKey: string,
-    toAddress: string,
-    amountInSatoshis: bigint,
-    networkId: string,
-    token: Token,
-    tradeIds: string[]
-  ): Promise<string> {
-    const network = this.getNetwork(networkId)
-
-    const keyPair = this.ECPair.fromWIF(privateKey, network)
-    const { payment, keypair } = this.createPayment(keyPair.publicKey, network)
-
-    if (!payment.address) {
-      throw new Error('Could not generate address')
-    }
-
+  private async checkBalance(amount: bigint): Promise<boolean> {
     this.logger.log({
-      message: 'BTC sender address configured',
-      senderAddress: this.btcAddress,
-      networkSymbol: token.networkSymbol,
-      operation: 'btc_send_setup',
+      message: 'Checking BTC balance',
+      address: this.btcAddress,
+      requiredAmount: amount.toString(),
+      operation: 'btc_check_balance',
       timestamp: new Date().toISOString(),
     })
-
-    const utxos = await this.getUTXOs(this.btcAddress, networkId)
-    if (utxos.length === 0) {
-      throw new Error(`No UTXOs found in ${token.networkSymbol} wallet`)
-    }
-
-    const psbt = new bitcoin.Psbt({ network })
-    let totalInput = 0n
-
-    for (const utxo of utxos) {
-      if (!payment.output) {
-        throw new Error('Could not generate output script')
-      }
-
-      const internalKey = Buffer.from(keypair.publicKey.slice(1, 33))
-
-      psbt.addInput({
-        hash: utxo.txid,
-        index: utxo.vout,
-        witnessUtxo: {
-          script: payment.output,
-          value: BigInt(utxo.value),
-        },
-        tapInternalKey: internalKey,
-      })
-
-      totalInput += BigInt(utxo.value)
-    }
-
-    this.logger.log({
-      message: 'BTC total input calculated',
-      totalInput: totalInput.toString(),
-      tokenSymbol: token.tokenSymbol,
-      operation: 'btc_send_setup',
-      timestamp: new Date().toISOString(),
-    })
-
-    if (totalInput < amountInSatoshis) {
-      throw new Error(
-        `Insufficient balance in ${token.networkSymbol} wallet. ` +
-          `Need ${amountInSatoshis} satoshis, but only have ${totalInput} satoshis`
-      )
-    }
-
-    const feeRate = await this.getFeeRate(networkId)
-    this.logger.log({
-      message: 'BTC fee rate determined',
-      feeRate,
-      operation: 'btc_send_setup',
-      timestamp: new Date().toISOString(),
-    })
-
-    const txSize = this.calculateTxSize(utxos.length, amountInSatoshis > 546n ? 2 : 1)
-    const fee = BigInt(Math.ceil(txSize * feeRate))
-    const changeAmount = totalInput - amountInSatoshis - fee
-
-    this.logger.log({
-      message: 'BTC transaction size calculated',
-      txSize: txSize.toString(),
-      operation: 'btc_send_setup',
-      timestamp: new Date().toISOString(),
-    })
-    this.logger.log({
-      message: 'BTC network fee calculated',
-      networkFee: fee.toString(),
-      operation: 'btc_send_setup',
-      timestamp: new Date().toISOString(),
-    })
-    this.logger.log({
-      message: 'BTC transaction amounts calculated',
-      amountToSend: amountInSatoshis.toString(),
-      changeAmount: changeAmount.toString(),
-      unit: 'satoshis',
-      operation: 'btc_send_setup',
-      timestamp: new Date().toISOString(),
-    })
-
-    psbt.addOutput({
-      address: toAddress,
-      value: amountInSatoshis,
-    })
-
-    if (changeAmount > 546n) {
-      psbt.addOutput({
-        address: this.btcAddress,
-        value: changeAmount,
-      })
-    }
-
-    const tradeIdsHash = getTradeIdsHash(tradeIds)
-
-    psbt.addOutput({
-      script: bitcoin.script.compile([bitcoin.opcodes['OP_RETURN'], Buffer.from(tradeIdsHash.slice(2), 'hex')]),
-      value: 0n,
-    })
-
-    const toXOnly = (pubKey: Uint8Array) => (pubKey.length === 32 ? pubKey : pubKey.slice(1, 33))
-    const tweakedSigner = keyPair.tweak(bitcoin.crypto.taggedHash('TapTweak', toXOnly(keyPair.publicKey)))
-
-    for (let i = 0; i < psbt.data.inputs.length; i++) {
-      psbt.signInput(i, tweakedSigner, [bitcoin.Transaction.SIGHASH_DEFAULT])
-      this.logger.log({
-        message: 'BTC input signed successfully',
-        inputIndex: i,
-        operation: 'btc_send_signing',
-        timestamp: new Date().toISOString(),
-      })
-    }
-
-    psbt.finalizeAllInputs()
-    this.logger.log({
-      message: 'All BTC inputs finalized',
-      operation: 'btc_send_signing',
-      timestamp: new Date().toISOString(),
-    })
-
-    const tx = psbt.extractTransaction()
-    const rawTx = tx.toHex()
-
-    return this.broadcastTransaction(networkId, rawTx)
-  }
-
-  private getApiUrls(network: bitcoin.Network): { blockstream: string; mempool: string } {
-    return {
-      blockstream: this.blockstreamApiMap.get(network) || BLOCKSTREAM_MAINNET_API,
-      mempool: this.mempoolApiMap.get(network) || MEMPOOL_MAINNET_API,
-    }
-  }
-
-  private async getUTXOs(address: string, networkId: string): Promise<UTXO[]> {
-    const network = this.getNetwork(networkId)
-    const { blockstream, mempool } = this.getApiUrls(network)
-
-    const getUTXOsFromBlockstream = async (): Promise<UTXO[]> => {
-      const response = await axios.get<UTXO[]>(`${blockstream}/address/${address}/utxo`, {
-        timeout: this.TIMEOUT,
-        timeoutErrorMessage: 'Blockstream UTXO fetch timeout',
-      })
-      this.logger.log({
-        message: 'UTXOs fetched successfully',
-        source: 'Blockstream',
-        operation: 'btc_fetch_utxos',
-        timestamp: new Date().toISOString(),
-      })
-      return response.data
-    }
-
-    const getUTXOsFromMempool = async (): Promise<UTXO[]> => {
-      const response = await axios.get<UTXO[]>(`${mempool}/address/${address}/utxo`, {
-        timeout: this.TIMEOUT,
-        timeoutErrorMessage: 'Mempool UTXO fetch timeout',
-      })
-      this.logger.log({
-        message: 'UTXOs fetched successfully',
-        source: 'Mempool',
-        operation: 'btc_fetch_utxos',
-        timestamp: new Date().toISOString(),
-      })
-      return response.data
-    }
-
-    const maxRetries = 3
-    const sleepTime = 5000
-
-    for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
-      try {
-        this.logger.log({
-          message: 'Attempting to fetch UTXOs',
-          attemptNumber: retryCount,
-          maxRetries,
-          operation: 'btc_fetch_utxos',
-          timestamp: new Date().toISOString(),
-        })
-
-        return await Promise.any([getUTXOsFromMempool(), getUTXOsFromBlockstream()])
-      } catch (error: unknown) {
-        this.logger.error({
-          message: 'Error fetching UTXOs',
-          error: error instanceof Error ? error.message : String(error),
-          attemptNumber: retryCount,
-          maxRetries,
-          operation: 'btc_fetch_utxos',
-          timestamp: new Date().toISOString(),
-        })
-
-        if (retryCount === maxRetries) {
-          throw new Error('Failed to fetch UTXOs from both services')
-        }
-
-        this.logger.log({
-          message: 'Retrying UTXO fetch',
-          retryDelaySeconds: sleepTime / 1000,
-          operation: 'btc_fetch_utxos',
-          timestamp: new Date().toISOString(),
-        })
-        await new Promise((resolve) => setTimeout(resolve, sleepTime))
-      }
-    }
-
-    throw new Error('Failed to fetch UTXOs after max retries')
-  }
-
-  private async getFeeRate(networkId: string): Promise<number> {
-    const network = this.getNetwork(networkId)
-    const { blockstream, mempool } = this.getApiUrls(network)
-
-    const getLowestFeeRate = (feeEstimates: { [key: string]: number }): number => {
-      const blockTargets = Object.keys(feeEstimates)
-        .map(Number)
-        .filter((target) => !isNaN(target))
-        .sort((a, b) => a - b)
-
-      if (blockTargets.length === 0) {
-        return this.maxFeeRate
-      }
-
-      const lowestTarget = blockTargets[0]
-      return feeEstimates[lowestTarget] * 1.125
-    }
-
-    const getFeeFromMempool = async (): Promise<number> => {
-      const response = await axios.get<{ [key: string]: number }>(`${mempool}/fee-estimates`, {
-        timeout: this.TIMEOUT,
-        timeoutErrorMessage: 'Mempool fee rate fetch timeout',
-      })
-      this.logger.log({
-        message: 'Fee rate fetched successfully',
-        source: 'Mempool',
-        operation: 'btc_fetch_fee_rate',
-        timestamp: new Date().toISOString(),
-      })
-      return getLowestFeeRate(response.data)
-    }
-
-    const getFeeFromBlockstream = async (): Promise<number> => {
-      const response = await axios.get<{ [key: string]: number }>(`${blockstream}/fee-estimates`, {
-        timeout: this.TIMEOUT,
-        timeoutErrorMessage: 'Blockstream fee rate fetch timeout',
-      })
-      this.logger.log({
-        message: 'Fee rate fetched successfully',
-        source: 'Blockstream',
-        operation: 'btc_fetch_fee_rate',
-        timestamp: new Date().toISOString(),
-      })
-      return getLowestFeeRate(response.data)
-    }
-
-    const maxRetries = 3
-    const sleepTime = 5000
-
-    for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
-      try {
-        this.logger.log({
-          message: 'Attempting to fetch fee rate',
-          attemptNumber: retryCount,
-          maxRetries,
-          operation: 'btc_fetch_fee_rate',
-          timestamp: new Date().toISOString(),
-        })
-
-        const feeRate = await Promise.any([getFeeFromMempool(), getFeeFromBlockstream()])
-
-        return Math.min(feeRate, this.maxFeeRate)
-      } catch (error: unknown) {
-        this.logger.error({
-          message: 'Error fetching fee rate',
-          error: error instanceof Error ? error.message : String(error),
-          attemptNumber: retryCount,
-          maxRetries,
-          operation: 'btc_fetch_fee_rate',
-          timestamp: new Date().toISOString(),
-        })
-
-        if (retryCount === maxRetries) {
-          this.logger.warn({
-            message: 'Max retries reached for fee rate fetch',
-            fallbackFeeRate: this.maxFeeRate,
-            operation: 'btc_fetch_fee_rate',
-            timestamp: new Date().toISOString(),
-          })
-          return this.maxFeeRate
-        }
-
-        this.logger.log({
-          message: 'Retrying fee rate fetch',
-          retryDelaySeconds: sleepTime / 1000,
-          operation: 'btc_fetch_fee_rate',
-          timestamp: new Date().toISOString(),
-        })
-        await new Promise((resolve) => setTimeout(resolve, sleepTime))
-      }
-    }
-
-    return this.maxFeeRate
-  }
-
-  private getNetwork(networkId: string): bitcoin.Network {
-    const network = this.networkMap.get(networkId)
-    if (!network) {
-      throw new Error(`Unsupported network: ${networkId}`)
-    }
-    return network
-  }
-
-  private async broadcastTransaction(networkId: string, rawTx: string): Promise<string> {
-    const network = this.getNetwork(networkId)
-    const { blockstream, mempool } = this.getApiUrls(network)
-
-    const broadcastToMempool = async (): Promise<string> => {
-      const response = await axios.post(`${mempool}/tx`, rawTx, {
-        headers: {
-          'Content-Type': 'text/plain',
-        },
-        timeout: this.TIMEOUT,
-        timeoutErrorMessage: 'Mempool transaction broadcast timeout',
-      })
-      this.logger.log({
-        message: 'Transaction broadcasted successfully',
-        source: 'Mempool',
-        operation: 'btc_broadcast_transaction',
-        timestamp: new Date().toISOString(),
-      })
-      return response.data
-    }
-
-    const broadcastToBlockstream = async (): Promise<string> => {
-      const response = await axios.post(`${blockstream}/tx`, rawTx, {
-        headers: {
-          'Content-Type': 'text/plain',
-        },
-        timeout: this.TIMEOUT,
-        timeoutErrorMessage: 'Blockstream transaction broadcast timeout',
-      })
-      this.logger.log({
-        message: 'Transaction broadcasted successfully',
-        source: 'Blockstream',
-        operation: 'btc_broadcast_transaction',
-        timestamp: new Date().toISOString(),
-      })
-      return response.data
-    }
 
     try {
-      return await Promise.any([broadcastToMempool(), broadcastToBlockstream()])
-    } catch {
-      throw new Error('Failed to broadcast transaction through both services')
-    }
-  }
+      const balance = await this.bitcoinService.getBalance(this.btcAddress)
 
-  private async checkBalance(amount: bigint, networkId: string): Promise<boolean> {
-    const maxRetries = 3
-    const sleepTime = 5000
-
-    const network = this.getNetwork(networkId)
-    const { blockstream, mempool } = this.getApiUrls(network)
-
-    const getBalanceFromBlockstream = async (): Promise<bigint> => {
-      const response = await axios.get(`${blockstream}/address/${this.btcAddress}/utxo`, {
-        timeout: this.TIMEOUT,
-        timeoutErrorMessage: 'Blockstream balance fetch timeout',
-      })
       this.logger.log({
-        message: 'Balance fetched successfully',
-        source: 'Blockstream',
+        message: 'Balance check completed',
+        balance: balance.toString(),
+        requiredAmount: amount.toString(),
         operation: 'btc_check_balance',
         timestamp: new Date().toISOString(),
       })
-      if (response?.data) {
-        return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
-      }
-      return 0n
-    }
 
-    const getBalanceFromMempool = async (): Promise<bigint> => {
-      const response = await axios.get(`${mempool}/address/${this.btcAddress}/utxo`, {
-        timeout: this.TIMEOUT,
-        timeoutErrorMessage: 'Mempool balance fetch timeout',
-      })
-      this.logger.log({
-        message: 'Balance fetched successfully',
-        source: 'Mempool',
+      if (balance < amount) {
+        const message = `⚠️ Insufficient BTC Balance Alert\n\nRequired: ${amount.toString()} satoshis\nAvailable: ${balance.toString()} satoshis\nAddress: ${this.btcAddress}`
+        await this.notificationService.sendTelegramMessage(message)
+        return false
+      }
+      return true
+    } catch (error: unknown) {
+      this.logger.error({
+        message: 'Error checking BTC balance',
+        error: error instanceof Error ? error.message : String(error),
         operation: 'btc_check_balance',
         timestamp: new Date().toISOString(),
       })
-      if (response?.data) {
-        return response.data.reduce((sum: bigint, utxo: any) => sum + BigInt(utxo.value), 0n)
-      }
-      return 0n
+      return false
     }
-
-    for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
-      try {
-        this.logger.log({
-          message: 'Attempting to check BTC balance',
-          attemptNumber: retryCount,
-          maxRetries,
-          operation: 'btc_check_balance',
-          timestamp: new Date().toISOString(),
-        })
-
-        const balance = await Promise.any([getBalanceFromMempool(), getBalanceFromBlockstream()])
-
-        if (balance < amount) {
-          const message = `⚠️ Insufficient BTC Balance Alert\n\nRequired: ${amount.toString()} satoshis\nAvailable: ${balance.toString()} satoshis\nAddress: ${this.btcAddress}`
-          await this.notificationService.sendTelegramMessage(message)
-          return false
-        }
-        return true
-      } catch (error: unknown) {
-        this.logger.error({
-          message: 'Error checking BTC balance',
-          error: error instanceof Error ? error.message : String(error),
-          attemptNumber: retryCount,
-          maxRetries,
-          operation: 'btc_check_balance',
-          timestamp: new Date().toISOString(),
-        })
-
-        if (retryCount === maxRetries) {
-          this.logger.error({
-            message: 'Max retries reached for BTC balance check',
-            operation: 'btc_check_balance',
-            timestamp: new Date().toISOString(),
-          })
-          return false
-        }
-
-        this.logger.log({
-          message: 'Retrying BTC balance check',
-          retryDelaySeconds: sleepTime / 1000,
-          operation: 'btc_check_balance',
-          timestamp: new Date().toISOString(),
-        })
-        await new Promise((resolve) => setTimeout(resolve, sleepTime))
-      }
-    }
-    return false
   }
 }

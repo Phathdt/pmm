@@ -1,0 +1,6 @@
+// Repository
+export const REBALANCING_REPOSITORY = Symbol('REBALANCING_REPOSITORY')
+
+// Services
+export const REBALANCING_SERVICE = Symbol('REBALANCING_SERVICE')
+export const SLIPPAGE_SERVICE = Symbol('SLIPPAGE_SERVICE')

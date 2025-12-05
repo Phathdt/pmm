@@ -10,13 +10,16 @@ RUN apk update && apk add --no-cache gcc musl-dev git
 # Copy package files for dependency installation
 COPY package.json yarn.lock ./
 COPY apps/api-server/package.json ./apps/api-server/
+COPY libs/bitcoin/package.json ./libs/bitcoin/
 COPY libs/blockchain/package.json ./libs/blockchain/
 COPY libs/custom-config/package.json ./libs/custom-config/
 COPY libs/custom-logger/package.json ./libs/custom-logger/
 COPY libs/database/package.json ./libs/database/
+COPY libs/near/package.json ./libs/near/
 COPY libs/notification/package.json ./libs/notification/
 COPY libs/queue/package.json ./libs/queue/
 COPY libs/quote/package.json ./libs/quote/
+COPY libs/rebalance/package.json ./libs/rebalance/
 COPY libs/req/package.json ./libs/req/
 COPY libs/settlement/package.json ./libs/settlement/
 COPY libs/shared/package.json ./libs/shared/

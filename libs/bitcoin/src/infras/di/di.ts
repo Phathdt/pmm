@@ -1,0 +1,1 @@
+export const BITCOIN_SERVICE = Symbol('BITCOIN_SERVICE')

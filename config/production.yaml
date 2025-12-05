@@ -25,7 +25,6 @@ pmm:
     address: replace_me
   btc:
     private_key: replace_me
-    address: replace_me
     max_fee_rate: 5
   solana:
     private_key: replace_me
@@ -33,7 +32,6 @@ pmm:
 
 trade:
   min: 1
-  max: 300
   soft_cap: 15
   hard_cap: 100
   commitment_bps: 9980
@@ -55,3 +53,27 @@ telegram:
   chat_id: replace_me
   base_url: https://api.telegram.org
   timeout: 10000
+
+# Bitcoin provider configuration (Blockstream + Mempool.space racing)
+bitcoin:
+  timeout_ms: 10000
+  max_retries: 3
+  retry_delay_ms: 3000
+  skip_confirm: false
+
+# Rebalancing Configuration (BTC to USDC auto-rebalancing)
+rebalance:
+  enabled: true
+  timing:
+    max_retry_duration_hours: 8
+  slippage:
+    threshold_bps: 200
+    high_warning_bps: 150
+  near:
+    base_url: "https://1click.chaindefuser.com"
+    api_key: "replace_me"
+    # recipient & refund_to derived from pmm.evm.address and pmm.btc.privateKey
+    slippage_tolerance_bps: 500
+    referral: "optimex"
+    origin_asset: "nep141:btc.omft.near"
+    destination_asset: "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near"

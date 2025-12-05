@@ -10,12 +10,13 @@
       "env": ["NODE_ENV"]
     },
     "@apps/api-server#build:prod": {
-      "dependsOn": ["@apps/api-server#typecheck", "@apps/api-server#build"],
+      "dependsOn": ["^build", "@apps/api-server#typecheck", "@apps/api-server#build"],
       "outputs": ["../../dist/apps/api-server/**"],
       "outputLogs": "errors-only",
       "env": ["NODE_ENV"]
     },
     "build": {
+      "dependsOn": ["^build"],
       "outputs": ["../../dist/**"],
       "outputLogs": "errors-only",
       "env": ["NODE_ENV"]

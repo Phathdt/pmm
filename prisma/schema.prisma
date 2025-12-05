@@ -37,11 +37,61 @@ model Trade {
   apm                String? @map("apm")
   validatorSignature String? @map("validator_signature")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  completedAt DateTime? @map("completed_at") // Timestamp when trade became COMPLETED
 
   @@index([status])
   @@index([fromTokenId])
   @@index([toTokenId])
   @@map("trades")
+}
+
+// Rebalancing: Tracks BTC to USDC automatic rebalancing operations
+model Rebalancing {
+  id            Int    @id @default(autoincrement())
+  rebalancingId String @unique @map("rebalancing_id") // Unique hex string for logging/debugging
+
+  // Trade identification
+  tradeHash String  @unique @map("trade_hash")
+  tradeId   String? @map("trade_id")
+
+  // Transaction details (extensible for future chains)
+  amount       String  @map("amount")
+  realAmount   String? @map("real_amount") // Actual amount after fees deducted (amount - fee)
+  txId         String? @map("tx_id")
+  vaultAddress String? @map("vault_address")
+
+  // External verification status
+  optimexStatus   String? @map("optimex_status")
+  mempoolVerified Boolean @default(false) @map("mempool_verified")
+
+  // NEAR 1Click swap details
+  depositAddress String? @map("deposit_address")
+  nearVaultTxId  String? @map("near_vault_tx_id") // BTC transfer to NEAR vault (different from settlement txId)
+  quoteId        String? @map("quote_id")
+  oraclePrice    String? @map("oracle_price")
+  quotePrice     String? @map("quote_price")
+  slippageBps    Int?    @map("slippage_bps")
+  expectedUsdc   String? @map("expected_usdc")
+  actualUsdc     String? @map("actual_usdc")
+  nearTxId       String? @map("near_tx_id")
+  nearDepositId  String? @map("near_deposit_id")
+
+  // Status tracking
+  status     String  @default("PENDING") @map("status")
+  retryCount Int     @default(0) @map("retry_count")
+  error      String? @map("error")
+  metadata   Json?   @map("metadata")
+
+  // Timestamps
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  tradeCompletedAt DateTime @default(now()) @map("trade_completed_at") // When trade became COMPLETED, used for retry time limit
+
+  @@index([status])
+  @@index([optimexStatus])
+  @@index([createdAt])
+  @@index([txId])
+  @@map("rebalancings")
 }

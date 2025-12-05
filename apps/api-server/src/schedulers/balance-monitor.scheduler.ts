@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
+import { BITCOIN_SERVICE, deriveP2TRAddress, IBitcoinService } from '@optimex-pmm/bitcoin'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 import { INotificationService, NOTIFICATION_SERVICE } from '@optimex-pmm/notification'
@@ -7,20 +8,7 @@ import { ITokenService, TOKEN_SERVICE } from '@optimex-pmm/token'
 import { config } from '@optimex-xyz/market-maker-sdk'
 import { Connection, PublicKey } from '@solana/web3.js'
 
-import axios from 'axios'
-
 import { BaseScheduler } from './base.scheduler'
-
-interface BtcBalanceApiResponse {
-  chain_stats: {
-    funded_txo_sum: number
-    spent_txo_sum: number
-  }
-  mempool_stats: {
-    funded_txo_sum: number
-    spent_txo_sum: number
-  }
-}
 
 @Injectable()
 export class BalanceMonitorScheduler extends BaseScheduler {
@@ -32,6 +20,7 @@ export class BalanceMonitorScheduler extends BaseScheduler {
 
   constructor(
     @Inject(TOKEN_SERVICE) private readonly tokenService: ITokenService,
+    @Inject(BITCOIN_SERVICE) private readonly bitcoinService: IBitcoinService,
     private readonly configService: CustomConfigService,
     @Inject(NOTIFICATION_SERVICE) private readonly notificationService: INotificationService,
     logger: EnhancedLogger
@@ -39,7 +28,7 @@ export class BalanceMonitorScheduler extends BaseScheduler {
     super()
     this.logger = logger.with({ context: BalanceMonitorScheduler.name })
     this.solanaConnection = new Connection(this.configService.rpc.solanaUrl)
-    this.btcAddress = this.configService.pmm.btc.address
+    this.btcAddress = deriveP2TRAddress({ privateKeyWIF: this.configService.pmm.btc.privateKey }).address
     this.solAddress = this.configService.pmm.solana.address
     this.MIN_BALANCE_USD = this.configService.trade.minBalanceUsd
   }
@@ -63,116 +52,39 @@ export class BalanceMonitorScheduler extends BaseScheduler {
   }
 
   private async getBtcBalance(): Promise<number> {
-    const maxRetries = 3
-    const sleepTime = 5000
+    try {
+      this.logger.log({
+        message: 'Fetching BTC balance',
+        address: this.btcAddress,
+        network: config.isTestnet() ? 'testnet' : 'mainnet',
+        operation: 'btc_balance_fetch',
+        timestamp: new Date().toISOString(),
+      })
 
-    const getBalanceFromBlockstream = async (): Promise<number> => {
-      const baseUrl = config.isTestnet() ? 'https://blockstream.info/testnet4/api' : 'https://blockstream.info/api'
-      const response = await axios.get<BtcBalanceApiResponse>(`${baseUrl}/address/${this.btcAddress}`)
-      if (response?.data) {
-        const confirmedBalance =
-          response.data.chain_stats?.funded_txo_sum - response.data.chain_stats?.spent_txo_sum || 0
-        const unconfirmedBalance =
-          response.data.mempool_stats?.funded_txo_sum - response.data.mempool_stats?.spent_txo_sum || 0
-        return Math.max(0, confirmedBalance + unconfirmedBalance) / 1e8
-      }
+      const balanceSatoshis = await this.bitcoinService.getBalance(this.btcAddress)
+      const balanceBtc = Number(balanceSatoshis) / 1e8
+
+      this.logger.log({
+        message: 'Successfully fetched BTC balance',
+        balance: balanceBtc,
+        address: this.btcAddress,
+        operation: 'btc_balance_fetch',
+        status: 'success',
+        timestamp: new Date().toISOString(),
+      })
+
+      return balanceBtc
+    } catch (error: unknown) {
+      this.logger.error({
+        message: 'Error fetching BTC balance',
+        address: this.btcAddress,
+        error: error instanceof Error ? error.message : String(error),
+        operation: 'btc_balance_fetch',
+        status: 'failed',
+        timestamp: new Date().toISOString(),
+      })
       return 0
     }
-
-    const getBalanceFromMempool = async (): Promise<number> => {
-      const baseUrl = config.isTestnet() ? 'https://mempool.space/testnet4/api' : 'https://mempool.space/api'
-      const response = await axios.get<BtcBalanceApiResponse>(`${baseUrl}/address/${this.btcAddress}`)
-      if (response?.data) {
-        const confirmedBalance =
-          response.data.chain_stats?.funded_txo_sum - response.data.chain_stats?.spent_txo_sum || 0
-        const unconfirmedBalance =
-          response.data.mempool_stats?.funded_txo_sum - response.data.mempool_stats?.spent_txo_sum || 0
-        return Math.max(0, confirmedBalance + unconfirmedBalance) / 1e8
-      }
-      return 0
-    }
-
-    for (let retryCount = 1; retryCount <= maxRetries; retryCount++) {
-      try {
-        this.logger.log({
-          message: 'Attempting to fetch BTC balance',
-          retryCount,
-          maxRetries,
-          address: this.btcAddress,
-          network: config.isTestnet() ? 'testnet' : 'mainnet',
-          operation: 'btc_balance_fetch',
-          timestamp: new Date().toISOString(),
-        })
-
-        const [blockstreamBalance, mempoolBalance] = await Promise.allSettled([
-          getBalanceFromBlockstream(),
-          getBalanceFromMempool(),
-        ])
-
-        if (blockstreamBalance.status === 'fulfilled' && blockstreamBalance.value > 0) {
-          this.logger.log({
-            message: 'Successfully fetched BTC balance from Blockstream',
-            balance: blockstreamBalance.value,
-            address: this.btcAddress,
-            source: 'blockstream',
-            operation: 'btc_balance_fetch',
-            status: 'success',
-            timestamp: new Date().toISOString(),
-          })
-          return blockstreamBalance.value
-        }
-
-        if (mempoolBalance.status === 'fulfilled' && mempoolBalance.value > 0) {
-          this.logger.log({
-            message: 'Successfully fetched BTC balance from Mempool',
-            balance: mempoolBalance.value,
-            address: this.btcAddress,
-            source: 'mempool',
-            operation: 'btc_balance_fetch',
-            status: 'success',
-            timestamp: new Date().toISOString(),
-          })
-          return mempoolBalance.value
-        }
-
-        throw new Error('Both APIs failed to return valid balance')
-      } catch (error: unknown) {
-        this.logger.error({
-          message: 'Error fetching BTC balance',
-          retryCount,
-          maxRetries,
-          address: this.btcAddress,
-          error: error instanceof Error ? error.message : String(error),
-          operation: 'btc_balance_fetch',
-          status: 'failed',
-          timestamp: new Date().toISOString(),
-        })
-
-        if (retryCount < maxRetries) {
-          this.logger.log({
-            message: 'Retrying BTC balance fetch',
-            retryCount,
-            maxRetries,
-            sleepTimeSeconds: sleepTime / 1000,
-            operation: 'btc_balance_fetch',
-            status: 'retrying',
-            timestamp: new Date().toISOString(),
-          })
-          await new Promise((resolve) => setTimeout(resolve, sleepTime))
-        } else {
-          this.logger.error({
-            message: 'Max retries reached for BTC balance check',
-            maxRetries,
-            address: this.btcAddress,
-            operation: 'btc_balance_fetch',
-            status: 'max_retries_exceeded',
-            timestamp: new Date().toISOString(),
-          })
-          return 0
-        }
-      }
-    }
-    return 0
   }
 
   @Cron('*/5 * * * *')

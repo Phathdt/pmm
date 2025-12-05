@@ -175,6 +175,27 @@ export class CustomConfigService {
       errors.push('redis.url must be configured')
     }
 
+    // Rebalance configuration validation (only when enabled)
+    if (this._config.rebalance?.enabled) {
+      if (isPlaceholder(this._config.rebalance.near?.baseUrl)) {
+        errors.push('rebalance.near.baseUrl must be configured when rebalancing is enabled')
+      }
+
+      if (isPlaceholder(this._config.rebalance.near?.apiKey)) {
+        errors.push('rebalance.near.apiKey must be configured when rebalancing is enabled')
+      }
+
+      const slippageThreshold = this._config.rebalance.slippage?.thresholdBps
+      if (slippageThreshold !== undefined && (slippageThreshold < 0 || slippageThreshold > 10000)) {
+        errors.push('rebalance.slippage.thresholdBps must be between 0 and 10000')
+      }
+
+      const maxRetryDuration = this._config.rebalance.timing?.maxRetryDurationHours
+      if (maxRetryDuration !== undefined && maxRetryDuration < 1) {
+        errors.push('rebalance.timing.maxRetryDurationHours must be at least 1')
+      }
+    }
+
     if (errors.length > 0) {
       const errorMessage = `Configuration validation failed:\n${errors.map((e) => `  - ${e}`).join('\n')}`
       this.logger.error(errorMessage)

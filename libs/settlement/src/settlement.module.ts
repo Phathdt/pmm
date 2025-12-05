@@ -1,6 +1,7 @@
 import KeyvRedis from '@keyv/redis'
 import { CacheModule } from '@nestjs/cache-manager'
 import { Module } from '@nestjs/common'
+import { BitcoinModule } from '@optimex-pmm/bitcoin'
 import { BlockchainModule } from '@optimex-pmm/blockchain'
 import { CustomConfigModule, CustomConfigService } from '@optimex-pmm/custom-config'
 import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
@@ -55,6 +56,7 @@ export const providers = [
     CustomLoggerModule,
     QueueModule,
     BlockchainModule,
+    BitcoinModule,
     TradeModule,
     TokenModule,
     NotificationModule,

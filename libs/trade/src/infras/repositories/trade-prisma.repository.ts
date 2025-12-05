@@ -8,6 +8,7 @@ import {
   Trade,
   TradeStatus,
   TradeTypeEnum,
+  UpdateStatusOptions,
   UpdateTradeQuoteData,
 } from '../../domain'
 
@@ -59,12 +60,15 @@ export class TradePrismaRepository implements ITradeRepository {
     })
   }
 
-  async updateStatus(tradeId: string, status: TradeStatus, error?: string): Promise<void> {
+  async updateStatus(tradeId: string, status: TradeStatus, options?: UpdateStatusOptions): Promise<void> {
     await this.db.trade.update({
       where: { tradeId },
       data: {
         status,
-        ...(error && { error }),
+        ...(options?.error && { error: options.error }),
+        ...(options?.settlementTxId && { settlementTx: options.settlementTxId }),
+        // Set completedAt when trade becomes COMPLETED
+        ...(status === TradeStatus.COMPLETED && { completedAt: new Date() }),
       },
     })
   }
@@ -73,6 +77,42 @@ export class TradePrismaRepository implements ITradeRepository {
     await this.db.trade.deleteMany({
       where: { tradeId },
     })
+  }
+
+  async findSettlingTrades(): Promise<Trade[]> {
+    // Only query LENDING trades created within the last 3 days
+    const threeDaysAgo = new Date()
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
+
+    const results = await this.db.trade.findMany({
+      where: {
+        status: TradeStatus.SETTLING,
+        tradeType: TradeTypeEnum.LENDING,
+        createdAt: {
+          gte: threeDaysAgo,
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 50,
+    })
+
+    return results.map((r) => this.toEntity(r))
+  }
+
+  async findBtcLiquidationTrades(): Promise<Trade[]> {
+    const results = await this.db.trade.findMany({
+      where: {
+        fromNetworkId: {
+          in: ['btc', 'btc_testnet'],
+        },
+        isLiquid: true,
+        status: TradeStatus.COMPLETED,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    })
+
+    return results.map((r) => this.toEntity(r))
   }
 
   private toEntity(data: TradePrisma): Trade {
@@ -98,8 +138,10 @@ export class TradePrismaRepository implements ITradeRepository {
       settlementTx: data.settlementTx ?? undefined,
       error: data.error ?? undefined,
       metadata: data.metadata as Record<string, unknown> | undefined,
+      isLiquid: data.isLiquid,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
+      completedAt: data.completedAt ?? undefined,
     }
   }
 }

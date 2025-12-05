@@ -2,14 +2,18 @@ import { BullAdapter } from '@bull-board/api/bullAdapter'
 import { ExpressAdapter } from '@bull-board/express'
 import { BullBoardModule } from '@bull-board/nestjs'
 import { BullModule } from '@nestjs/bull'
+import { CacheModule } from '@nestjs/cache-manager'
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { APP_INTERCEPTOR } from '@nestjs/core'
 import { ScheduleModule } from '@nestjs/schedule'
+import { BitcoinModule } from '@optimex-pmm/bitcoin'
 import { CustomConfigModule, CustomConfigService } from '@optimex-pmm/custom-config'
 import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
 import { DatabaseService } from '@optimex-pmm/database'
+import { NotificationModule } from '@optimex-pmm/notification'
 import { QueueModule } from '@optimex-pmm/queue'
 import { QuoteModule } from '@optimex-pmm/quote'
+import { REBALANCE_QUEUE, REBALANCE_QUEUE_NAMES, RebalanceModule } from '@optimex-pmm/rebalance'
 import { SETTLEMENT_QUEUE, SETTLEMENT_QUEUE_NAMES, SettlementModule } from '@optimex-pmm/settlement'
 import { TokenModule } from '@optimex-pmm/token'
 import { TradeModule } from '@optimex-pmm/trade'
@@ -27,10 +31,17 @@ import { BtcMonitorService, EvmMonitorService, SolanaMonitorService } from '../m
 import {
   BtcTransferSettlementProcessor,
   EvmTransferSettlementProcessor,
+  RebalanceProcessor,
+  RebalanceTransferProcessor,
   SolanaTransferSettlementProcessor,
   SubmitSettlementProcessor,
 } from '../processors'
-import { BalanceMonitorScheduler } from '../schedulers'
+import {
+  BalanceMonitorScheduler,
+  RebalanceNearStatusScheduler,
+  RebalancePendingScheduler,
+  SettlementMonitorScheduler,
+} from '../schedulers'
 
 const controllers = [QuoteController, SettlementController]
 const processors = [
@@ -38,12 +49,22 @@ const processors = [
   BtcTransferSettlementProcessor,
   SolanaTransferSettlementProcessor,
   SubmitSettlementProcessor,
+  RebalanceProcessor,
+  RebalanceTransferProcessor,
 ]
 const monitors = [BtcMonitorService, EvmMonitorService, SolanaMonitorService]
 
-const schedulers = [BalanceMonitorScheduler]
+const schedulers = [
+  BalanceMonitorScheduler,
+  RebalanceNearStatusScheduler,
+  RebalancePendingScheduler,
+  SettlementMonitorScheduler,
+]
 
-const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
+const QUEUE_BOARDS = Object.values({
+  ...SETTLEMENT_QUEUE,
+  ...REBALANCE_QUEUE,
+}).map((queue) => ({
   name: queue.NAME,
   adapter: BullAdapter,
 }))
@@ -52,6 +73,7 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
   imports: [
     CustomConfigModule,
     CustomLoggerModule,
+    CacheModule.register({ isGlobal: true }),
     PrismaModule.forRootAsync({
       isGlobal: true,
       imports: [CustomConfigModule],
@@ -76,7 +98,7 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
       route: '/queues',
       adapter: ExpressAdapter,
     }),
-    BullModule.registerQueue(...SETTLEMENT_QUEUE_NAMES.map((name) => ({ name }))),
+    BullModule.registerQueue(...[...SETTLEMENT_QUEUE_NAMES, ...REBALANCE_QUEUE_NAMES].map((name) => ({ name }))),
     BullBoardModule.forFeature(...QUEUE_BOARDS),
     ScheduleModule.forRoot(),
     QueueModule,
@@ -84,6 +106,9 @@ const QUEUE_BOARDS = Object.values(SETTLEMENT_QUEUE).map((queue) => ({
     QuoteModule,
     TradeModule,
     SettlementModule,
+    RebalanceModule,
+    NotificationModule,
+    BitcoinModule,
   ],
   controllers: [AppController, ...controllers],
   providers: [

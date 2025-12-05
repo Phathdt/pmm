@@ -25,7 +25,6 @@ pmm:
     address: "0x78Bdc100555672a193359bd3e9CD68F23015A051"
   btc:
     private_key: replace_me
-    address: tb1pjat237hutlc4efv4vsd5usw92gm8xxzxxgujpadh90kqv3ac6kgshtjk5d
     max_fee_rate: 5
   solana:
     private_key: replace_me
@@ -33,7 +32,6 @@ pmm:
 
 trade:
   min: 1
-  max: 300
   soft_cap: 1900
   hard_cap: 5000
   commitment_bps: 9780
@@ -56,3 +54,27 @@ telegram:
   chat_id: "-1002461934613"
   base_url: https://api.telegram.org
   timeout: 10000
+
+# Bitcoin provider configuration (Blockstream + Mempool.space racing)
+bitcoin:
+  timeout_ms: 5000
+  max_retries: 3
+  retry_delay_ms: 2000
+  skip_confirm: true
+
+# Rebalancing Configuration (BTC to USDC auto-rebalancing)
+rebalance:
+  enabled: true
+  timing:
+    max_retry_duration_hours: 6
+  slippage:
+    threshold_bps: 200
+    high_warning_bps: 150
+  near:
+    base_url: "https://across-clone-dev.bitdex.xyz/near"
+    api_key: "replace_me"
+    # recipient & refund_to derived from pmm.evm.address and pmm.btc.privateKey
+    slippage_tolerance_bps: 500
+    referral: "optimex"
+    origin_asset: "nep141:btc.omft.near"
+    destination_asset: "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near"

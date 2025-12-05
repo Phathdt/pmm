@@ -1,5 +1,6 @@
 import * as crypto from 'crypto'
 import { BadRequestException, HttpException, Inject, Injectable } from '@nestjs/common'
+import { deriveP2TRAddress } from '@optimex-pmm/bitcoin'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { ITokenService, TOKEN_SERVICE } from '@optimex-pmm/token'
 import { ITradeService, TRADE_SERVICE, TradeTypeEnum } from '@optimex-pmm/trade'
@@ -31,7 +32,7 @@ export class QuoteService implements IQuoteService {
     private readonly configService: CustomConfigService
   ) {
     this.EVM_ADDRESS = this.configService.pmm.evm.address
-    this.BTC_ADDRESS = this.configService.pmm.btc.address
+    this.BTC_ADDRESS = deriveP2TRAddress({ privateKeyWIF: this.configService.pmm.btc.privateKey }).address
     this.PMM_SOLANA_ADDRESS = this.configService.pmm.solana.address
     this.ONLY_SOLANA = this.configService.trade.onlySolana
   }

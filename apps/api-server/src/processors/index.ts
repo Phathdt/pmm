@@ -1,5 +1,7 @@
 export * from './base.processor'
 export * from './btc-transfer-settlement.processor'
 export * from './evm-transfer-settlement.processor'
+export * from './rebalance-transfer.processor'
+export * from './rebalance.processor'
 export * from './solana-transfer-settlement.processor'
 export * from './submit-settlement.processor'

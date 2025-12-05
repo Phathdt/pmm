@@ -56,5 +56,8 @@ logs.txt
 /plans
 .claude_sessions
 .serena/cache
+.claude
+.opencode
+docs
 
 repomix-output*

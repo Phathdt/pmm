@@ -1,0 +1,5 @@
+# Dependencies that should always be kept (not detected by import scanning)
+# These are runtime requirements that don't appear in import statements
+
+# Required for ts-node path alias resolution at runtime
+tsconfig-paths

@@ -11,16 +11,25 @@
     "test": "jest --passWithNoTests"
   },
   "dependencies": {
+    "@optimex-pmm/bitcoin": "*",
+    "@optimex-pmm/custom-config": "*",
     "@optimex-pmm/token": "*",
     "@optimex-pmm/trade": "*",
+    "@keyv/redis": "^4.6.0",
+    "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.1.9",
-    "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.9",
+    "@nestjs/swagger": "^11.2.3",
+    "@optimex-xyz/market-maker-sdk": "^0.9.1",
+    "cache-manager": "^6.4.3",
+    "keyv": "^5.3.3",
+    "nestjs-zod": "^5.0.1",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2"
+    "rxjs": "^7.8.2",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
-    "@types/node": "~22.19.1",
+    "@types/node": "~24.10.1",
     "typescript": "~5.9.3"
   }
 }

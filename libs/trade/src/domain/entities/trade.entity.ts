@@ -37,8 +37,10 @@ export const TradeSchema = z.object({
   settlementTx: z.string().optional(),
   error: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  isLiquid: z.boolean().default(false),
   createdAt: z.date(),
   updatedAt: z.date(),
+  completedAt: z.date().optional().nullable(), // Timestamp when trade became COMPLETED
 })
 
 export type Trade = z.infer<typeof TradeSchema>

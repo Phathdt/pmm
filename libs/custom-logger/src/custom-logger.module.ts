@@ -4,6 +4,9 @@ import { CustomConfigModule, CustomConfigService } from '@optimex-pmm/custom-con
 
 import { ClsModule, ClsService } from 'nestjs-cls'
 import { LoggerModule } from 'nestjs-pino'
+
+import 'pino-pretty' // Required for pino transport
+
 import { v7 as uuidv7 } from 'uuid'
 
 import { EnhancedLogger } from './enhanced-logger.service'
