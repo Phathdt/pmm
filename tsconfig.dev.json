@@ -4,6 +4,7 @@
     "paths": {
       "@optimex-pmm/bitcoin": ["libs/bitcoin/src/index"],
       "@optimex-pmm/blockchain": ["libs/blockchain/src/index"],
+      "@optimex-pmm/contracts": ["libs/contracts/src/index"],
       "@optimex-pmm/custom-config": ["libs/custom-config/src/index"],
       "@optimex-pmm/custom-logger": ["libs/custom-logger/src/index"],
       "@optimex-pmm/database": ["libs/database/src/index"],

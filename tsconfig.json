@@ -26,6 +26,7 @@
     "paths": {
       "@optimex-pmm/bitcoin": ["dist/libs/bitcoin/index"],
       "@optimex-pmm/blockchain": ["dist/libs/blockchain/index"],
+      "@optimex-pmm/contracts": ["dist/libs/contracts/index"],
       "@optimex-pmm/custom-config": ["dist/libs/custom-config/index"],
       "@optimex-pmm/custom-logger": ["dist/libs/custom-logger/index"],
       "@optimex-pmm/database": ["dist/libs/database/index"],

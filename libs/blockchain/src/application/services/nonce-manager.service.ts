@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { CustomConfigService, getEthProvider } from '@optimex-pmm/custom-config'
+import { CustomConfigService, getProvider } from '@optimex-pmm/custom-config'
 import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 
 import { ethers } from 'ethers'
@@ -32,7 +32,7 @@ export class NonceManagerService implements INonceManagerService {
     const cacheKey = `${networkId}-pmm`
 
     if (!this.nonceManagers.has(cacheKey)) {
-      const provider = getEthProvider(this.configService, networkId)
+      const provider = getProvider(this.configService)
       const wallet = new ethers.Wallet(this.pmmPrivateKey, provider)
       const nonceManager = new ethers.NonceManager(wallet)
 

@@ -13,6 +13,7 @@
   "dependencies": {
     "@optimex-pmm/bitcoin": "*",
     "@optimex-pmm/blockchain": "*",
+    "@optimex-pmm/contracts": "*",
     "@optimex-pmm/custom-config": "*",
     "@optimex-pmm/custom-logger": "*",
     "@optimex-pmm/notification": "*",

@@ -22,7 +22,7 @@ pmm:
   private_key: replace_me
   evm:
     private_key: replace_me
-    address: "0x78Bdc100555672a193359bd3e9CD68F23015A051"
+    address: '0x78Bdc100555672a193359bd3e9CD68F23015A051'
   btc:
     private_key: replace_me
     max_fee_rate: 5
@@ -47,11 +47,11 @@ ip_whitelist:
   list:
     - 35.247.159.218
     - 127.0.0.1
-    - "::1"
+    - '::1'
 
 telegram:
   bot_token: replace_me
-  chat_id: "-1002461934613"
+  chat_id: '-1002461934613'
   base_url: https://api.telegram.org
   timeout: 10000
 
@@ -71,10 +71,20 @@ rebalance:
     threshold_bps: 200
     high_warning_bps: 150
   near:
-    base_url: "https://across-clone-dev.bitdex.xyz/near"
-    api_key: "replace_me"
+    base_url: 'https://across-clone-dev.bitdex.xyz/near'
+    api_key: 'replace_me'
     # recipient & refund_to derived from pmm.evm.address and pmm.btc.privateKey
     slippage_tolerance_bps: 500
-    referral: "optimex"
-    origin_asset: "nep141:btc.omft.near"
-    destination_asset: "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near"
+    referral: 'optimex'
+    origin_asset: 'nep141:btc.omft.near'
+    destination_asset: 'nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near'
+
+# Liquidation multisig configuration (OptimexLiquidator contract)
+# Env override for approvers: LIQUIDATION__APPROVERS=pk1,pk2,pk3
+liquidation:
+  enabled: true
+  contract_address: '0x4A94b3A94C419Ea268367409cf6ba8e9D2E6D429'
+  deadline_seconds: 3600
+  approvers:
+    - 'replace_me'
+    - 'replace_me'

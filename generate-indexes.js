@@ -2,14 +2,20 @@ const fs = require('fs')
 const path = require('path')
 
 function shouldIgnoreFile(filename) {
-  return filename === 'index.ts' || 
-         filename.startsWith('.') || 
-         filename.endsWith('.spec.ts') || 
-         filename.endsWith('.test.ts')
+  return (
+    filename === 'index.ts' ||
+    filename.startsWith('.') ||
+    filename.endsWith('.spec.ts') ||
+    filename.endsWith('.test.ts')
+  )
 }
 
 function shouldIgnoreDirectory(dirName) {
-  return dirName === 'typechains'
+  return dirName === 'typechains' || dirName === 'factories'
+}
+
+function shouldIgnoreModule(moduleName) {
+  return moduleName === 'contracts'
 }
 
 function generateIndexContent(files, isRoot = false) {
@@ -97,7 +103,7 @@ function processDirectory(dirName, processSubdirectories = true) {
 
   const modules = fs
     .readdirSync(targetDir, { withFileTypes: true })
-    .filter((dirent) => dirent.isDirectory() && !shouldIgnoreDirectory(dirent.name))
+    .filter((dirent) => dirent.isDirectory() && !shouldIgnoreDirectory(dirent.name) && !shouldIgnoreModule(dirent.name))
     .map((dirent) => dirent.name)
 
   modules.forEach((moduleName) => {
@@ -106,7 +112,7 @@ function processDirectory(dirName, processSubdirectories = true) {
       console.log(`\nProcessing ${dirName}/${moduleName}`)
       console.log('Cleaning up old index files...')
       deleteIndexFiles(srcPath)
-      
+
       if (processSubdirectories) {
         console.log('Generating new index files...')
         processModule(srcPath)

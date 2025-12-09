@@ -73,6 +73,9 @@ export class AppService {
       this.logger.warn(`Failed to get contract addresses for network ${networkId}: ${(error as Error).message}`)
     }
 
+    // Derive liquidation approver addresses from private keys
+    const liquidationApprovers = this.deriveLiquidationApprovers()
+
     return {
       pmmId: this.pmmId,
       pmmEncodeId: this.pmmEncodeId,
@@ -83,6 +86,7 @@ export class AppService {
       evmSenderAddress: this.evmSenderAddress,
       btcSenderAddress: this.btcSenderAddress,
       solanaSenderAddress: this.solanaSenderAddress,
+      liquidationApprovers,
       contracts: {
         router: routerAddress,
         evm: {
@@ -129,5 +133,17 @@ export class AppService {
     const solanaPrivateKeyBytes = bs58.decode(solanaPrivateKey)
     const solanaKeypair = Keypair.fromSecretKey(solanaPrivateKeyBytes)
     return solanaKeypair.publicKey.toBase58()
+  }
+
+  private deriveLiquidationApprovers(): string[] {
+    const liquidationConfig = this.configService.liquidation
+    if (!liquidationConfig?.enabled || !liquidationConfig.approvers?.length) {
+      return []
+    }
+
+    return liquidationConfig.approvers.map((pk) => {
+      const wallet = new ethers.Wallet(pk)
+      return wallet.address
+    })
   }
 }

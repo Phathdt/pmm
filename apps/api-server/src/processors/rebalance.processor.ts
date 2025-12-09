@@ -230,8 +230,12 @@ export class RebalanceProcessor extends BaseProcessor {
       // Derive BTC refund address from pmm.btc.privateKey
       const btcRefundAddress = deriveP2TRAddress({ privateKeyWIF: pmm.btc.privateKey }).address
 
-      // Use pmm.evm.address as recipient for USDC
-      const recipient = pmm.evm.address
+      // Use liquidation contract address as recipient for USDC (rebalance back to vault)
+      const liquidationConfig = this.configService.liquidation
+      if (!liquidationConfig?.contractAddress) {
+        throw new Error('Liquidation contract address not configured for rebalance recipient')
+      }
+      const recipient = liquidationConfig.contractAddress
 
       const quoteResponse = await this.nearService.requestQuote({
         dry: false,

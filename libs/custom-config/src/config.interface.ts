@@ -106,6 +106,14 @@ export interface BitcoinConfig {
   skipConfirm: boolean
 }
 
+// Liquidation multisig configuration
+export interface LiquidationConfig {
+  enabled: boolean
+  contractAddress: string // OptimexLiquidator contract address
+  deadlineSeconds: number // How long signatures are valid
+  approvers: string[] // Array of approver private keys
+}
+
 export interface AppConfig {
   host: HostConfig
   database: DatabaseConfig
@@ -119,5 +127,6 @@ export interface AppConfig {
   telegram: TelegramConfig
   rebalance: RebalanceConfig
   bitcoin: BitcoinConfig
+  liquidation: LiquidationConfig
   [key: string]: unknown
 }

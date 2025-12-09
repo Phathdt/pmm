@@ -78,3 +78,13 @@ rebalance:
     referral: "optimex"
     origin_asset: "nep141:btc.omft.near"
     destination_asset: "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near"
+
+# Liquidation multisig configuration (OptimexLiquidator contract)
+# Env override for approvers: LIQUIDATION__APPROVERS=pk1,pk2,pk3
+liquidation:
+  enabled: true
+  contract_address: "0xF1747b021Cb6F46EddF8Fe4Eb65daff4a577d6E9"
+  deadline_seconds: 3600
+  approvers:
+    - "replace_me"
+    - "replace_me"

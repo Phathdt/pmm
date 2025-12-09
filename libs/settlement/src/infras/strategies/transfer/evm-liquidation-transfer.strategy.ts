@@ -1,15 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { ITransactionService, TRANSACTION_SERVICE } from '@optimex-pmm/blockchain'
-import { EnhancedLogger } from '@optimex-pmm/custom-logger'
-import { errorDecoder } from '@optimex-pmm/shared'
-import { ITradeService, TRADE_SERVICE } from '@optimex-pmm/trade'
 import {
-  AssetChainContractRole,
-  MorphoLiquidationGateway__factory,
-  OptimexEvmNetwork,
-  protocolService,
-} from '@optimex-xyz/market-maker-sdk'
+  errorDecoder,
+  OptimexLiquidator__factory,
+  OptimexLiquidatorService,
+  PaymentRequestStruct,
+} from '@optimex-pmm/contracts'
+import { CustomConfigService, getProvider } from '@optimex-pmm/custom-config'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
+import { ITradeService, TRADE_SERVICE } from '@optimex-pmm/trade'
 
+import { Wallet } from 'ethers'
 import { DecodedError } from 'ethers-decode-error'
 
 import { ITransferStrategy, PaymentLiquidMetadata, TransferParams, TransferResult } from '../../../domain'
@@ -21,6 +22,7 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
   constructor(
     @Inject(TRADE_SERVICE) private tradeService: ITradeService,
     @Inject(TRANSACTION_SERVICE) private transactionService: ITransactionService,
+    private readonly configService: CustomConfigService,
     logger: EnhancedLogger
   ) {
     this.logger = logger.with({ context: EVMLiquidationTransferStrategy.name })
@@ -31,154 +33,124 @@ export class EVMLiquidationTransferStrategy implements ITransferStrategy {
     const { tokenAddress, networkId } = token
 
     const trade = await this.tradeService.findTradeById(tradeId)
-
     if (!trade) {
       throw new Error(`Trade not found: ${tradeId}`)
     }
 
-    const liquidAddress = await this.getLiquidationPaymentAddress(networkId)
-
-    // Handle token approval if not native token
-    if (tokenAddress !== 'native') {
-      await this.transactionService.handleTokenApproval(networkId, tokenAddress, liquidAddress, amount)
+    const liquidationConfig = this.configService.liquidation
+    if (!liquidationConfig?.enabled) {
+      throw new Error('Liquidation is not enabled')
     }
 
-    if (!trade.metadata || typeof trade.metadata !== 'object') {
-      throw new Error(`Missing payment metadata for trade ${tradeId}`)
+    if (!liquidationConfig.contractAddress) {
+      throw new Error('Liquidation contract address not configured')
+    }
+
+    if (!liquidationConfig.approvers || liquidationConfig.approvers.length < 2) {
+      throw new Error('At least 2 approvers required for multisig')
     }
 
     const metadata = trade.metadata as PaymentLiquidMetadata
-    if (!metadata.paymentMetadata) {
-      throw new Error(`Missing paymentMetadata in trade metadata for trade ${tradeId}`)
+    if (!metadata?.paymentMetadata) {
+      throw new Error(`Missing paymentMetadata for trade ${tradeId}`)
     }
 
-    const externalCall = metadata.paymentMetadata
+    const paymentRequest: PaymentRequestStruct = {
+      token: tokenAddress,
+      amount: amount,
+      externalCall: metadata.paymentMetadata,
+    }
 
-    const decoder = errorDecoder()
+    const provider = getProvider(this.configService)
+    const executorWallet = new Wallet(this.configService.pmm.evm.privateKey, provider)
+    const executorAddress = await executorWallet.getAddress()
+
+    // Create wallet signers from approver private keys
+    const approverSigners = liquidationConfig.approvers.map((pk) => new Wallet(pk, provider))
+
+    const multisigAuth = await OptimexLiquidatorService.buildMultisigAuth({
+      provider,
+      contractAddress: liquidationConfig.contractAddress,
+      executorAddress,
+      paymentRequest,
+      approverSigners,
+      deadlineSeconds: liquidationConfig.deadlineSeconds,
+    })
+
+    this.logger.debug({
+      message: 'Built multisig auth',
+      tradeId,
+      threshold: multisigAuth.threshold,
+      deadline: multisigAuth.deadline.toString(),
+      signaturesCount: multisigAuth.signatures.length,
+    })
 
     try {
-      // Execute contract method with new payment signature: payment(address token, uint256 amount, bytes calldata externalCall)
       const result = await this.transactionService.executeContractMethod(
-        MorphoLiquidationGateway__factory,
-        liquidAddress,
+        OptimexLiquidator__factory,
+        liquidationConfig.contractAddress,
         'payment',
-        [tokenAddress, amount, externalCall],
+        [paymentRequest, multisigAuth],
         networkId,
-        {
-          description: `Liquidation payment for trade ${tradeId}`,
-          gasBufferPercentage: 40, // Slightly higher buffer for liquidation transactions
-        }
+        { description: `Liquidation payment for trade ${tradeId}`, gasBufferPercentage: 40 }
       )
 
       this.logger.log({
-        message: 'Liquidation transfer transaction sent',
+        message: 'Liquidation transfer sent',
         txHash: result.hash,
         tradeId,
         networkId,
         tokenAddress,
         amount: amount.toString(),
-        externalCall,
-        nonce: result.nonce,
-        gasLimit: result.gasLimit?.toString(),
-        gasPrice: result.gasPrice?.toString(),
-        maxFeePerGas: result.maxFeePerGas?.toString(),
-        maxPriorityFeePerGas: result.maxPriorityFeePerGas?.toString(),
-        operation: 'evm_liquidation_transfer',
-        status: 'success',
-        timestamp: new Date().toISOString(),
       })
 
       return result
     } catch (error: unknown) {
-      this.logger.error({
-        message: 'Liquidation transfer error details',
-        tradeId,
-        error:
-          error && typeof error === 'object' && 'message' in error
-            ? (error as { message: string }).message
-            : error?.toString() || 'Unknown error',
-        operation: 'evm_liquidation_transfer',
-        timestamp: new Date().toISOString(),
-      })
-      const decodedError: DecodedError = await decoder.decode(error)
-      this.logger.error({
-        message: 'Decoded liquidation transfer error',
-        tradeId,
-        decodedError: decodedError.reason || decodedError.toString(),
-        operation: 'evm_liquidation_transfer',
-        timestamp: new Date().toISOString(),
-      })
-
-      const errorCode = this.extractErrorCode(tradeId, error, decodedError)
-      const paddedTxHash = this.padErrorCodeToTxHash(errorCode)
-
-      this.logger.warn({
-        message: 'Liquidation payment failed, using error code as txHash',
-        tradeId,
-        networkId,
-        decodedReason: decodedError.reason,
-        errorCode,
-        paddedTxHash,
-        operation: 'evm_liquidation_transfer',
-        status: 'failed_with_fallback',
-        timestamp: new Date().toISOString(),
-      })
-
-      return { hash: paddedTxHash }
+      return this.handleTransferError(tradeId, networkId, error)
     }
   }
 
-  private extractErrorCode(tradeId: string, error: unknown, decodedError: DecodedError): string {
-    this.logger.debug({
-      message: 'Extracting error code from decoded error',
+  private async handleTransferError(tradeId: string, networkId: string, error: unknown): Promise<TransferResult> {
+    this.logger.error({
+      message: 'Liquidation transfer error',
       tradeId,
-      decodedError: decodedError.toString(),
-      operation: 'extract_error_code',
-      timestamp: new Date().toISOString(),
+      networkId,
+      error: error instanceof Error ? error.message : String(error),
     })
 
-    const errorMessage =
-      error && typeof error === 'object' && 'message' in error
-        ? (error as { message: string }).message
-        : error?.toString() || 'Unknown error'
+    const decoder = errorDecoder()
+    const decodedError: DecodedError = await decoder.decode(error)
 
+    this.logger.error({
+      message: 'Decoded liquidation error',
+      tradeId,
+      decodedReason: decodedError.reason,
+    })
+
+    const errorCode = this.extractErrorCode(error, decodedError)
+    const paddedTxHash = '0x' + errorCode.replace('0x', '').padEnd(64, '0')
+
+    this.logger.warn({
+      message: 'Liquidation payment failed, using error code as txHash',
+      tradeId,
+      networkId,
+      decodedReason: decodedError.reason,
+      errorCode,
+      paddedTxHash,
+    })
+
+    return { hash: paddedTxHash }
+  }
+
+  private extractErrorCode(error: unknown, decodedError: DecodedError): string {
     const errorObj = error && typeof error === 'object' ? (error as Record<string, unknown>) : {}
     const transactionObj = errorObj?.['transaction'] as Record<string, unknown> | undefined
-    const errorData = errorObj?.['data'] || transactionObj?.['data']
+    const errorData = errorObj?.['data'] || transactionObj?.['data'] || decodedError?.data
 
-    this.logger.debug({
-      message: 'Extracting error code from raw error',
-      tradeId,
-      error: errorMessage,
-      errorData,
-      operation: 'extract_error_code',
-      timestamp: new Date().toISOString(),
-    })
-
-    const finalErrorData = errorData || decodedError?.data
-    if (!finalErrorData) {
-      throw new Error('No error data available to extract error code')
+    if (!errorData) {
+      throw new Error('No error data available')
     }
 
-    const selector = String(finalErrorData).slice(0, 10)
-    return selector
-  }
-
-  private padErrorCodeToTxHash(errorCode: string): string {
-    const cleanErrorCode = errorCode.startsWith('0x') ? errorCode.slice(2) : errorCode
-    const paddedHash = '0x' + cleanErrorCode.padEnd(64, '0')
-    return paddedHash
-  }
-
-  private async getLiquidationPaymentAddress(networkId: string) {
-    const paymentAddress = await protocolService.getAssetChainConfig(
-      networkId as OptimexEvmNetwork,
-      AssetChainContractRole.MorphoLiquidationGateway
-    )
-    if (!paymentAddress) {
-      throw new Error(`Unsupported networkId: ${networkId}`)
-    }
-
-    return paymentAddress[0]
+    return String(errorData).slice(0, 10)
   }
 }

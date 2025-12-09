@@ -84,6 +84,7 @@ export const PmmInfoResponseSchema = z.object({
   evmSenderAddress: z.string(),
   btcSenderAddress: z.string(),
   solanaSenderAddress: z.string(),
+  liquidationApprovers: z.array(z.string()),
   contracts: z.object({
     router: z.string(),
     evm: z.record(

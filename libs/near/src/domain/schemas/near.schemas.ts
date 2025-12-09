@@ -44,17 +44,17 @@ export type NearAppFee = z.infer<typeof NearAppFeeSchema>
 // Quote request schema (matches actual API)
 export const NearQuoteRequestSchema = z.object({
   dry: z.boolean(),
-  depositMode: z.nativeEnum(NearDepositMode).optional().default(NearDepositMode.SIMPLE),
-  swapType: z.nativeEnum(NearSwapType),
+  depositMode: z.enum(NearDepositMode).optional().default(NearDepositMode.SIMPLE),
+  swapType: z.enum(NearSwapType),
   slippageTolerance: z.number(), // basis points (e.g., 500 = 5%)
   originAsset: z.string(), // e.g., "nep141:btc.omft.near"
-  depositType: z.nativeEnum(NearDepositType),
+  depositType: z.enum(NearDepositType),
   destinationAsset: z.string(), // e.g., "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near"
   amount: z.string(),
   refundTo: z.string(), // BTC refund address
-  refundType: z.nativeEnum(NearDepositType),
+  refundType: z.enum(NearDepositType),
   recipient: z.string(), // Destination address (e.g., EVM address)
-  recipientType: z.nativeEnum(NearRecipientType),
+  recipientType: z.enum(NearRecipientType),
   deadline: z.string(), // ISO date string
   referral: z.string().optional(),
   quoteWaitingTimeMs: z.number().optional().default(3000),
@@ -138,7 +138,7 @@ export type NearSwapDetails = z.infer<typeof NearSwapDetailsSchema>
 // Status response schema
 export const NearStatusResponseSchema = z.object({
   quoteResponse: NearQuoteResponseSchema,
-  status: z.nativeEnum(NearStatus),
+  status: z.enum(NearStatus),
   updatedAt: z.string(),
   swapDetails: NearSwapDetailsSchema,
 })
@@ -159,8 +159,3 @@ export type NearSubmitDepositRequest = z.infer<typeof NearSubmitDepositRequestSc
 export const NearSubmitDepositResponseSchema = NearStatusResponseSchema
 
 export type NearSubmitDepositResponse = z.infer<typeof NearSubmitDepositResponseSchema>
-
-// Helper function
-export function isNearTerminal(status: NearStatus): boolean {
-  return [NearStatus.SUCCESS, NearStatus.FAILED, NearStatus.REFUNDED].includes(status)
-}

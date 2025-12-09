@@ -12,6 +12,7 @@ COPY package.json yarn.lock ./
 COPY apps/api-server/package.json ./apps/api-server/
 COPY libs/bitcoin/package.json ./libs/bitcoin/
 COPY libs/blockchain/package.json ./libs/blockchain/
+COPY libs/contracts/package.json ./libs/contracts/
 COPY libs/custom-config/package.json ./libs/custom-config/
 COPY libs/custom-logger/package.json ./libs/custom-logger/
 COPY libs/database/package.json ./libs/database/

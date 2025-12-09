@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { ITransactionService, TRANSACTION_SERVICE } from '@optimex-pmm/blockchain'
+import { errorDecoder } from '@optimex-pmm/contracts'
 import { EnhancedLogger } from '@optimex-pmm/custom-logger'
-import { errorDecoder } from '@optimex-pmm/shared'
 import {
   AssetChainContractRole,
   OptimexEvmNetwork,
