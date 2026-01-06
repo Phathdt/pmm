@@ -92,13 +92,13 @@ export class TransactionService implements ITransactionService {
           continue // Retry the transaction
         }
 
-        // Log non-retryable errors
-        this.logTransactionError(error, networkId)
-        throw error
+        // For non-retryable errors or the final attempt, break the loop
+        break
       }
     }
 
-    // Should not reach here, but throw last error if it does
+    // All attempts failed - log and throw the last error
+    this.logTransactionError(lastError, networkId)
     throw lastError
   }
 
