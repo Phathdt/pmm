@@ -20,7 +20,7 @@
     "@nestjs/common": "^11.1.9",
     "@nestjs/core": "^11.1.9",
     "@nestjs/swagger": "^11.2.3",
-    "@optimex-xyz/market-maker-sdk": "0.10.7",
+    "@optimex-xyz/market-maker-sdk": "0.10.8",
     "cache-manager": "^6.4.3",
     "keyv": "^5.3.3",
     "nestjs-zod": "^5.0.1",

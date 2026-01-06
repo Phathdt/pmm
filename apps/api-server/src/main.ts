@@ -10,6 +10,8 @@ import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { SnakeToCamelInterceptor } from '@optimex-pmm/shared'
 import { Environment, sdk } from '@optimex-xyz/market-maker-sdk'
 
+import 'dotenv/config'
+
 import { LoggerErrorInterceptor, Logger as PinoLogger } from 'nestjs-pino'
 import { ZodValidationPipe } from 'nestjs-zod'
 

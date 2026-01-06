@@ -1683,10 +1683,10 @@
   dependencies:
     consola "^3.2.3"
 
-"@optimex-xyz/market-maker-sdk@0.10.7":
-  version "0.10.7"
-  resolved "https://registry.yarnpkg.com/@optimex-xyz/market-maker-sdk/-/market-maker-sdk-0.10.7.tgz#7df0a1143368b81d0c54103f24f0f48416e15801"
-  integrity sha512-/FhmgJUDHOOqgoG852lsx6g/VjmzF6WIgdP4pexTRjDmNrM7O4PSa5sEsmoSRm71p4WmMK42YsnnLXvhSQsU1Q==
+"@optimex-xyz/market-maker-sdk@0.10.8":
+  version "0.10.8"
+  resolved "https://registry.yarnpkg.com/@optimex-xyz/market-maker-sdk/-/market-maker-sdk-0.10.8.tgz#26791f06cc418865d91f387accf068c0c25f3eaf"
+  integrity sha512-Ybv/+IEVmVnmEMaoo3dXsompB+ugiohyL+WBJhKM1Gp1JY0T/q1TQRTZCeUuy0edMfdswVWfzpLEqMPKXOMVMg==
   dependencies:
     axios "^1.9.0"
     bip174 "^3.0.0-rc.1"
@@ -3965,6 +3965,11 @@ dot-prop@^5.1.0:
   integrity sha512-QM8q3zDe58hqUqjraQOmzZ1LIH9SWQJTlEKCH4kJ2oQvLZk7RbQXvtDM2XEq3fwkV9CCvvH4LA0AV+ogFsBM2Q==
   dependencies:
     is-obj "^2.0.0"
+
+dotenv@^17.2.3:
+  version "17.2.3"
+  resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-17.2.3.tgz#ad995d6997f639b11065f419a22fabf567cdb9a2"
+  integrity sha512-JVUnt+DUIzu87TABbhPmNfVdBDt18BLOWjMUFJMSi/Qqg7NTYtabbvSNJGOJ7afbRuv9D/lngizHtP7QyLQ+9w==
 
 dunder-proto@^1.0.1:
   version "1.0.1"
