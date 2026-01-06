@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@nestjs/common": "^11.1.9",
-    "@optimex-xyz/market-maker-sdk": "^0.10.6",
+    "@optimex-xyz/market-maker-sdk": "0.10.8",
     "ethers": "^6.13.7",
     "js-yaml": "^4.1.1",
     "reflect-metadata": "^0.2.2",
