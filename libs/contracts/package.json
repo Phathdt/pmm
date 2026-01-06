@@ -13,7 +13,7 @@
     "generate-types": "node generate-types.js"
   },
   "dependencies": {
-    "@optimex-xyz/market-maker-sdk": "^0.9.1",
+    "@optimex-xyz/market-maker-sdk": "0.10.6",
     "ethers": "^6.13.7",
     "ethers-decode-error": "^2.1.3"
   },

@@ -14,7 +14,7 @@
     "@optimex-pmm/custom-config": "*",
     "@optimex-pmm/custom-logger": "*",
     "@nestjs/common": "^11.1.9",
-    "@optimex-xyz/market-maker-sdk": "^0.9.1",
+    "@optimex-xyz/market-maker-sdk": "0.10.6",
     "axios": "^1.9.0",
     "bitcoinjs-lib": "^7.0.0",
     "ecpair": "^3.0.0",

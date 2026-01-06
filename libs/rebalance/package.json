@@ -17,7 +17,6 @@
     "@optimex-pmm/near": "*",
     "@optimex-pmm/token": "*",
     "@nestjs/common": "^11.1.9",
-    "@optimex-xyz/market-maker-sdk": "^0.9.1",
     "@prisma/client": "6.7.0",
     "ethers": "^6.13.7",
     "nestjs-prisma": "^0.26.0",
