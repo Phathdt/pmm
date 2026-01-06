@@ -52,6 +52,9 @@ export const TransactionOptionsSchema = z.object({
   gasPriceBufferPercentage: z.number().optional(),
   maxGasPrice: z.bigint().optional(),
   fallbackGasPrice: z.bigint().optional(),
+
+  // Nonce retry options
+  maxNonceRetries: z.number().optional(), // Max retries on nonce errors (default: 1)
 })
 
 export type TransactionOptions = z.infer<typeof TransactionOptionsSchema>

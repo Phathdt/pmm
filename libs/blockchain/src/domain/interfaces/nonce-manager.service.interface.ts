@@ -28,4 +28,12 @@ export interface INonceManagerService {
    * This forces a fresh nonce fetch from the network
    */
   refreshAllNonces(): Promise<void>
+
+  /**
+   * Handle nonce error by resetting and syncing to network's latest nonce
+   * Should be called when NONCE_EXPIRED or similar errors occur
+   * @param networkId Network that had the nonce error
+   * @returns The new synced nonce from the network
+   */
+  handleNonceError(networkId: string): Promise<number>
 }

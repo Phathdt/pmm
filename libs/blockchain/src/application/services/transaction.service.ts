@@ -34,6 +34,7 @@ export class TransactionService implements ITransactionService {
   private readonly DEFAULT_MIN_GAS_BUFFER = 21000 // Minimum gas for a simple transfer
   private readonly DEFAULT_GAS_PRICE_BUFFER_PERCENTAGE = 15 // 15% buffer for gas price (reduced for stable networks)
   private readonly DEFAULT_MAX_GAS_PRICE_MULTIPLIER = 3 // Max 3x base fee
+  private readonly DEFAULT_MAX_NONCE_RETRIES = 1 // Default retry count for nonce errors
   private readonly logger: EnhancedLogger
 
   constructor(
@@ -44,7 +45,7 @@ export class TransactionService implements ITransactionService {
   }
 
   /**
-   * Execute transaction with automatic gas handling
+   * Execute transaction with automatic gas handling and nonce retry
    * Works with TypeChain populated transactions for type safety
    * @param networkId Network to execute on
    * @param txData Transaction data (from populateTransaction)
@@ -56,97 +57,154 @@ export class TransactionService implements ITransactionService {
     txData: TransactionData,
     options: TransactionOptions = {}
   ): Promise<TransactionResult> {
+    const maxRetries = options.maxNonceRetries ?? this.DEFAULT_MAX_NONCE_RETRIES
+    let lastError: unknown
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await this.executeTransactionInternal(networkId, txData, options, attempt)
+      } catch (error: unknown) {
+        lastError = error
+
+        // Only retry on nonce errors and if we have retries left
+        if (this.isNonceRelatedError(error) && attempt < maxRetries) {
+          this.logger.warn({
+            message: 'Nonce error detected - syncing nonce and retrying',
+            networkId,
+            attempt: attempt + 1,
+            maxRetries,
+            operation: 'execute_transaction',
+            errorType: 'nonce',
+            timestamp: new Date().toISOString(),
+          })
+
+          // Reset and sync nonce from network
+          const newNonce = await this.nonceManagerService.handleNonceError(networkId)
+          this.logger.log({
+            message: 'Nonce synced, retrying transaction',
+            networkId,
+            newNonce,
+            nextAttempt: attempt + 2,
+            operation: 'execute_transaction',
+            timestamp: new Date().toISOString(),
+          })
+
+          continue // Retry the transaction
+        }
+
+        // Log non-retryable errors
+        this.logTransactionError(error, networkId)
+        throw error
+      }
+    }
+
+    // Should not reach here, but throw last error if it does
+    throw lastError
+  }
+
+  /**
+   * Internal transaction execution logic
+   */
+  private async executeTransactionInternal(
+    networkId: string,
+    txData: TransactionData,
+    options: TransactionOptions,
+    attempt: number
+  ): Promise<TransactionResult> {
     const wallet = this.nonceManagerService.getNonceManager(networkId)
 
     this.logger.log({
       message: 'Executing blockchain transaction',
       networkId,
       description: options.description || 'Unknown',
+      attempt: attempt + 1,
       operation: 'execute_transaction',
       timestamp: new Date().toISOString(),
     })
 
-    try {
-      // Gas limit handling (existing logic)
-      let gasLimit = options.gasLimit || txData.gasLimit
+    // Gas limit handling (existing logic)
+    let gasLimit = options.gasLimit || txData.gasLimit
 
-      if (!gasLimit) {
-        gasLimit = await this.estimateGasWithBuffer(txData, wallet, options)
-      }
+    if (!gasLimit) {
+      gasLimit = await this.estimateGasWithBuffer(txData, wallet, options)
+    }
 
-      // Enhanced gas price handling (NEW)
-      const gasConfig = await this.getOptimalGasPrice(wallet, options)
+    // Enhanced gas price handling
+    const gasConfig = await this.getOptimalGasPrice(wallet, options)
 
-      // Prepare final transaction with enhanced gas handling
-      const finalTxData: EthersTransactionRequest = {
-        ...txData,
-        gasLimit,
-        value: options.value || txData.value,
-        ...gasConfig,
-      }
+    // Prepare final transaction with enhanced gas handling
+    const finalTxData: EthersTransactionRequest = {
+      ...txData,
+      gasLimit,
+      value: options.value || txData.value,
+      ...gasConfig,
+    }
 
-      // Execute transaction
-      const tx: TransactionResponse = await wallet.sendTransaction(finalTxData)
+    // Execute transaction
+    const tx: TransactionResponse = await wallet.sendTransaction(finalTxData)
 
-      // Enhanced logging with gas price information
-      const gasType = gasConfig.maxFeePerGas ? 'EIP-1559' : 'Legacy'
-      const gasValue = gasConfig.maxFeePerGas || gasConfig.gasPrice
+    // Enhanced logging with gas price information
+    const gasType = gasConfig.maxFeePerGas ? 'EIP-1559' : 'Legacy'
+    const gasValue = gasConfig.maxFeePerGas || gasConfig.gasPrice
 
-      this.logger.log({
-        message: 'Transaction executed successfully',
-        txHash: tx.hash,
-        gasLimit: gasLimit.toString(),
-        gasType,
-        gasValue: gasValue?.toString(),
-        nonce: tx.nonce,
-        networkId,
-        operation: 'execute_transaction',
-        status: 'success',
-        timestamp: new Date().toISOString(),
-      })
+    this.logger.log({
+      message: 'Transaction executed successfully',
+      txHash: tx.hash,
+      gasLimit: gasLimit.toString(),
+      gasType,
+      gasValue: gasValue?.toString(),
+      nonce: tx.nonce,
+      networkId,
+      attempt: attempt + 1,
+      operation: 'execute_transaction',
+      status: 'success',
+      timestamp: new Date().toISOString(),
+    })
 
-      // Return comprehensive transaction result with gas details
-      return {
-        hash: tx.hash,
-        nonce: tx.nonce,
-        gasLimit: tx.gasLimit,
-        gasPrice: tx.gasPrice,
-        maxFeePerGas: tx.maxFeePerGas || undefined,
-        maxPriorityFeePerGas: tx.maxPriorityFeePerGas || undefined,
-      }
-    } catch (error: unknown) {
+    // Return comprehensive transaction result with gas details
+    return {
+      hash: tx.hash,
+      nonce: tx.nonce,
+      gasLimit: tx.gasLimit,
+      gasPrice: tx.gasPrice,
+      maxFeePerGas: tx.maxFeePerGas || undefined,
+      maxPriorityFeePerGas: tx.maxPriorityFeePerGas || undefined,
+    }
+  }
+
+  /**
+   * Log transaction errors with appropriate categorization
+   */
+  private logTransactionError(error: unknown, networkId: string): void {
+    this.logger.error({
+      message: 'Transaction execution failed',
+      error: error instanceof Error ? error.message : String(error),
+      networkId,
+      operation: 'execute_transaction',
+      status: 'failed',
+      timestamp: new Date().toISOString(),
+    })
+
+    // Enhanced error handling for gas-related issues
+    if (this.isGasRelatedError(error)) {
       this.logger.error({
-        message: 'Transaction execution failed',
-        error: error instanceof Error ? error.message : String(error),
+        message: 'Gas limit related error detected',
         networkId,
         operation: 'execute_transaction',
-        status: 'failed',
+        errorType: 'gas_limit',
         timestamp: new Date().toISOString(),
       })
+    }
 
-      // Enhanced error handling for gas-related issues
-      if (this.isGasRelatedError(error)) {
-        this.logger.error({
-          message: 'Gas limit related error detected',
-          networkId,
-          operation: 'execute_transaction',
-          errorType: 'gas_limit',
-          timestamp: new Date().toISOString(),
-        })
-      }
-
-      if (this.isGasPriceRelatedError(error)) {
-        this.logger.error({
-          message: 'Gas price related error detected',
-          networkId,
-          operation: 'execute_transaction',
-          errorType: 'gas_price',
-          recommendation: 'consider increasing gas price or buffer',
-          timestamp: new Date().toISOString(),
-        })
-      }
-
-      throw error
+    if (this.isGasPriceRelatedError(error)) {
+      this.logger.error({
+        message: 'Gas price related error detected',
+        networkId,
+        operation: 'execute_transaction',
+        errorType: 'gas_price',
+        recommendation: 'consider increasing gas price or buffer',
+        timestamp: new Date().toISOString(),
+      })
     }
   }
 
@@ -885,6 +943,33 @@ export class TransactionService implements ITransactionService {
     const hasGasErrorCode = gasErrorCodes.includes(errorCode)
 
     return hasGasKeyword || hasGasErrorCode
+  }
+
+  /**
+   * Check if error is related to nonce issues (expired, too low, already used)
+   * @param error Error object to analyze
+   * @returns True if error is nonce related
+   */
+  private isNonceRelatedError(error: any): boolean {
+    const errorMessage = error?.message?.toLowerCase() || ''
+    const errorCode = error?.code
+
+    const nonceErrorPatterns = [
+      'nonce too low',
+      'nonce has already been used',
+      'nonce expired',
+      'replacement transaction underpriced', // Can also indicate nonce issues
+      'known transaction', // Transaction with same nonce already exists
+      'already known', // Same as above
+    ]
+
+    const hasNonceKeyword = nonceErrorPatterns.some((pattern) => errorMessage.includes(pattern))
+
+    const nonceErrorCodes = ['NONCE_EXPIRED', 'REPLACEMENT_UNDERPRICED']
+
+    const hasNonceErrorCode = nonceErrorCodes.includes(errorCode)
+
+    return hasNonceKeyword || hasNonceErrorCode
   }
 
   /**
