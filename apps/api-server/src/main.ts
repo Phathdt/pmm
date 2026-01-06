@@ -8,7 +8,7 @@ import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { SnakeToCamelInterceptor } from '@optimex-pmm/shared'
-import { Environment, protocolService, sdk } from '@optimex-xyz/market-maker-sdk'
+import { Environment, protocolService, sdk, config as sdkConfig } from '@optimex-xyz/market-maker-sdk'
 
 import 'dotenv/config'
 
@@ -21,6 +21,8 @@ import { ResponseExceptionFilter, ResponseLoggerInterceptor, ZodValidationExcept
 sdk.setEnvironment(process.env.ENV as Environment)
 
 async function bootstrap() {
+  const a = sdkConfig.get()
+  console.log('🚀 ~ bootstrap ~ a:', a)
   const routerAddress = await protocolService.getRouter()
   console.log('🚀 ~ bootstrap ~ routerAddress:', routerAddress)
   const app = await NestFactory.create(AppModule, {
