@@ -3,12 +3,13 @@
 /**
  * Script to scan all imports in each lib/app module and sync dependencies in package.json
  *
- * Usage: npx ts-node scripts/sync-package-deps.ts [--dry-run] [--module <module-name>] [--strict]
+ * Usage: npx ts-node scripts/sync-package-deps.ts [--dry-run] [--module <module-name>] [--strict] [--check-versions]
  *
  * Options:
- *   --dry-run    Show what would be changed without modifying files
- *   --module     Only process a specific module (e.g., --module bitcoin or --module api-server)
- *   --strict     Remove unused dependencies (default: keep existing deps)
+ *   --dry-run         Show what would be changed without modifying files
+ *   --module          Only process a specific module (e.g., --module bitcoin or --module api-server)
+ *   --strict          Remove unused dependencies (default: keep existing deps)
+ *   --check-versions  Check for version mismatches across packages (exits with error if found)
  */
 import * as fs from 'fs'
 import * as path from 'path'
@@ -436,11 +437,64 @@ function updatePackageJson(
   return { added, removed, kept, movedToDev }
 }
 
+// Check for version mismatches across all packages
+function checkVersionMismatches(modules: { name: string; path: string; type: string }[]): {
+  mismatches: Map<string, { version: string; modules: string[] }[]>
+  hasMismatches: boolean
+} {
+  // Map: packageName -> Map<version, modules[]>
+  const packageVersions = new Map<string, Map<string, string[]>>()
+
+  for (const module of modules) {
+    const pkgPath = path.join(module.path, 'package.json')
+    if (!fs.existsSync(pkgPath)) continue
+
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'))
+    const allDeps = { ...pkg.dependencies, ...pkg.devDependencies }
+
+    for (const [depName, version] of Object.entries(allDeps)) {
+      // Skip internal packages
+      if (depName.startsWith('@optimex-pmm/')) continue
+      // Skip wildcard versions
+      if (version === '*') continue
+
+      if (!packageVersions.has(depName)) {
+        packageVersions.set(depName, new Map())
+      }
+
+      const versionMap = packageVersions.get(depName)!
+      const versionStr = version as string
+      if (!versionMap.has(versionStr)) {
+        versionMap.set(versionStr, [])
+      }
+      versionMap.get(versionStr)!.push(module.name)
+    }
+  }
+
+  // Find packages with multiple versions
+  const mismatches = new Map<string, { version: string; modules: string[] }[]>()
+
+  for (const [pkgName, versionMap] of packageVersions) {
+    if (versionMap.size > 1) {
+      const versions: { version: string; modules: string[] }[] = []
+      for (const [version, modules] of versionMap) {
+        versions.push({ version, modules })
+      }
+      // Sort by number of modules using this version (descending)
+      versions.sort((a, b) => b.modules.length - a.modules.length)
+      mismatches.set(pkgName, versions)
+    }
+  }
+
+  return { mismatches, hasMismatches: mismatches.size > 0 }
+}
+
 // Main function
 function main() {
   const args = process.argv.slice(2)
   const dryRun = args.includes('--dry-run')
   const strict = args.includes('--strict')
+  const checkVersions = args.includes('--check-versions')
   const moduleIndex = args.indexOf('--module')
   const targetModule = moduleIndex !== -1 ? args[moduleIndex + 1] : null
 
@@ -450,6 +504,9 @@ function main() {
   }
   if (strict) {
     console.log('⚠️  STRICT MODE - Unused dependencies will be removed\n')
+  }
+  if (checkVersions) {
+    console.log('🔎 VERSION CHECK MODE - Will detect version mismatches\n')
   }
 
   loadRootPackageVersions()
@@ -526,6 +583,58 @@ function main() {
 
   if (!strict) {
     console.log('\n💡 Use --strict to remove unused dependencies')
+  }
+
+  // Check for version mismatches
+  if (checkVersions) {
+    // Get all modules for version check (ignore target module filter)
+    const allLibs = fs
+      .readdirSync(LIBS_DIR, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => ({ name: entry.name, path: path.join(LIBS_DIR, entry.name), type: 'lib' }))
+
+    const allApps = fs
+      .readdirSync(APPS_DIR, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => ({ name: entry.name, path: path.join(APPS_DIR, entry.name), type: 'app' }))
+
+    const allModules = [...allLibs, ...allApps]
+
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+    console.log('🔎 Checking for version mismatches across packages...\n')
+
+    const { mismatches, hasMismatches } = checkVersionMismatches(allModules)
+
+    if (hasMismatches) {
+      console.log('❌ VERSION MISMATCHES DETECTED:\n')
+
+      for (const [pkgName, versions] of mismatches) {
+        console.log(`  📦 ${pkgName}:`)
+        for (const { version, modules: mods } of versions) {
+          console.log(`     ${version} → ${mods.join(', ')}`)
+        }
+        // Suggest the highest version (strip ^ or ~ prefix for comparison)
+        const parseVersion = (v: string) => v.replace(/^[\^~]/, '')
+        const sortedVersions = [...versions].sort((a, b) => {
+          const vA = parseVersion(a.version).split('.').map(Number)
+          const vB = parseVersion(b.version).split('.').map(Number)
+          for (let i = 0; i < Math.max(vA.length, vB.length); i++) {
+            const diff = (vB[i] || 0) - (vA[i] || 0)
+            if (diff !== 0) return diff
+          }
+          return 0
+        })
+        const suggestedVersion = sortedVersions[0].version
+        console.log(`     💡 Suggested: use "${suggestedVersion}" everywhere\n`)
+      }
+
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+      console.log(`\n❌ Found ${mismatches.size} package(s) with version mismatches.`)
+      console.log('   Fix these to avoid inconsistent builds.')
+      process.exit(1)
+    } else {
+      console.log('✅ No version mismatches found - all packages use consistent versions!')
+    }
   }
 }
 

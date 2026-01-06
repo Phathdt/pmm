@@ -29,7 +29,7 @@
     "check:unused:ci": "node unused-detector.js --exit-code",
     "sync:deps": "npx ts-node scripts/sync-package-deps.ts",
     "sync:deps:dry": "npx ts-node scripts/sync-package-deps.ts --dry-run",
-    "sync:deps:strict": "npx ts-node scripts/sync-package-deps.ts --strict"
+    "sync:deps:strict": "npx ts-node scripts/sync-package-deps.ts --strict --check-versions"
   },
   "resolutions": {
     "@bull-board/express/express": "5.0.1",
