@@ -704,7 +704,9 @@ class UnusedDetector {
         const fullPath = path.join(currentDir, item)
         const stat = fs.statSync(fullPath)
 
-        if (stat.isDirectory() && !item.includes('node_modules') && !item.includes('dist')) {
+        // Skip node_modules, dist, and specific libs (contracts, database)
+        const ignoredDirs = ['node_modules', 'dist', 'contracts', 'database']
+        if (stat.isDirectory() && !ignoredDirs.includes(item)) {
           scan(fullPath)
         } else if (item.endsWith('.ts') && !this.shouldIgnoreFile(fullPath)) {
           if (forExports) {

@@ -15,7 +15,7 @@ function shouldIgnoreDirectory(dirName) {
 }
 
 function shouldIgnoreModule(moduleName) {
-  return moduleName === 'contracts'
+  return moduleName === 'contracts' || moduleName === 'database'
 }
 
 function generateIndexContent(files, isRoot = false) {

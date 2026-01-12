@@ -1,4 +1,5 @@
 import { Controller, Get, Inject, Post, Req, UseGuards } from '@nestjs/common'
+import { Trade } from '@optimex-pmm/database'
 import {
   AckSettlementDto,
   GetSettlementSignatureDto,
@@ -8,7 +9,6 @@ import {
   SignalPaymentResponseDto,
 } from '@optimex-pmm/settlement'
 import { TransformedBody, TransformedQuery } from '@optimex-pmm/shared'
-import { Trade } from '@prisma/client'
 
 import { Request } from 'express'
 

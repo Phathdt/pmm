@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { deriveP2TRAddress } from '@optimex-pmm/bitcoin'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
+import { Trade } from '@optimex-pmm/database'
 import { QueueService } from '@optimex-pmm/queue'
 import { isSameAddress, stringToHex } from '@optimex-pmm/shared'
 import { ITradeService, TRADE_SERVICE, TradeStatus } from '@optimex-pmm/trade'
@@ -13,7 +14,6 @@ import {
   Token,
   tokenService,
 } from '@optimex-xyz/market-maker-sdk'
-import { Trade } from '@prisma/client'
 
 import * as ethers from 'ethers'
 

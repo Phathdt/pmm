@@ -77,8 +77,8 @@ RUN apk add --no-cache dumb-init curl
 # Copy cleaned production node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 
-# Copy generated Prisma client from builder
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+# Copy the generated Prisma client from builder (Prisma 7 custom output location)
+COPY --from=builder /app/libs/database/src/generated ./libs/database/src/generated
 
 # Copy built application
 COPY --from=builder /app/dist ./dist
@@ -93,7 +93,7 @@ COPY --from=builder /app/tsconfig.json ./tsconfig.json
 # Create symlink for path resolution
 RUN ln -s /app/dist /dist
 
-# Copy Prisma schema (required for migrations)
+# Copy Prisma schema and config (required for migrations)
 COPY --from=builder /app/prisma ./prisma
 
 # Copy entrypoint script

@@ -1,9 +1,21 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
-import { PrismaClient } from '@prisma/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+
+import { Pool } from 'pg'
+
+import { PrismaClient } from './generated/prisma/client'
 
 type QueryType = 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE'
+
+interface PrismaQueryEvent {
+  timestamp: Date
+  query: string
+  params: string
+  duration: number
+  target: string
+  error?: string
+}
 
 const COLORS = {
   reset: '\x1b[0m',
@@ -20,51 +32,68 @@ const COLORS = {
 }
 
 @Injectable()
-export class DatabaseService extends PrismaClient implements OnModuleInit {
+export class DatabaseService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DatabaseService.name)
   private readonly enableColors: boolean
+  private readonly pool: Pool
 
   constructor(configService: CustomConfigService) {
+    // Create pg Pool for connection management
+    const pool = new Pool({
+      connectionString: configService.database.url,
+      max: 10,
+      idleTimeoutMillis: 300000,
+      connectionTimeoutMillis: 5000,
+    })
+
+    // Create driver adapter for Prisma 7
+    const adapter = new PrismaPg(pool)
+
     const logLevel = configService.log.level || 'info'
     const prismaLogLevels = DatabaseService.mapLogLevelToPrisma(logLevel)
 
-    // Convert log levels to event emitters for $on support
-    const logConfig = prismaLogLevels.map((level) => ({
-      emit: 'event' as const,
-      level,
-    }))
-
     super({
-      log: logConfig,
+      adapter,
+      log: prismaLogLevels,
     })
 
+    this.pool = pool
     this.enableColors = !configService.log.enableJsonFormat
   }
 
   /**
-   * Maps standard log levels to Prisma-compatible log levels
-   * @param logLevel - Standard log level (trace, debug, info, warn, error, fatal)
-   * @returns Array of Prisma log levels
+   * Maps standard log levels to Prisma-compatible log levels with event emitters
    */
-  public static mapLogLevelToPrisma(logLevel: string): ('query' | 'info' | 'warn' | 'error')[] {
+  public static mapLogLevelToPrisma(logLevel: string): { emit: 'event'; level: 'query' | 'info' | 'warn' | 'error' }[] {
     switch (logLevel.toLowerCase()) {
       case 'trace':
       case 'debug':
-        // Most verbose - include all log levels
-        return ['query', 'info', 'warn', 'error']
+        return [
+          { emit: 'event', level: 'query' },
+          { emit: 'event', level: 'info' },
+          { emit: 'event', level: 'warn' },
+          { emit: 'event', level: 'error' },
+        ]
       case 'info':
-        // Standard logging - include info, warnings, and errors
-        return ['info', 'warn', 'error']
+        return [
+          { emit: 'event', level: 'info' },
+          { emit: 'event', level: 'warn' },
+          { emit: 'event', level: 'error' },
+        ]
       case 'warn':
-        // Only warnings and errors
-        return ['warn', 'error']
+        return [
+          { emit: 'event', level: 'warn' },
+          { emit: 'event', level: 'error' },
+        ]
       case 'error':
       case 'fatal':
-        // Only errors
-        return ['error']
+        return [{ emit: 'event', level: 'error' }]
       default:
-        // Default to info level for invalid log levels
-        return ['info', 'warn', 'error']
+        return [
+          { emit: 'event', level: 'info' },
+          { emit: 'event', level: 'warn' },
+          { emit: 'event', level: 'error' },
+        ]
     }
   }
 
@@ -72,7 +101,8 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
     await this.$connect()
 
     // Enhanced SQL query logging
-    ;(this as any).$on('query', (e: any) => {
+    // @ts-expect-error - Prisma $on typing issue with event names
+    this.$on('query', (e: PrismaQueryEvent) => {
       const queryType = e.query.split(' ')[0].toUpperCase() as QueryType
       const formattedQuery = this.formatQuery(e.query)
       const parsedParams = this.parseParams(e.params)
@@ -104,6 +134,11 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
     })
   }
 
+  async onModuleDestroy() {
+    await this.$disconnect()
+    await this.pool.end()
+  }
+
   private formatQuery(query: string): string {
     return query
       .replace(/\s+/g, ' ')
@@ -116,7 +151,7 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
       .trim()
   }
 
-  private parseParams(params: string): any[] {
+  private parseParams(params: string): unknown[] {
     try {
       return params ? JSON.parse(params) : []
     } catch {
@@ -125,10 +160,10 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
   }
 
   private getPerformanceLevel(duration: number): string {
-    if (duration < 10) return '🟢 FAST'
-    if (duration < 100) return '🟡 MEDIUM'
-    if (duration < 1000) return '🟠 SLOW'
-    return '🔴 CRITICAL'
+    if (duration < 10) return 'FAST'
+    if (duration < 100) return 'MEDIUM'
+    if (duration < 1000) return 'SLOW'
+    return 'CRITICAL'
   }
 
   private extractTableNames(query: string): string[] {
@@ -195,7 +230,7 @@ export class DatabaseService extends PrismaClient implements OnModuleInit {
     return `${color}${sql}${COLORS.reset}`
   }
 
-  private colorizeParams(params: any[]): string {
+  private colorizeParams(params: unknown[]): string {
     if (!Array.isArray(params)) return JSON.stringify(params)
 
     const colorizedParams = params.map((param) => {

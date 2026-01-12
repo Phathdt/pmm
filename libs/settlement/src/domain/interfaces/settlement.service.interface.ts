@@ -1,4 +1,4 @@
-import { Trade } from '@prisma/client'
+import { Trade } from '@optimex-pmm/database'
 
 import {
   AckSettlementDto,

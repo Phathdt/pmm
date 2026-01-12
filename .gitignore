@@ -61,3 +61,6 @@ logs.txt
 docs
 
 repomix-output*
+
+# Prisma generated client
+libs/database/src/generated/

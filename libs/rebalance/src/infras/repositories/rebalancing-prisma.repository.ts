@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
+import { DatabaseService, Rebalancing as RebalancingPrisma } from '@optimex-pmm/database'
 
 import { hexlify, randomBytes } from 'ethers'
-import { PrismaService } from 'nestjs-prisma'
 
 import {
   CreateRebalancingInput,
@@ -23,10 +23,10 @@ function generateRebalancingId(): string {
 
 @Injectable()
 export class RebalancingPrismaRepository implements IRebalancingRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly db: DatabaseService) {}
 
   async create(data: CreateRebalancingInput): Promise<Rebalancing> {
-    const result = await this.prisma.rebalancing.create({
+    const result = await this.db.rebalancing.create({
       data: {
         rebalancingId: generateRebalancingId(),
         tradeHash: data.tradeHash,
@@ -47,7 +47,7 @@ export class RebalancingPrismaRepository implements IRebalancingRepository {
   }
 
   async findByTradeHash(tradeHash: string): Promise<Rebalancing | null> {
-    const result = await this.prisma.rebalancing.findUnique({
+    const result = await this.db.rebalancing.findUnique({
       where: { tradeHash },
     })
 
@@ -55,7 +55,7 @@ export class RebalancingPrismaRepository implements IRebalancingRepository {
   }
 
   async findById(id: number): Promise<Rebalancing | null> {
-    const result = await this.prisma.rebalancing.findUnique({
+    const result = await this.db.rebalancing.findUnique({
       where: { id },
     })
 
@@ -63,7 +63,7 @@ export class RebalancingPrismaRepository implements IRebalancingRepository {
   }
 
   async findPending(): Promise<Rebalancing[]> {
-    const results = await this.prisma.rebalancing.findMany({
+    const results = await this.db.rebalancing.findMany({
       where: {
         status: RebalancingStatus.PENDING,
       },
@@ -74,7 +74,7 @@ export class RebalancingPrismaRepository implements IRebalancingRepository {
   }
 
   async findByStatuses(statuses: RebalancingStatus[]): Promise<Rebalancing[]> {
-    const results = await this.prisma.rebalancing.findMany({
+    const results = await this.db.rebalancing.findMany({
       where: {
         status: {
           in: statuses as unknown as string[],
@@ -90,7 +90,7 @@ export class RebalancingPrismaRepository implements IRebalancingRepository {
     const cutoffTime = new Date()
     cutoffTime.setHours(cutoffTime.getHours() - maxRetryDurationHours)
 
-    const results = await this.prisma.rebalancing.findMany({
+    const results = await this.db.rebalancing.findMany({
       where: {
         status: {
           in: RETRYABLE_STATUSES as unknown as string[],
@@ -119,14 +119,14 @@ export class RebalancingPrismaRepository implements IRebalancingRepository {
       }
     }
 
-    await this.prisma.rebalancing.update({
+    await this.db.rebalancing.update({
       where: { id },
       data: updateData,
     })
   }
 
   async incrementRetryCount(id: number): Promise<number> {
-    const result = await this.prisma.rebalancing.update({
+    const result = await this.db.rebalancing.update({
       where: { id },
       data: {
         retryCount: { increment: 1 },
@@ -138,42 +138,14 @@ export class RebalancingPrismaRepository implements IRebalancingRepository {
   }
 
   async existsByTradeHash(tradeHash: string): Promise<boolean> {
-    const count = await this.prisma.rebalancing.count({
+    const count = await this.db.rebalancing.count({
       where: { tradeHash },
     })
 
     return count > 0
   }
 
-  private mapToEntity(data: {
-    id: number
-    rebalancingId: string
-    tradeHash: string
-    tradeId: string | null
-    amount: string
-    realAmount: string | null
-    txId: string | null
-    vaultAddress: string | null
-    optimexStatus: string | null
-    mempoolVerified: boolean
-    depositAddress: string | null
-    nearVaultTxId: string | null
-    quoteId: string | null
-    oraclePrice: string | null
-    quotePrice: string | null
-    slippageBps: number | null
-    expectedUsdc: string | null
-    actualUsdc: string | null
-    nearTxId: string | null
-    nearDepositId: string | null
-    status: string
-    retryCount: number
-    error: string | null
-    metadata: unknown
-    createdAt: Date
-    updatedAt: Date
-    tradeCompletedAt: Date
-  }): Rebalancing {
+  private mapToEntity(data: RebalancingPrisma): Rebalancing {
     return {
       id: data.id,
       rebalancingId: data.rebalancingId,

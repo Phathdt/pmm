@@ -9,7 +9,7 @@ import { ScheduleModule } from '@nestjs/schedule'
 import { BitcoinModule } from '@optimex-pmm/bitcoin'
 import { CustomConfigModule, CustomConfigService } from '@optimex-pmm/custom-config'
 import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
-import { DatabaseService } from '@optimex-pmm/database'
+import { DatabaseModule } from '@optimex-pmm/database'
 import { NotificationModule } from '@optimex-pmm/notification'
 import { QueueModule } from '@optimex-pmm/queue'
 import { QuoteModule } from '@optimex-pmm/quote'
@@ -17,8 +17,6 @@ import { REBALANCE_QUEUE, REBALANCE_QUEUE_NAMES, RebalanceModule } from '@optime
 import { SETTLEMENT_QUEUE, SETTLEMENT_QUEUE_NAMES, SettlementModule } from '@optimex-pmm/settlement'
 import { TokenModule } from '@optimex-pmm/token'
 import { TradeModule } from '@optimex-pmm/trade'
-
-import { PrismaModule, PrismaServiceOptions } from 'nestjs-prisma'
 
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
@@ -74,19 +72,7 @@ const QUEUE_BOARDS = Object.values({
     CustomConfigModule,
     CustomLoggerModule,
     CacheModule.register({ isGlobal: true }),
-    PrismaModule.forRootAsync({
-      isGlobal: true,
-      imports: [CustomConfigModule],
-      useFactory(configService: CustomConfigService): PrismaServiceOptions {
-        return {
-          prismaOptions: {
-            log: DatabaseService.mapLogLevelToPrisma(configService.log.level),
-            datasourceUrl: configService.database.url,
-          },
-        }
-      },
-      inject: [CustomConfigService],
-    }),
+    DatabaseModule,
     BullModule.forRootAsync({
       imports: [CustomConfigModule],
       useFactory: async (configService: CustomConfigService) => ({

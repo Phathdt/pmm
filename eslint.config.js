@@ -5,7 +5,16 @@ const globals = require('globals')
 
 module.exports = [
   {
-    ignores: ['**/dist', '**/node_modules', '**/*.test.ts', '**/*.spec.ts', '*.js', '.turbo'],
+    ignores: [
+      '**/dist',
+      '**/node_modules',
+      '**/*.test.ts',
+      '**/*.spec.ts',
+      '*.js',
+      '.turbo',
+      'prisma/prisma.config.ts',
+      '**/generated/**',
+    ],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

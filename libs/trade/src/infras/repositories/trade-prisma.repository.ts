@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
-import { DatabaseService } from '@optimex-pmm/database'
-import { Trade as TradePrisma } from '@prisma/client'
+import { DatabaseService, Trade as TradePrisma } from '@optimex-pmm/database'
 
 import {
   CreateTradeData,
