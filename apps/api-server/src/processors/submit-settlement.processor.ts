@@ -1,6 +1,7 @@
-import { Process, Processor } from '@nestjs/bull'
+import { Processor, WorkerHost } from '@nestjs/bullmq'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { EnhancedLogger } from '@optimex-pmm/custom-logger'
+import { ProcessorHelper } from '@optimex-pmm/queue'
 import { l2Encode, SETTLEMENT_QUEUE, SubmitSettlementEvent } from '@optimex-pmm/settlement'
 import { toObject } from '@optimex-pmm/shared'
 import {
@@ -13,13 +14,11 @@ import {
 } from '@optimex-xyz/market-maker-sdk'
 
 import { AxiosError } from 'axios'
-import { Job } from 'bull'
+import { Job } from 'bullmq'
 import { BytesLike, ethers } from 'ethers'
 
-import { BaseProcessor } from './base.processor'
-
 @Processor(SETTLEMENT_QUEUE.SUBMIT.NAME)
-export class SubmitSettlementProcessor extends BaseProcessor {
+export class SubmitSettlementProcessor extends WorkerHost {
   private provider: ethers.JsonRpcProvider
   private pmmWallet: ethers.Wallet
   private pmmPrivateKey: string
@@ -28,7 +27,8 @@ export class SubmitSettlementProcessor extends BaseProcessor {
   private solverSerivce = solverService
   private routerService = routerService
 
-  protected readonly logger: EnhancedLogger
+  private readonly logger: EnhancedLogger
+  private readonly processorHelper: ProcessorHelper
 
   constructor(
     private configService: CustomConfigService,
@@ -36,6 +36,7 @@ export class SubmitSettlementProcessor extends BaseProcessor {
   ) {
     super()
     this.logger = logger.with({ context: SubmitSettlementProcessor.name })
+    this.processorHelper = new ProcessorHelper(this.logger)
 
     this.pmmPrivateKey = this.configService.pmm.privateKey
     this.pmmId = this.configService.pmm.id
@@ -44,9 +45,8 @@ export class SubmitSettlementProcessor extends BaseProcessor {
     this.pmmWallet = new ethers.Wallet(this.pmmPrivateKey, this.provider)
   }
 
-  @Process(SETTLEMENT_QUEUE.SUBMIT.JOBS.PROCESS)
-  async submit(job: Job<string>) {
-    return this.executeWithTraceId(job, async (job) => {
+  async process(job: Job<string, unknown, string>): Promise<void> {
+    return this.processorHelper.executeWithTraceId(job, async (job) => {
       const { tradeId, paymentTxId: paymentId } = toObject(job.data) as SubmitSettlementEvent
 
       this.logger.log({
@@ -114,8 +114,6 @@ export class SubmitSettlementProcessor extends BaseProcessor {
             operation: 'settlement_submission_success',
             timestamp: new Date().toISOString(),
           })
-
-          return response
         } catch (axiosError) {
           if (axiosError instanceof AxiosError) {
             this.logger.error({

@@ -1,7 +1,7 @@
-import { BullAdapter } from '@bull-board/api/bullAdapter'
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter'
 import { ExpressAdapter } from '@bull-board/express'
 import { BullBoardModule } from '@bull-board/nestjs'
-import { BullModule } from '@nestjs/bull'
+import { BullModule } from '@nestjs/bullmq'
 import { CacheModule } from '@nestjs/cache-manager'
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { APP_INTERCEPTOR } from '@nestjs/core'
@@ -64,7 +64,7 @@ const QUEUE_BOARDS = Object.values({
   ...REBALANCE_QUEUE,
 }).map((queue) => ({
   name: queue.NAME,
-  adapter: BullAdapter,
+  adapter: BullMQAdapter,
 }))
 
 @Module({
@@ -76,7 +76,9 @@ const QUEUE_BOARDS = Object.values({
     BullModule.forRootAsync({
       imports: [CustomConfigModule],
       useFactory: async (configService: CustomConfigService) => ({
-        redis: configService.redis.url,
+        connection: {
+          url: configService.redis.url,
+        },
       }),
       inject: [CustomConfigService],
     }),

@@ -35,7 +35,7 @@
   },
   "resolutions": {
     "@bull-board/express/express": "5.0.1",
-    "uuid": "^11.1.0",
+    "uuid": "^12.0.0",
     "@solana/web3.js": "^1.98.0"
   },
   "devDependencies": {
@@ -47,6 +47,7 @@
     "@types/node": "~24.10.1",
     "commitizen": "^4.3.1",
     "cz-conventional-changelog": "^3.3.0",
+    "dotenv": "^17.2.3",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-unused-imports": "^4.3.0",
@@ -57,17 +58,16 @@
     "jest-environment-node": "^30.2.0",
     "lint-staged": "^16.2.7",
     "prettier": "^3.7.4",
-    "dotenv": "^17.2.3",
     "prisma": "^7.2.0",
     "rolldown": "^1.0.0-beta.59",
     "ts-jest": "^29.4.6",
     "ts-node": "10.9.2",
     "turbo": "^2.7.4",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.52.0"
+    "typescript-eslint": "^8.53.0"
   },
   "dependencies": {
-    "@oxc-project/runtime": "^0.107.0",
+    "@oxc-project/runtime": "^0.108.0",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
     "@types/pg": "^8.16.0",

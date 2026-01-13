@@ -1,4 +1,4 @@
-import { InjectQueue, Process, Processor } from '@nestjs/bull'
+import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq'
 import { Inject } from '@nestjs/common'
 import { deriveP2TRAddress } from '@optimex-pmm/bitcoin'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
@@ -12,6 +12,7 @@ import {
   NearSwapType,
 } from '@optimex-pmm/near'
 import { INotificationService, NOTIFICATION_SERVICE } from '@optimex-pmm/notification'
+import { ProcessorHelper } from '@optimex-pmm/queue'
 import {
   IRebalancingService,
   ISlippageService,
@@ -22,9 +23,8 @@ import {
 } from '@optimex-pmm/rebalance'
 import { RebalanceNotification, toObject, toString } from '@optimex-pmm/shared'
 
-import { Job, Queue } from 'bull'
+import { Job, Queue } from 'bullmq'
 
-import { BaseProcessor } from './base.processor'
 import { RebalanceTransferJob } from './rebalance-transfer.processor'
 
 export interface RebalanceQueueJob {
@@ -36,13 +36,14 @@ export interface RebalanceQueueJob {
   txId: string
 }
 
-@Processor(REBALANCE_QUEUE.BTC_USDC.NAME)
-export class RebalanceProcessor extends BaseProcessor {
-  protected readonly logger: EnhancedLogger
+@Processor(REBALANCE_QUEUE.QUOTE.NAME)
+export class RebalanceProcessor extends WorkerHost {
+  private readonly logger: EnhancedLogger
+  private readonly processorHelper: ProcessorHelper
 
   constructor(
-    @InjectQueue(REBALANCE_QUEUE.BTC_USDC.NAME)
-    private readonly rebalanceQueue: Queue,
+    @InjectQueue(REBALANCE_QUEUE.TRANSFER.NAME)
+    private readonly transferQueue: Queue,
     @Inject(REBALANCING_SERVICE) private rebalancingService: IRebalancingService,
     @Inject(SLIPPAGE_SERVICE) private slippageService: ISlippageService,
     @Inject(NEAR_SERVICE) private nearService: INearService,
@@ -52,16 +53,16 @@ export class RebalanceProcessor extends BaseProcessor {
   ) {
     super()
     this.logger = logger.with({ context: RebalanceProcessor.name })
+    this.processorHelper = new ProcessorHelper(this.logger)
   }
 
   /**
    * Process rebalance: Get NEAR quote and validate slippage.
    * This processor handles quote acquisition only.
-   * Actual BTC transfer and NEAR polling are handled separately.
+   * Actual BTC transfer is handled by RebalanceTransferProcessor.
    */
-  @Process(REBALANCE_QUEUE.BTC_USDC.JOBS.PROCESS)
-  async processRebalance(job: Job<string>) {
-    return this.executeWithTraceId(job, async (job) => {
+  async process(job: Job<string, unknown, string>): Promise<void> {
+    return this.processorHelper.executeWithTraceId(job, async (job) => {
       const data = toObject(job.data) as RebalanceQueueJob
       const { id, rebalancingId, tradeHash, amount, realAmount } = data
 
@@ -172,7 +173,7 @@ export class RebalanceProcessor extends BaseProcessor {
         }
 
         // Include retryCount in jobId to allow retry attempts
-        await this.rebalanceQueue.add(REBALANCE_QUEUE.BTC_USDC.JOBS.TRANSFER, toString(transferJob), {
+        await this.transferQueue.add('transfer', toString(transferJob), {
           jobId: `rebalance-transfer-${rebalancingId}-${rebalancing.retryCount}`,
           removeOnComplete: { age: 24 * 3600 },
           removeOnFail: { age: 24 * 3600 },

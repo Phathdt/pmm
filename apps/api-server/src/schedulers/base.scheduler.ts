@@ -72,41 +72,4 @@ export abstract class BaseScheduler {
       return undefined
     }
   }
-
-  /**
-   * Executes a scheduler without traceId wrapper
-   * Useful for simple schedulers or when traceId is not required
-   */
-  protected async executeScheduler<R = unknown>(
-    schedulerName: string,
-    handler: () => Promise<R>
-  ): Promise<R | undefined> {
-    try {
-      this.logger.debug({
-        message: 'Starting scheduler execution',
-        schedulerName,
-        operation: 'scheduler_start',
-      })
-
-      const result = await handler()
-
-      this.logger.debug({
-        message: 'Completed scheduler execution',
-        schedulerName,
-        operation: 'scheduler_complete',
-      })
-
-      return result
-    } catch (error) {
-      this.logger.error({
-        message: 'Failed to execute scheduler',
-        schedulerName,
-        error: error instanceof Error ? error.message : String(error),
-        stack: (error as Error).stack,
-        operation: 'scheduler_error',
-      })
-      // Don't throw - schedulers should be resilient and not crash the app
-      return undefined
-    }
-  }
 }

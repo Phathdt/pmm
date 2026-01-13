@@ -1,4 +1,4 @@
-import { InjectQueue } from '@nestjs/bull'
+import { InjectQueue } from '@nestjs/bullmq'
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
 import { BITCOIN_SERVICE, IBitcoinService } from '@optimex-pmm/bitcoin'
@@ -14,7 +14,7 @@ import {
 } from '@optimex-pmm/rebalance'
 import { RebalanceNotification, toString } from '@optimex-pmm/shared'
 
-import { Queue } from 'bull'
+import { Queue } from 'bullmq'
 
 import { BaseScheduler } from './base.scheduler'
 
@@ -42,8 +42,8 @@ export class RebalancePendingScheduler extends BaseScheduler implements OnModule
   private readonly skipConfirm: boolean
 
   constructor(
-    @InjectQueue(REBALANCE_QUEUE.BTC_USDC.NAME)
-    private readonly rebalanceQueue: Queue,
+    @InjectQueue(REBALANCE_QUEUE.QUOTE.NAME)
+    private readonly quoteQueue: Queue,
     @Inject(REBALANCING_SERVICE) private readonly rebalancingService: IRebalancingService,
     @Inject(BITCOIN_SERVICE) private readonly bitcoinService: IBitcoinService,
     @Inject(NOTIFICATION_SERVICE) private readonly notificationService: INotificationService,
@@ -204,8 +204,8 @@ export class RebalancePendingScheduler extends BaseScheduler implements OnModule
     }
 
     // Include retryCount in jobId to allow retry attempts
-    await this.rebalanceQueue.add(REBALANCE_QUEUE.BTC_USDC.JOBS.PROCESS, toString(job), {
-      jobId: `rebalance-process-${rebalancingId}-${retryCount}`,
+    await this.quoteQueue.add('quote', toString(job), {
+      jobId: `rebalance-quote-${rebalancingId}-${retryCount}`,
       removeOnComplete: { age: 24 * 3600 },
       removeOnFail: { age: 24 * 3600 },
     })

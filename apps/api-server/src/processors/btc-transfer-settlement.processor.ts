@@ -1,7 +1,8 @@
-import { InjectQueue, Process, Processor } from '@nestjs/bull'
+import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq'
 import { Inject } from '@nestjs/common'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { EnhancedLogger } from '@optimex-pmm/custom-logger'
+import { ProcessorHelper } from '@optimex-pmm/queue'
 import {
   ITransferFactory,
   l2Decode,
@@ -14,12 +15,10 @@ import { stringToHex, toObject, toString } from '@optimex-pmm/shared'
 import { ITradeService, Trade, TRADE_SERVICE } from '@optimex-pmm/trade'
 import { ITypes, routerService, tokenService } from '@optimex-xyz/market-maker-sdk'
 
-import { Job, Queue } from 'bull'
-
-import { BaseProcessor } from './base.processor'
+import { Job, Queue } from 'bullmq'
 
 @Processor(SETTLEMENT_QUEUE.BTC_TRANSFER.NAME)
-export class BtcTransferSettlementProcessor extends BaseProcessor {
+export class BtcTransferSettlementProcessor extends WorkerHost {
   private pmmId: string
   private readonly MAX_RETRIES = 60
   private readonly RETRY_DELAY = 60000
@@ -27,7 +26,8 @@ export class BtcTransferSettlementProcessor extends BaseProcessor {
   private routerService = routerService
   private tokenRepo = tokenService
 
-  protected readonly logger: EnhancedLogger
+  private readonly logger: EnhancedLogger
+  private readonly processorHelper: ProcessorHelper
 
   constructor(
     @InjectQueue(SETTLEMENT_QUEUE.SUBMIT.NAME) private submitSettlementQueue: Queue,
@@ -39,12 +39,12 @@ export class BtcTransferSettlementProcessor extends BaseProcessor {
   ) {
     super()
     this.logger = logger.with({ context: BtcTransferSettlementProcessor.name })
+    this.processorHelper = new ProcessorHelper(this.logger)
     this.pmmId = stringToHex(this.configService.pmm.id)
   }
 
-  @Process(SETTLEMENT_QUEUE.BTC_TRANSFER.JOBS.PROCESS)
-  async transfer(job: Job<string>) {
-    return this.executeWithTraceId(job, async (job) => {
+  async process(job: Job<string, unknown, string>): Promise<void> {
+    return this.processorHelper.executeWithTraceId(job, async (job) => {
       const { tradeId, retryCount = 0 } = toObject(job.data) as TransferSettlementEvent & { retryCount?: number }
 
       this.logger.log({

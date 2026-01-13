@@ -47,5 +47,6 @@ module.exports = {
     // /^teardown.*$/,     // Teardown methods
     // /^handle.*$/,       // Handler methods
     // /^on.*$/            // Event handler methods starting with 'on'
+    /^process$/, // Bu
   ],
 }

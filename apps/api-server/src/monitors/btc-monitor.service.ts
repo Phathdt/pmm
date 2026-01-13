@@ -1,4 +1,4 @@
-import { InjectQueue } from '@nestjs/bull'
+import { InjectQueue } from '@nestjs/bullmq'
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { EnhancedLogger } from '@optimex-pmm/custom-logger'
@@ -6,7 +6,7 @@ import { QueueService } from '@optimex-pmm/queue'
 import { SETTLEMENT_QUEUE, SETTLEMENT_REDIS_QUEUE, TransferSettlementEvent } from '@optimex-pmm/settlement'
 import { toString } from '@optimex-pmm/shared'
 
-import { Queue } from 'bull'
+import { Queue } from 'bullmq'
 
 import { BaseScheduler } from '../schedulers'
 

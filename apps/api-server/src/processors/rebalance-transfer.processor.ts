@@ -1,15 +1,14 @@
-import { Process, Processor } from '@nestjs/bull'
+import { Processor, WorkerHost } from '@nestjs/bullmq'
 import { Inject } from '@nestjs/common'
 import { BITCOIN_SERVICE, IBitcoinService } from '@optimex-pmm/bitcoin'
 import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 import { INearService, NEAR_SERVICE } from '@optimex-pmm/near'
 import { INotificationService, NOTIFICATION_SERVICE } from '@optimex-pmm/notification'
+import { ProcessorHelper } from '@optimex-pmm/queue'
 import { IRebalancingService, REBALANCE_QUEUE, REBALANCING_SERVICE, RebalancingStatus } from '@optimex-pmm/rebalance'
 import { RebalanceNotification, toObject } from '@optimex-pmm/shared'
 
-import { Job } from 'bull'
-
-import { BaseProcessor } from './base.processor'
+import { Job } from 'bullmq'
 
 export interface RebalanceTransferJob {
   id: number // Numeric DB ID for querying
@@ -23,9 +22,10 @@ export interface RebalanceTransferJob {
  * Processes BTC transfers to NEAR vault for rebalancing.
  * This processor handles the actual BTC transfer after quote is accepted.
  */
-@Processor(REBALANCE_QUEUE.BTC_USDC.NAME)
-export class RebalanceTransferProcessor extends BaseProcessor {
-  protected readonly logger: EnhancedLogger
+@Processor(REBALANCE_QUEUE.TRANSFER.NAME)
+export class RebalanceTransferProcessor extends WorkerHost {
+  private readonly logger: EnhancedLogger
+  private readonly processorHelper: ProcessorHelper
 
   constructor(
     @Inject(REBALANCING_SERVICE) private rebalancingService: IRebalancingService,
@@ -36,15 +36,15 @@ export class RebalanceTransferProcessor extends BaseProcessor {
   ) {
     super()
     this.logger = logger.with({ context: RebalanceTransferProcessor.name })
+    this.processorHelper = new ProcessorHelper(this.logger)
   }
 
   /**
    * Process BTC transfer to NEAR vault.
    * Transfers BTC from PMM wallet to the deposit address provided by NEAR quote.
    */
-  @Process(REBALANCE_QUEUE.BTC_USDC.JOBS.TRANSFER)
-  async processTransfer(job: Job<string>) {
-    return this.executeWithTraceId(job, async (job) => {
+  async process(job: Job<string, unknown, string>): Promise<void> {
+    return this.processorHelper.executeWithTraceId(job, async (job) => {
       const data = toObject(job.data) as RebalanceTransferJob
       const { id, rebalancingId, tradeHash, realAmount, depositAddress } = data
 
