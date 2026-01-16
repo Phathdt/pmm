@@ -14,16 +14,16 @@
     "@optimex-pmm/custom-config": "*",
     "@optimex-pmm/custom-logger": "*",
     "@optimex-pmm/req": "*",
-    "@nestjs/common": "^11.1.9",
-    "@nestjs/core": "^11.1.9",
-    "@nestjs/platform-express": "^11.1.9",
+    "@nestjs/common": "^11.1.12",
+    "@nestjs/core": "^11.1.12",
+    "@nestjs/platform-express": "^11.1.12",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "zod": "^4.1.13"
+    "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.1.9",
-    "@types/node": "~24.10.1",
+    "@nestjs/testing": "^11.1.12",
+    "@types/node": "~25.0.9",
     "typescript": "~5.9.3"
   }
 }

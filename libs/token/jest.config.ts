@@ -7,13 +7,15 @@ const config: Config = {
   roots: ['<rootDir>/src'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   transform: {
-    '^.+\\.ts$': [
+    '^.+\\.(ts|js)$': [
       'ts-jest',
       {
         tsconfig: '<rootDir>/tsconfig.json',
+        useESM: true,
       },
     ],
   },
+  transformIgnorePatterns: ['/node_modules/(?!(uuid)/)'],
   testMatch: ['**/*.spec.ts', '**/*.test.ts'],
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.spec.ts', '!src/index.ts'],
   coverageDirectory: '../../coverage/libs/token',
