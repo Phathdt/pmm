@@ -2,6 +2,7 @@ import KeyvRedis from '@keyv/redis'
 import { CacheModule } from '@nestjs/cache-manager'
 import { Module } from '@nestjs/common'
 import { CustomConfigModule, CustomConfigService } from '@optimex-pmm/custom-config'
+import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
 import { ReqModule } from '@optimex-pmm/req'
 
 import { TokenService } from './application'
@@ -28,6 +29,7 @@ export const providers = [
 
 @Module({
   imports: [
+    CustomLoggerModule,
     // CoinGecko API Configuration
     ReqModule.registerAsync({
       imports: [CustomConfigModule],

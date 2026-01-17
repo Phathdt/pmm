@@ -1,4 +1,5 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 import { ReqService } from '@optimex-pmm/req'
 
 import { v7 as uuidv7 } from 'uuid'
@@ -15,9 +16,14 @@ import { NEAR_REQ_SERVICE } from '../../infras'
 
 @Injectable()
 export class NearService implements INearService {
-  private readonly logger = new Logger(NearService.name)
+  private readonly logger: EnhancedLogger
 
-  constructor(@Inject(NEAR_REQ_SERVICE) private readonly reqService: ReqService) {}
+  constructor(
+    @Inject(NEAR_REQ_SERVICE) private readonly reqService: ReqService,
+    logger: EnhancedLogger
+  ) {
+    this.logger = logger.with({ context: NearService.name })
+  }
 
   async requestQuote(request: NearQuoteRequestInput): Promise<NearQuoteResponse> {
     const requestWithSessionId = {

@@ -116,14 +116,17 @@ Background services that poll for chain-specific events:
 
 ## Testing
 
-Tests use Jest with ts-jest. Each lib has its own `jest.config.ts`.
+Tests use Vitest. Configuration is in the root `vitest.config.ts`.
 
 ```bash
-# Run single test file
-yarn turbo run test --filter=@optimex-pmm/trade -- path/to/test.spec.ts
+# Run all tests
+yarn test
 
-# Run with watch mode (in lib directory)
-cd libs/trade && npx jest --watch
+# Run tests with coverage (CI mode)
+yarn test:ci
+
+# Run tests in watch mode
+yarn test:watch
 ```
 
 ## Database
@@ -156,8 +159,7 @@ Create `libs/<module-name>/package.json`:
   "scripts": {
     "build": "rolldown -c",
     "dev": "rolldown -c --watch",
-    "lint": "eslint src --fix",
-    "test": "jest --passWithNoTests"
+    "lint": "eslint src --fix"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.9",
@@ -207,36 +209,7 @@ export default defineConfig({
 })
 ```
 
-### Step 5: Create jest.config.ts (optional, for testing)
-
-Create `libs/<module-name>/jest.config.ts`:
-
-```typescript
-import type { Config } from 'jest'
-
-const config: Config = {
-  displayName: '<module-name>',
-  testEnvironment: 'node',
-  rootDir: '.',
-  roots: ['<rootDir>/src'],
-  moduleFileExtensions: ['ts', 'js', 'json'],
-  transform: {
-    '^.+\\.ts$': [
-      'ts-jest',
-      {
-        tsconfig: '<rootDir>/tsconfig.json',
-      },
-    ],
-  },
-  testMatch: ['**/*.spec.ts', '**/*.test.ts'],
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.spec.ts', '!src/index.ts'],
-  coverageDirectory: '../../coverage/libs/<module-name>',
-}
-
-export default config
-```
-
-### Step 6: Create Source Files
+### Step 5: Create Source Files
 
 Create `libs/<module-name>/src/index.ts` to export your module:
 
@@ -246,7 +219,7 @@ export * from './<module-name>.service'
 // Export other files as needed
 ```
 
-### Step 7: Update Dockerfile
+### Step 6: Update Dockerfile
 
 Add the package.json COPY command in `Dockerfile` (around line 13-27):
 
@@ -254,7 +227,7 @@ Add the package.json COPY command in `Dockerfile` (around line 13-27):
 COPY libs/<module-name>/package.json ./libs/<module-name>/
 ```
 
-### Step 8: Sync Dependencies
+### Step 7: Sync Dependencies
 
 Run the dependency sync script to detect and add dependencies:
 
@@ -262,7 +235,7 @@ Run the dependency sync script to detect and add dependencies:
 yarn sync:deps --module <module-name>
 ```
 
-### Step 9: Add to Consumer Package
+### Step 8: Add to Consumer Package
 
 If the module is used by `api-server` or other apps/libs, add it to their `package.json`:
 
@@ -280,7 +253,7 @@ Or run `yarn sync:deps` to auto-detect imports:
 yarn sync:deps --module api-server
 ```
 
-### Step 10: Install Dependencies and Build
+### Step 9: Install Dependencies and Build
 
 ```bash
 yarn install

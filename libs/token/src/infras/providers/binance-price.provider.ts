@@ -1,4 +1,5 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 import { ReqService } from '@optimex-pmm/req'
 
 import { BinancePriceTicker, ITokenPriceProvider, PriceProvider } from '../../domain'
@@ -7,9 +8,14 @@ import { normalizeSymbol } from '../../utils'
 @Injectable()
 export class BinancePriceProvider implements ITokenPriceProvider {
   readonly name = PriceProvider.BINANCE
-  private readonly logger = new Logger(BinancePriceProvider.name)
+  private readonly logger: EnhancedLogger
 
-  constructor(@Inject('BINANCE_REQ_SERVICE') private readonly reqService: ReqService) {}
+  constructor(
+    @Inject('BINANCE_REQ_SERVICE') private readonly reqService: ReqService,
+    logger: EnhancedLogger
+  ) {
+    this.logger = logger.with({ context: BinancePriceProvider.name })
+  }
 
   async getTokenPrice(symbol: string): Promise<number> {
     // Validate input

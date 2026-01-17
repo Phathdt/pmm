@@ -1,26 +1,27 @@
 import { BadRequestException } from '@nestjs/common'
-import { Test, TestingModule } from '@nestjs/testing'
-import { CustomConfigService } from '@optimex-pmm/custom-config'
 import { Token, tokenService } from '@optimex-xyz/market-maker-sdk'
 
 import { ethers } from 'ethers'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { TokenService } from './token.service'
 
 import { ITokenRepository, TokenQuoteCalculationData, TokenValidationData } from '../../domain'
-import { TOKEN_REPOSITORY } from '../../infras'
+
+type Mocked<T> = {
+  [P in keyof T]: T[P] extends (...args: infer A) => infer R ? Mock<(...args: A) => R> & T[P] : T[P]
+}
 
 // Mock the tokenService from SDK
-jest.mock('@optimex-xyz/market-maker-sdk', () => ({
+vi.mock('@optimex-xyz/market-maker-sdk', () => ({
   tokenService: {
-    getTokenByTokenId: jest.fn(),
+    getTokenByTokenId: vi.fn(),
   },
 }))
 
 describe('TokenService', () => {
   let service: TokenService
-  let tokenRepository: jest.Mocked<ITokenRepository>
-  let configService: jest.Mocked<CustomConfigService>
+  let tokenRepository: Mocked<ITokenRepository>
 
   // Test configuration values
   const TEST_CONFIG = {
@@ -74,30 +75,23 @@ describe('TokenService', () => {
     networkLogoUri: 'https://example.com/ethereum.png',
   }
 
-  beforeEach(async () => {
+  beforeEach(() => {
     // Create mock repository
     tokenRepository = {
-      getTokenPrice: jest.fn(),
-    }
+      getTokenPrice: vi.fn(),
+    } as Mocked<ITokenRepository>
 
     // Create mock config service
-    configService = {
+    const mockConfigService = {
       trade: TEST_CONFIG,
-    } as unknown as jest.Mocked<CustomConfigService>
+    }
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TokenService,
-        { provide: TOKEN_REPOSITORY, useValue: tokenRepository },
-        { provide: CustomConfigService, useValue: configService },
-      ],
-    }).compile()
-
-    service = module.get<TokenService>(TokenService)
+    // Directly instantiate the service
+    service = new TokenService(tokenRepository, mockConfigService as any)
   })
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('Constructor & Configuration', () => {
@@ -190,7 +184,7 @@ describe('TokenService', () => {
 
   describe('getTokenByTokenId()', () => {
     it('should delegate to tokenService.getTokenByTokenId()', async () => {
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(BTC_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(BTC_TOKEN)
 
       const result = await service.getTokenByTokenId('btc-token-id')
 
@@ -199,7 +193,7 @@ describe('TokenService', () => {
     })
 
     it('should return Token object when found', async () => {
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(ETH_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(ETH_TOKEN)
 
       const result = await service.getTokenByTokenId('eth-token-id')
 
@@ -209,7 +203,7 @@ describe('TokenService', () => {
     })
 
     it('should return null when token not found', async () => {
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(null)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(null)
 
       const result = await service.getTokenByTokenId('invalid-token-id')
 
@@ -217,7 +211,7 @@ describe('TokenService', () => {
     })
 
     it('should pass tokenId correctly', async () => {
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(USDT_TOKEN)
 
       await service.getTokenByTokenId('usdt-token-id')
 
@@ -234,7 +228,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(BTC_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(BTC_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(50000) // 1 BTC = $50,000 USD (exactly at HARD_CAP)
 
       // Should pass when exactly at HARD_CAP
@@ -248,7 +242,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(null)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(null)
 
       await expect(service.validateIndicativeAmount(validationData)).rejects.toThrow(BadRequestException)
       await expect(service.validateIndicativeAmount(validationData)).rejects.toThrow(
@@ -263,7 +257,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(BTC_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(BTC_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(50000) // 0.001 BTC = $50 USD (below $100 MIN_TRADE)
 
       await expect(service.validateIndicativeAmount(validationData)).rejects.toThrow(BadRequestException)
@@ -279,7 +273,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(BTC_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(BTC_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(50000) // 1.5 BTC = $75,000 USD (exceeds $50,000 HARD_CAP)
 
       await expect(service.validateIndicativeAmount(validationData)).rejects.toThrow(BadRequestException)
@@ -293,7 +287,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(BTC_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(BTC_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(50000) // 0.1 BTC = $5,000 USD (within range)
 
       await expect(service.validateIndicativeAmount(validationData)).resolves.not.toThrow()
@@ -306,7 +300,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(ETH_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(ETH_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(3000) // 1 ETH = $3,000 USD
 
       await expect(service.validateIndicativeAmount(validationData)).resolves.not.toThrow()
@@ -321,7 +315,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(USDT_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(1.0) // 1000 USDT = $1,000 USD
 
       await expect(service.validateIndicativeAmount(usdtValidation)).resolves.not.toThrow()
@@ -333,7 +327,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(BTC_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(BTC_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(50000) // 0.1 BTC = $5,000 USD
 
       await expect(service.validateIndicativeAmount(btcValidation)).resolves.not.toThrow()
@@ -345,7 +339,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(ETH_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(ETH_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(3000) // 1 ETH = $3,000 USD
 
       await expect(service.validateIndicativeAmount(ethValidation)).resolves.not.toThrow()
@@ -358,7 +352,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(USDT_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(1.0)
 
       await expect(service.validateIndicativeAmount(validationData)).resolves.not.toThrow()
@@ -371,7 +365,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(USDT_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(1.0)
 
       await expect(service.validateIndicativeAmount(validationData)).resolves.not.toThrow()
@@ -386,7 +380,7 @@ describe('TokenService', () => {
         validationType: 'commitment',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(BTC_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(BTC_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(50000) // 0.25 BTC = $12,500 USD (exceeds $10,000 SOFT_CAP)
 
       await expect(service.validateCommitmentAmount(validationData)).rejects.toThrow(BadRequestException)
@@ -400,7 +394,7 @@ describe('TokenService', () => {
         validationType: 'commitment',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(null)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(null)
 
       await expect(service.validateCommitmentAmount(validationData)).rejects.toThrow(BadRequestException)
       await expect(service.validateCommitmentAmount(validationData)).rejects.toThrow(
@@ -415,7 +409,7 @@ describe('TokenService', () => {
         validationType: 'commitment',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(USDT_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(1.0)
 
       await expect(service.validateCommitmentAmount(validationData)).rejects.toThrow(BadRequestException)
@@ -431,7 +425,7 @@ describe('TokenService', () => {
         validationType: 'commitment',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(USDT_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(1.0)
 
       await expect(service.validateCommitmentAmount(validationData)).rejects.toThrow(BadRequestException)
@@ -445,7 +439,7 @@ describe('TokenService', () => {
         validationType: 'commitment',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(ETH_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(ETH_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(3000) // 5 ETH = $15,000 USD
 
       await expect(service.validateCommitmentAmount(validationData)).rejects.toThrow(BadRequestException)
@@ -459,7 +453,7 @@ describe('TokenService', () => {
         validationType: 'commitment',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(USDT_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(1.0)
 
       await expect(service.validateCommitmentAmount(validationData)).resolves.not.toThrow()
@@ -472,7 +466,7 @@ describe('TokenService', () => {
         validationType: 'commitment',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(BTC_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(BTC_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(50000) // 0.05 BTC = $2,500 USD
 
       await expect(service.validateCommitmentAmount(validationData)).resolves.not.toThrow()
@@ -486,7 +480,7 @@ describe('TokenService', () => {
         validationType: 'commitment',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(USDT_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(1.0)
 
       await expect(service.validateCommitmentAmount(validationData)).resolves.not.toThrow()
@@ -502,7 +496,7 @@ describe('TokenService', () => {
         isCommitment: true,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
 
       tokenRepository.getTokenPrice.mockResolvedValueOnce(3000).mockResolvedValueOnce(1.0)
 
@@ -521,7 +515,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(USDT_TOKEN).mockResolvedValueOnce(ETH_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(USDT_TOKEN).mockResolvedValueOnce(ETH_TOKEN)
 
       tokenRepository.getTokenPrice.mockResolvedValueOnce(1.0).mockResolvedValueOnce(3000)
 
@@ -543,7 +537,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(null)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(null)
 
       await expect(service.calculateBestQuote(calculationData)).rejects.toThrow(BadRequestException)
       await expect(service.calculateBestQuote(calculationData)).rejects.toThrow('One or both tokens not found')
@@ -557,7 +551,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(null)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(null)
 
       await expect(service.calculateBestQuote(calculationData)).rejects.toThrow(BadRequestException)
       await expect(service.calculateBestQuote(calculationData)).rejects.toThrow('One or both tokens not found')
@@ -571,7 +565,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(BTC_TOKEN).mockResolvedValueOnce(ETH_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(BTC_TOKEN).mockResolvedValueOnce(ETH_TOKEN)
 
       tokenRepository.getTokenPrice.mockResolvedValueOnce(50000).mockResolvedValueOnce(3000)
 
@@ -591,7 +585,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(BTC_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(BTC_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
 
       tokenRepository.getTokenPrice.mockResolvedValueOnce(50000).mockResolvedValueOnce(1.0)
 
@@ -610,7 +604,7 @@ describe('TokenService', () => {
         isCommitment: true,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
 
       tokenRepository.getTokenPrice.mockResolvedValueOnce(3000).mockResolvedValueOnce(1.0)
 
@@ -630,7 +624,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(USDT_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(USDT_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
 
       tokenRepository.getTokenPrice.mockResolvedValueOnce(1.0).mockResolvedValueOnce(1.0)
 
@@ -647,7 +641,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
 
       tokenRepository.getTokenPrice.mockResolvedValueOnce(3000).mockResolvedValueOnce(1.0)
 
@@ -666,7 +660,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(BTC_TOKEN).mockResolvedValueOnce(ETH_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(BTC_TOKEN).mockResolvedValueOnce(ETH_TOKEN)
 
       tokenRepository.getTokenPrice.mockResolvedValueOnce(50000).mockResolvedValueOnce(3000)
 
@@ -688,7 +682,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(BTC_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(BTC_TOKEN)
 
       tokenRepository.getTokenPrice.mockResolvedValueOnce(3000).mockResolvedValueOnce(50000)
 
@@ -707,7 +701,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(BTC_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(BTC_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
 
       tokenRepository.getTokenPrice.mockResolvedValueOnce(50000).mockResolvedValueOnce(1.0)
 
@@ -726,7 +720,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(BTC_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(BTC_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(50000) // 0.002 BTC = $100 USD (exactly MIN_TRADE)
 
       await expect(service.validateIndicativeAmount(validationData)).resolves.not.toThrow()
@@ -739,7 +733,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(USDT_TOKEN)
       tokenRepository.getTokenPrice.mockResolvedValue(1.0)
 
       await expect(service.validateIndicativeAmount(validationData)).resolves.not.toThrow()
@@ -752,7 +746,7 @@ describe('TokenService', () => {
         validationType: 'indicative',
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValue(ETH_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValue(ETH_TOKEN)
 
       // Simulate volatile price
       tokenRepository.getTokenPrice.mockResolvedValue(2999.99) // Just under $3000
@@ -768,7 +762,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
 
       // Volatile prices with high precision
       tokenRepository.getTokenPrice.mockResolvedValueOnce(3456.789123).mockResolvedValueOnce(1.000456)
@@ -787,7 +781,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(USDT_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(USDT_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
 
       tokenRepository.getTokenPrice.mockResolvedValueOnce(1.0).mockResolvedValueOnce(1.0)
 
@@ -806,7 +800,7 @@ describe('TokenService', () => {
         isCommitment: false,
       }
 
-      ;(tokenService.getTokenByTokenId as jest.Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
+      ;(tokenService.getTokenByTokenId as Mock).mockResolvedValueOnce(ETH_TOKEN).mockResolvedValueOnce(USDT_TOKEN)
 
       tokenRepository.getTokenPrice.mockResolvedValueOnce(3000).mockResolvedValueOnce(1.0)
 

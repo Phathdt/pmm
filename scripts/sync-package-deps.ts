@@ -22,18 +22,7 @@ const ROOT_PACKAGE_JSON = path.join(__dirname, '..', 'package.json')
 const NPM_PACKAGE_VERSIONS: Record<string, string> = {}
 
 // Packages that should only be in devDependencies (not dependencies)
-const DEV_ONLY_PACKAGES = new Set([
-  '@nestjs/testing',
-  '@types/jest',
-  '@types/node',
-  'jest',
-  'ts-jest',
-  'typescript',
-  '@swc/core',
-  '@swc/jest',
-  'eslint',
-  'prettier',
-])
+const DEV_ONLY_PACKAGES = new Set(['@nestjs/testing', '@types/node', 'typescript', '@swc/core', 'eslint', 'prettier'])
 
 /**
  * Load always-keep dependencies from .keep-deps file in module directory.

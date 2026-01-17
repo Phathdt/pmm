@@ -1,4 +1,5 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 import { ReqService } from '@optimex-pmm/req'
 
 import { ITokenPriceProvider, PriceProvider } from '../../domain'
@@ -17,9 +18,14 @@ const SYMBOL_TO_COINGECKO_ID: Record<string, string> = {
 @Injectable()
 export class CoinGeckoPriceProvider implements ITokenPriceProvider {
   readonly name = PriceProvider.COINGECKO
-  private readonly logger = new Logger(CoinGeckoPriceProvider.name)
+  private readonly logger: EnhancedLogger
 
-  constructor(@Inject('COINGECKO_REQ_SERVICE') private readonly reqService: ReqService) {}
+  constructor(
+    @Inject('COINGECKO_REQ_SERVICE') private readonly reqService: ReqService,
+    logger: EnhancedLogger
+  ) {
+    this.logger = logger.with({ context: CoinGeckoPriceProvider.name })
+  }
 
   async getTokenPrice(symbol: string): Promise<number> {
     // Validate input

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { BitcoinModule } from '@optimex-pmm/bitcoin'
 import { CustomConfigModule } from '@optimex-pmm/custom-config'
+import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
 import { DatabaseModule } from '@optimex-pmm/database'
 import { NearModule } from '@optimex-pmm/near'
 import { TokenModule } from '@optimex-pmm/token'
@@ -24,7 +25,7 @@ const providers = [
 ]
 
 @Module({
-  imports: [CustomConfigModule, DatabaseModule, TokenModule, BitcoinModule, NearModule],
+  imports: [CustomConfigModule, CustomLoggerModule, DatabaseModule, TokenModule, BitcoinModule, NearModule],
   providers: [...providers],
   exports: [REBALANCING_SERVICE, SLIPPAGE_SERVICE, BitcoinModule, NearModule],
 })

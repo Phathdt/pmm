@@ -1,36 +1,51 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common'
-import { Test, TestingModule } from '@nestjs/testing'
 import { ReqService } from '@optimex-pmm/req'
+
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { BinancePriceProvider } from './binance-price.provider'
 
 import { BinancePriceTicker, PriceProvider } from '../../domain'
 
+type Mocked<T> = {
+  [P in keyof T]: T[P] extends (...args: infer A) => infer R ? Mock<(...args: A) => R> & T[P] : T[P]
+}
+
+// Mock EnhancedLogger
+const createMockLogger = () => {
+  const mockLogger = {
+    log: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+    verbose: vi.fn(),
+    info: vi.fn(),
+    fatal: vi.fn(),
+    trace: vi.fn(),
+    with: vi.fn(),
+  }
+  mockLogger.with.mockReturnValue(mockLogger)
+  return mockLogger
+}
+
 describe('BinancePriceProvider', () => {
   let provider: BinancePriceProvider
-  let reqService: jest.Mocked<ReqService>
+  let reqService: Mocked<ReqService>
 
   beforeEach(async () => {
     const mockReqService = {
-      get: jest.fn(),
+      get: vi.fn(),
     }
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        BinancePriceProvider,
-        {
-          provide: 'BINANCE_REQ_SERVICE',
-          useValue: mockReqService,
-        },
-      ],
-    }).compile()
+    const mockLogger = createMockLogger()
 
-    provider = module.get<BinancePriceProvider>(BinancePriceProvider)
-    reqService = module.get('BINANCE_REQ_SERVICE')
+    // Directly instantiate provider instead of using NestJS testing module
+    provider = new BinancePriceProvider(mockReqService as any, mockLogger as any)
+    reqService = mockReqService as Mocked<ReqService>
   })
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('Provider metadata', () => {

@@ -3,7 +3,6 @@
  * This is only a minimal backend to get started.
  */
 
-import { Logger } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
@@ -52,7 +51,7 @@ async function bootstrap() {
 
   const port = configService.host.port
   await app.listen(port)
-  Logger.log(`Application is running on: http://localhost:${port}`)
+  console.log(`Application is running on: http://localhost:${port}`)
 }
 
 bootstrap()

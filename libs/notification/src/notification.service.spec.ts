@@ -1,50 +1,43 @@
-import { Test, TestingModule } from '@nestjs/testing'
-import { EnhancedLogger } from '@optimex-pmm/custom-logger'
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { NotificationService } from './application'
 import { ITelegramProvider } from './domain'
-import { TELEGRAM_PROVIDER } from './infras'
+
+type Mocked<T> = {
+  [P in keyof T]: T[P] extends (...args: infer A) => infer R ? Mock<(...args: A) => R> & T[P] : T[P]
+}
 
 describe('NotificationService', () => {
   let service: NotificationService
-  let telegramService: jest.Mocked<ITelegramProvider>
+  let telegramService: Mocked<ITelegramProvider>
 
-  beforeEach(async () => {
-    const mockTelegramService = {
-      validateConfiguration: jest.fn(),
-      sendMessage: jest.fn(),
-      getConfigurationStatus: jest.fn(),
+  // Create a mock logger that properly implements the with() method
+  const createMockLogger = () => {
+    const logger: any = {
+      log: vi.fn(),
+      error: vi.fn(),
+      warn: vi.fn(),
+      debug: vi.fn(),
+      verbose: vi.fn(),
+      info: vi.fn(),
+      fatal: vi.fn(),
+      trace: vi.fn(),
+    }
+    logger.with = vi.fn().mockReturnValue(logger)
+    return logger
+  }
+
+  beforeEach(() => {
+    telegramService = {
+      validateConfiguration: vi.fn(),
+      sendMessage: vi.fn(),
       providerName: 'telegram',
-    }
+    } as Mocked<ITelegramProvider>
 
-    const mockLogger = {
-      with: jest.fn().mockReturnThis(),
-      log: jest.fn(),
-      error: jest.fn(),
-      warn: jest.fn(),
-      debug: jest.fn(),
-      verbose: jest.fn(),
-      info: jest.fn(),
-      fatal: jest.fn(),
-      trace: jest.fn(),
-    }
+    const mockLogger = createMockLogger()
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        NotificationService,
-        {
-          provide: TELEGRAM_PROVIDER,
-          useValue: mockTelegramService,
-        },
-        {
-          provide: EnhancedLogger,
-          useValue: mockLogger,
-        },
-      ],
-    }).compile()
-
-    service = module.get<NotificationService>(NotificationService)
-    telegramService = module.get(TELEGRAM_PROVIDER)
+    // Directly instantiate the service with mocks
+    service = new NotificationService(telegramService, mockLogger)
   })
 
   it('should be defined', () => {
@@ -54,7 +47,7 @@ describe('NotificationService', () => {
   describe('sendTelegramMessage', () => {
     it('should send telegram message when service is configured', async () => {
       telegramService.validateConfiguration.mockReturnValue(true)
-      telegramService.sendMessage.mockResolvedValue()
+      telegramService.sendMessage.mockResolvedValue(undefined)
 
       await service.sendTelegramMessage('Test message')
 
@@ -83,7 +76,7 @@ describe('NotificationService', () => {
 
     it('should pass options to telegram service', async () => {
       telegramService.validateConfiguration.mockReturnValue(true)
-      telegramService.sendMessage.mockResolvedValue()
+      telegramService.sendMessage.mockResolvedValue(undefined)
 
       const options = { chatId: 'custom-chat', parseMode: 'Markdown' as const }
       await service.sendTelegramMessage('Test message', options)

@@ -1,68 +1,78 @@
-import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { NotFoundException } from '@nestjs/common'
-import { Test, TestingModule } from '@nestjs/testing'
 
-import { Cache } from 'cache-manager'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { TokenRemoteRepository } from './token-remote.repository'
 
 import { PriceProvider } from '../../domain'
-import { BinancePriceProvider, CoinGeckoPriceProvider } from '../providers'
+
+type MockCache = {
+  get: Mock
+  set: Mock
+  del: Mock
+  reset: Mock
+}
+
+type MockProvider = {
+  name: string
+  getTokenPrice: Mock
+}
+
+// Mock EnhancedLogger
+const createMockLogger = () => {
+  const mockLogger = {
+    log: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    debug: vi.fn(),
+    verbose: vi.fn(),
+    info: vi.fn(),
+    fatal: vi.fn(),
+    trace: vi.fn(),
+    with: vi.fn(),
+  }
+  mockLogger.with.mockReturnValue(mockLogger)
+  return mockLogger
+}
 
 describe('TokenRemoteRepository', () => {
   let repository: TokenRemoteRepository
-  let cacheManager: jest.Mocked<Cache>
-  let coinGeckoProvider: jest.Mocked<CoinGeckoPriceProvider>
-  let binanceProvider: jest.Mocked<BinancePriceProvider>
+  let cacheManager: MockCache
+  let coinGeckoProvider: MockProvider
+  let binanceProvider: MockProvider
 
-  beforeEach(async () => {
-    const mockCacheManager = {
-      get: jest.fn(),
-      set: jest.fn(),
-      del: jest.fn(),
-      reset: jest.fn(),
+  beforeEach(() => {
+    cacheManager = {
+      get: vi.fn(),
+      set: vi.fn(),
+      del: vi.fn(),
+      reset: vi.fn(),
     }
 
-    const mockCoinGeckoProvider = {
+    coinGeckoProvider = {
       name: PriceProvider.COINGECKO,
-      getTokenPrice: jest.fn(),
+      getTokenPrice: vi.fn(),
     }
 
-    const mockBinanceProvider = {
+    binanceProvider = {
       name: PriceProvider.BINANCE,
-      getTokenPrice: jest.fn(),
+      getTokenPrice: vi.fn(),
     }
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        TokenRemoteRepository,
-        {
-          provide: CACHE_MANAGER,
-          useValue: mockCacheManager,
-        },
-        {
-          provide: CoinGeckoPriceProvider,
-          useValue: mockCoinGeckoProvider,
-        },
-        {
-          provide: BinancePriceProvider,
-          useValue: mockBinanceProvider,
-        },
-      ],
-    }).compile()
+    // Directly instantiate the repository with mock logger
+    repository = new TokenRemoteRepository(
+      coinGeckoProvider as any,
+      binanceProvider as any,
+      cacheManager as any,
+      createMockLogger() as any
+    )
 
-    repository = module.get<TokenRemoteRepository>(TokenRemoteRepository)
-    cacheManager = module.get(CACHE_MANAGER)
-    coinGeckoProvider = module.get(CoinGeckoPriceProvider)
-    binanceProvider = module.get(BinancePriceProvider)
-
-    // Set default mock return values to prevent undefined errors
-    // Individual tests can override these as needed
+    // Set default mock return values
     binanceProvider.getTokenPrice.mockResolvedValue(99999)
   })
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   describe('Cache Behavior', () => {
@@ -245,7 +255,7 @@ describe('TokenRemoteRepository', () => {
 
       // Should get Binance result since CoinGecko timed out
       expect(result).toBe(50001)
-    }, 10000) // Increase Jest timeout for this test
+    }, 10000)
 
     it('should throw NotFoundException when all providers fail', async () => {
       cacheManager.get.mockResolvedValue(null)

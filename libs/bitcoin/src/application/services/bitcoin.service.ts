@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 import { config } from '@optimex-xyz/market-maker-sdk'
 
 import * as bitcoin from 'bitcoinjs-lib'
@@ -27,7 +28,7 @@ const DUST_THRESHOLD = 546n // Minimum output value in satoshis
 
 @Injectable()
 export class BitcoinService implements IBitcoinService {
-  private readonly logger = new Logger(BitcoinService.name)
+  private readonly logger: EnhancedLogger
   private readonly maxRetries: number
   private readonly retryDelay: number
   private readonly privateKey: string
@@ -39,8 +40,10 @@ export class BitcoinService implements IBitcoinService {
   constructor(
     private readonly blockstream: BlockstreamProvider,
     private readonly mempool: MempoolProvider,
-    private readonly configService: CustomConfigService
+    private readonly configService: CustomConfigService,
+    logger: EnhancedLogger
   ) {
+    this.logger = logger.with({ context: BitcoinService.name })
     this.maxRetries = this.configService.bitcoin.maxRetries
     this.retryDelay = this.configService.bitcoin.retryDelayMs
     this.privateKey = this.configService.pmm.btc.privateKey

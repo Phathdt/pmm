@@ -7,11 +7,11 @@
   "scripts": {
     "build": "rolldown -c",
     "dev": "rolldown -c --watch",
-    "lint": "eslint src --fix",
-    "test": "jest --passWithNoTests"
+    "lint": "eslint src --fix"
   },
   "dependencies": {
     "@optimex-pmm/custom-config": "*",
+    "@optimex-pmm/custom-logger": "*",
     "@optimex-pmm/shared": "*",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.1.12",

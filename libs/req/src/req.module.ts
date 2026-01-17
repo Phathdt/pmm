@@ -2,6 +2,7 @@
 import { HttpModule, HttpService } from '@nestjs/axios'
 import { DynamicModule, Module, Provider } from '@nestjs/common'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
+import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
 
 import { defaultReqConfig, REQ_CONFIG_KEY, ReqModuleConfig } from './req.config'
 import { ReqLoggingInterceptor } from './req.interceptor'
@@ -25,7 +26,7 @@ export class ReqModule {
 
     return {
       module: ReqModule,
-      imports: [HttpModule.register({})],
+      imports: [HttpModule.register({}), CustomLoggerModule],
       providers: [
         {
           provide: REQ_CONFIG_KEY,
@@ -59,6 +60,7 @@ export class ReqModule {
     return {
       module: ReqModule,
       imports: [
+        CustomLoggerModule,
         HttpModule.registerAsync({
           imports: options.imports,
           useFactory: async (...args) => {

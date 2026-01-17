@@ -1,5 +1,6 @@
 import { Cache, CACHE_MANAGER } from '@nestjs/cache-manager'
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 
 import { PriceProvider, type ITokenPriceProvider, type ITokenRepository } from '../../domain'
 import { normalizeSymbol } from '../../utils'
@@ -12,14 +13,16 @@ const STABLECOINS = ['USDT', 'USDC']
 export class TokenRemoteRepository implements ITokenRepository {
   private readonly CACHE_PREFIX = 'optimex:token:price'
   private readonly TTL = 60 * 1000 // 1 minute
-  private readonly logger = new Logger(TokenRemoteRepository.name)
+  private readonly logger: EnhancedLogger
   private readonly providers: ITokenPriceProvider[]
 
   constructor(
     private readonly coinGeckoProvider: CoinGeckoPriceProvider,
     private readonly binanceProvider: BinancePriceProvider,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+    logger: EnhancedLogger
   ) {
+    this.logger = logger.with({ context: TokenRemoteRepository.name })
     // Priority order: CoinGecko first (more data), then Binance (faster, but less data)
     this.providers = [this.coinGeckoProvider, this.binanceProvider]
   }

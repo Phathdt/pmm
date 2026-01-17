@@ -59,6 +59,8 @@ logs.txt
 .claude
 .opencode
 docs
+AGENTS.md
+release-manifest.json
 
 repomix-output*
 

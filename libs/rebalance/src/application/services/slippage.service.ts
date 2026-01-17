@@ -1,17 +1,21 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { CustomConfigService } from '@optimex-pmm/custom-config'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 import { ITokenService, TOKEN_SERVICE } from '@optimex-pmm/token'
 
 import { ISlippageService, SlippageCheckResult } from '../../domain'
 
 @Injectable()
 export class SlippageService implements ISlippageService {
-  private readonly logger = new Logger(SlippageService.name)
+  private readonly logger: EnhancedLogger
 
   constructor(
     @Inject(TOKEN_SERVICE) private readonly tokenService: ITokenService,
-    private readonly configService: CustomConfigService
-  ) {}
+    private readonly configService: CustomConfigService,
+    logger: EnhancedLogger
+  ) {
+    this.logger = logger.with({ context: SlippageService.name })
+  }
 
   async getBtcPrice(): Promise<number> {
     return this.tokenService.getTokenPrice('BTC')

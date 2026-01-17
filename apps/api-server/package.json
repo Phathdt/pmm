@@ -9,7 +9,6 @@
     "start": "node ../../dist/apps/api-server/main",
     "start:prod": "node ../../dist/apps/api-server/main",
     "lint": "eslint src --fix",
-    "test": "jest --passWithNoTests",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -63,11 +62,8 @@
     "@nestjs/schematics": "^11.0.9",
     "@nestjs/testing": "^11.1.12",
     "@types/express": "^5.0.6",
-    "@types/jest": "^30.0.0",
     "@types/node": "~25.0.9",
-    "jest": "^30.2.0",
     "nodemon": "^3.1.11",
-    "ts-jest": "^29.4.6",
     "ts-node": "10.9.2",
     "typescript": "~5.9.3"
   }

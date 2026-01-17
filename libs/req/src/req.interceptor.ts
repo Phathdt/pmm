@@ -1,4 +1,5 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
+import { EnhancedLogger } from '@optimex-pmm/custom-logger'
 
 import { AxiosHeaders, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { v7 as uuidv7 } from 'uuid'
@@ -12,13 +13,16 @@ interface ExtendedAxiosRequestConfig extends InternalAxiosRequestConfig {
 
 @Injectable()
 export class ReqLoggingInterceptor {
-  private readonly logger = new Logger('ReqService')
+  private readonly logger: EnhancedLogger
   private requestTimes: Map<string, number> = new Map()
 
   constructor(
     @Inject(REQ_CONFIG_KEY)
-    private readonly config: ReqModuleConfig
-  ) {}
+    private readonly config: ReqModuleConfig,
+    logger: EnhancedLogger
+  ) {
+    this.logger = logger.with({ context: 'ReqService' })
+  }
 
   private getTraceId(headers: Record<string, unknown>): string {
     const possibleHeaders = ['x-request-id', 'x-b3-traceid', 'x-trace-id', 'x-amzn-trace-id', 'traceparent'] as const

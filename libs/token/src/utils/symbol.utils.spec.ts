@@ -1,3 +1,5 @@
+import { describe, expect, it } from 'vitest'
+
 import { normalizeSymbol } from './symbol.utils'
 
 describe('normalizeSymbol', () => {

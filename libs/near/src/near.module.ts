@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { CustomConfigModule, CustomConfigService } from '@optimex-pmm/custom-config'
+import { CustomLoggerModule } from '@optimex-pmm/custom-logger'
 import { ReqModule } from '@optimex-pmm/req'
 
 import { NearService } from './application'
@@ -15,6 +16,7 @@ export const providers = [
 @Module({
   imports: [
     CustomConfigModule,
+    CustomLoggerModule,
     // NEAR API client with Bearer token authentication
     ReqModule.registerAsync({
       imports: [CustomConfigModule],
