@@ -8,7 +8,6 @@
     "dev": "cd ../.. && nodemon --config apps/api-server/nodemon.json",
     "start": "node ../../dist/apps/api-server/main",
     "start:prod": "node ../../dist/apps/api-server/main",
-    "lint": "eslint src --fix",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

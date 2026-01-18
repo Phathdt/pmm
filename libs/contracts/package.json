@@ -7,7 +7,6 @@
   "scripts": {
     "build": "rolldown -c",
     "dev": "rolldown -c --watch",
-    "lint": "eslint src --fix",
     "typechain": "rm -rf ./src/contracts && typechain --target=ethers-v6 ../../abis/**/*.json --out-dir ./src/contracts",
     "generate-types": "node generate-types.js"
   },
