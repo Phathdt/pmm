@@ -61,3 +61,21 @@ jobs:
 
       - name: Build
         run: yarn build
+
+      - name: Send Telegram Alert on Failure
+        if: failure()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.BF_DEVOPS_CHANNEL_ID }}
+          token: ${{ secrets.BF_MONITOR_BOT }}
+          format: markdown
+          message: |
+            ❌ *CI Failed*
+
+            *Repository:* ${{ github.repository }}
+            *Branch:* ${{ github.ref_name }}
+            *Commit:* `${{ github.sha }}`
+            *Author:* ${{ github.actor }}
+            *Message:* ${{ github.event.head_commit.message }}
+
+            [View Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
