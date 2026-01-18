@@ -51,7 +51,9 @@ COPY --from=builder /tmp/prod-package.json ./package.json
 COPY yarn.lock ./
 
 # Install production dependencies
-RUN yarn install --frozen-lockfile --production && \
+# Note: --frozen-lockfile removed because the flattened prod-package.json
+# contains only a subset of dependencies, which may not match the full lockfile
+RUN yarn install --production --ignore-scripts && \
     yarn cache clean
 
 # Remove unnecessary transitive dependencies that aren't needed at runtime:
