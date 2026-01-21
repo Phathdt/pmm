@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto'
 import { config } from '@optimex-xyz/market-maker-sdk'
 
 import * as bitcoin from 'bitcoinjs-lib'
@@ -49,8 +50,12 @@ export function deriveP2TRAddress(options: DeriveP2TRAddressOptions): DeriveP2TR
 
     try {
       const tempKeyPair = ECPair.fromWIF(privateKeyWIF, oppositeNetwork)
-      // Convert to target network
-      keyPair = ECPair.fromPrivateKey(tempKeyPair.privateKey!, { network: targetNetwork })
+      // Convert to target network with required options for ecpair with valibot 1.2.0+
+      keyPair = ECPair.fromPrivateKey(tempKeyPair.privateKey!, {
+        compressed: true,
+        network: targetNetwork,
+        rng: (size?: number) => randomBytes(size ?? 32),
+      })
       wasConverted = true
       originalNetwork = isTestnet ? 'mainnet' : 'testnet'
     } catch (innerError) {
